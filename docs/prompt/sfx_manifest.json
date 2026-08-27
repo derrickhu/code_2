@@ -1,0 +1,29 @@
+{
+  "defaults": { "bitrate": "96k", "prompt_influence": 0.45 },
+  "sfx": [
+    {
+      "name": "tap",
+      "text": "short crisp dry paper tap, fingertip on thick card stock, sharp attack, no reverb, no voice, no music",
+      "duration": 0.18,
+      "output": "../../../code_2/assets/audio/tap.mp3"
+    },
+    {
+      "name": "hit",
+      "text": "two paper tiles colliding into one word, dry papery slap then a short ink tick, sharp attack, no reverb, no voice, no music",
+      "duration": 0.32,
+      "output": "../../../code_2/assets/audio/hit.mp3"
+    },
+    {
+      "name": "stamp",
+      "text": "heavy vermillion rubber stamp slammed onto paper, woody thunk and wet ink kiss, short room, no voice, no music",
+      "duration": 0.4,
+      "output": "../../../code_2/assets/audio/stamp.mp3"
+    },
+    {
+      "name": "miss",
+      "text": "dull muted paper miss, soft rejected thud, dry, falling, no reverb, no voice, no music",
+      "duration": 0.28,
+      "output": "../../../code_2/assets/audio/miss.mp3"
+    }
+  ]
+}

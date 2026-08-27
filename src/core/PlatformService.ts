@@ -101,7 +101,9 @@ class PlatformServiceClass {
 
   getStorageSync(key: string): string | null {
     try {
-      return this._api?.getStorageSync(key) || null;
+      if (this._api?.getStorageSync) return this._api.getStorageSync(key) || null;
+      if (typeof localStorage !== 'undefined') return localStorage.getItem(key);
+      return null;
     } catch (_) {
       return null;
     }
@@ -109,7 +111,11 @@ class PlatformServiceClass {
 
   setStorageSync(key: string, value: string): void {
     try {
-      this._api?.setStorageSync(key, value);
+      if (this._api?.setStorageSync) {
+        this._api.setStorageSync(key, value);
+        return;
+      }
+      if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
     } catch (_) {}
   }
 
@@ -274,13 +280,16 @@ class PlatformServiceClass {
     });
   }
 
-  /** 创建 InnerAudioContext（BGM / 音效） */
+  /** 创建 InnerAudioContext（BGM / 音效）。浏览器退到 HTMLAudio。 */
   createInnerAudioContext(): WechatMinigame.InnerAudioContext | null {
     try {
-      return this._api?.createInnerAudioContext?.() ?? null;
+      const native = this._api?.createInnerAudioContext?.();
+      if (native) return native;
     } catch {
-      return null;
+      /* fall through */
     }
+    if (typeof Audio === 'undefined') return null;
+    return createWebAudio() as WechatMinigame.InnerAudioContext;
   }
 
   // ═══════════════ 交互反馈 ═══════════════
@@ -301,8 +310,12 @@ class PlatformServiceClass {
 
   showToast(title: string, icon: 'success' | 'error' | 'none' = 'none'): void {
     try {
-      this._api?.showToast?.({ title, icon });
+      if (this._api?.showToast) {
+        this._api.showToast({ title, icon });
+        return;
+      }
     } catch (_) {}
+    showWebToast(title);
   }
 
   /** 关掉当前原生 toast（激励广告关闭后宿主偶发自带提示时用） */
@@ -628,6 +641,65 @@ class PlatformServiceClass {
 
     return Promise.resolve(null);
   }
+}
+
+function createWebAudio(): {
+  src: string;
+  volume: number;
+  loop: boolean;
+  play: () => void;
+  stop: () => void;
+  seek: (t: number) => void;
+  destroy: () => void;
+  onEnded: (fn: () => void) => void;
+  onError: (fn: () => void) => void;
+} {
+  let audio: HTMLAudioElement | null = new Audio();
+  audio.preload = 'auto';
+  return {
+    get src() { return audio?.getAttribute('src') || audio?.src || ''; },
+    set src(v: string) { if (audio) audio.src = v; },
+    get volume() { return audio?.volume ?? 1; },
+    set volume(v: number) { if (audio) audio.volume = v; },
+    get loop() { return audio?.loop ?? false; },
+    set loop(v: boolean) { if (audio) audio.loop = v; },
+    play() {
+      if (!audio) return;
+      audio.currentTime = audio.loop ? audio.currentTime : 0;
+      void audio.play().catch(() => { /* 浏览器首次需手势 */ });
+    },
+    stop() {
+      if (!audio) return;
+      audio.pause();
+      audio.currentTime = 0;
+    },
+    seek(t: number) { if (audio) audio.currentTime = t; },
+    destroy() {
+      try { audio?.pause(); } catch { /* */ }
+      audio = null;
+    },
+    onEnded(fn) { audio?.addEventListener('ended', fn); },
+    onError(fn) { audio?.addEventListener('error', fn); },
+  };
+}
+
+function showWebToast(title: string): void {
+  if (typeof document === 'undefined') return;
+  let el = document.getElementById('code2-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'code2-toast';
+    el.style.cssText = [
+      'position:fixed', 'left:50%', 'bottom:16%', 'transform:translateX(-50%)',
+      'background:#1c1915', 'color:#f3e6cf', 'padding:10px 16px',
+      'border-radius:8px', 'z-index:20', 'font:14px/1.4 sans-serif',
+      'opacity:0', 'transition:opacity .15s', 'pointer-events:none',
+    ].join(';');
+    document.body.appendChild(el);
+  }
+  el.textContent = title;
+  el.style.opacity = '1';
+  window.setTimeout(() => { if (el) el.style.opacity = '0'; }, 900);
 }
 
 export const Platform = new PlatformServiceClass();

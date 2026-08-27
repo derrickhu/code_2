@@ -66,9 +66,18 @@ class GameClass {
       this.screenWidth = sysInfo.screenWidth ?? this.screenWidth;
       this.screenHeight = sysInfo.screenHeight ?? this.screenHeight;
       this.dpr = sysInfo.pixelRatio || 2;
+    } else if (typeof window !== 'undefined') {
+      const cssW = Number(canvas.clientWidth) || window.innerWidth || 390;
+      const cssH = Number(canvas.clientHeight) || window.innerHeight || 844;
+      this.screenWidth = cssW;
+      this.screenHeight = cssH;
+      this.dpr = Math.min(window.devicePixelRatio || 2, 2);
     }
 
-    this._applySafeArea(_api, sysInfo);
+    this._applySafeArea(_api, sysInfo ?? {
+      statusBarHeight: 20,
+      safeArea: { bottom: this.screenHeight - 16 },
+    });
 
     this.scale = this.screenWidth / this.designWidth * this.dpr;
     const realWidth = this.screenWidth * this.dpr;

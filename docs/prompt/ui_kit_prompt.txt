@@ -1,0 +1,7 @@
+A 2x2 game UI asset grid, equal square cells, clean separation, consistent warm paper-and-ink style, studio lighting.
+Top-left: a blank rounded paper tile, cream fiber paper, soft torn deckle edge, empty, for placing one Chinese character later.
+Top-right: a circular vermillion cinnabar seal stamp, traditional Chinese chop, empty center, only concentric rings and carved texture, no characters.
+Bottom-left: a isolated red ink brush smear / underline wound, like a censor mark, transparent-looking white studio backdrop, no paper sheet.
+Bottom-right: a darker tea-stained paper card panel for overlay dialogs, rounded corners, empty, warm brown ink edge.
+Same color family as cream paper and brick-orange ink. Not cute, not anime, not sci-fi.
+NO TEXT, no labels, no captions, no writing, no Chinese characters, no letters, no numbers, no logos, no arrows, no watermarks.

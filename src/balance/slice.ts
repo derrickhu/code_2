@@ -20,10 +20,12 @@ export interface RoundDef {
   pool: string[];
   pairs: PairDef[];
   seconds?: number;
+  /** 同一张通知要改几刀。默认 2。 */
+  cuts?: number;
 }
 
-export const ROUND_SECONDS = 32;
-export const MAX_MISSES = 4;
+export const ROUND_SECONDS = 40;
+export const MAX_MISSES = 6;
 
 export const SLICE_ROUNDS: readonly RoundDef[] = [
   {
@@ -31,10 +33,11 @@ export const SLICE_ROUNDS: readonly RoundDef[] = [
     source: '群通知',
     notice: '今晚全体加班',
     mark: '加班',
-    goal: '改掉加班',
-    hint: '两个字对上，通知就会被改',
+    goal: '改掉红字加班',
+    hint: '红字是靶，对上就能改，不是猜老板',
     guide: ['取', '消'],
-    seconds: 40,
+    seconds: 48,
+    cuts: 3,
     pool: ['取', '消', '摸', '鱼', '加', '班'],
     pairs: [
       { a: '取', b: '消', word: '取消', kind: 'rewrite', nextText: '今晚全体取消', line: '通知被你改了' },
@@ -49,6 +52,7 @@ export const SLICE_ROUNDS: readonly RoundDef[] = [
     mark: '晚上',
     goal: '别晚上开',
     hint: '对上就能改开会时间',
+    cuts: 2,
     pool: ['提', '前', '取', '消', '晚', '上'],
     pairs: [
       { a: '提', b: '前', word: '提前', kind: 'rewrite', nextText: '周会提前开', line: '晚上不作数了' },
@@ -63,6 +67,7 @@ export const SLICE_ROUNDS: readonly RoundDef[] = [
     mark: '毙了',
     goal: '把毙了改掉',
     hint: '对上就能翻案',
+    cuts: 2,
     pool: ['能', '成', '重', '来', '毙', '了'],
     pairs: [
       { a: '能', b: '成', word: '能成', kind: 'rewrite', nextText: '方案能成了', line: '毙掉的是上一句' },
@@ -77,6 +82,7 @@ export const SLICE_ROUNDS: readonly RoundDef[] = [
     mark: '再改',
     goal: '别再改了',
     hint: '对上就能收住',
+    cuts: 2,
     pool: ['过', '了', '定', '稿', '再', '改'],
     pairs: [
       { a: '过', b: '了', word: '过了', kind: 'rewrite', nextText: '客户说这版过了', line: '这版算数了' },
@@ -91,6 +97,7 @@ export const SLICE_ROUNDS: readonly RoundDef[] = [
     mark: '缩短',
     goal: '把缩短改掉',
     hint: '对上就能抢回午饭',
+    cuts: 2,
     pool: ['加', '长', '取', '消', '缩', '短'],
     pairs: [
       { a: '加', b: '长', word: '加长', kind: 'rewrite', nextText: '午饭加长十分钟', line: '这十分钟是你的' },
@@ -105,6 +112,7 @@ export const SLICE_ROUNDS: readonly RoundDef[] = [
     mark: '点名',
     goal: '把自己摘出去',
     hint: '对上就能脱身',
+    cuts: 2,
     pool: ['已', '交', '请', '假', '点', '名'],
     pairs: [
       { a: '已', b: '交', word: '已交', kind: 'rewrite', nextText: '你已交不用点名', line: '名单上没你了' },
@@ -119,6 +127,7 @@ export const SLICE_ROUNDS: readonly RoundDef[] = [
     mark: '继续',
     goal: '明天不作数',
     hint: '对上就能改明天',
+    cuts: 2,
     pool: ['放', '假', '鸽', '了', '加', '班'],
     pairs: [
       { a: '放', b: '假', word: '放假', kind: 'rewrite', nextText: '明天放假', line: '明天不作数了' },
@@ -133,7 +142,8 @@ export const SLICE_ROUNDS: readonly RoundDef[] = [
     mark: '通宵',
     goal: '改掉通宵',
     hint: '最后一句，对上就收工',
-    seconds: 28,
+    seconds: 36,
+    cuts: 2,
     pool: ['取', '消', '放', '假', '通', '宵'],
     pairs: [
       { a: '取', b: '消', word: '取消', kind: 'rewrite', nextText: '全公司取消通宵', line: '公告作废' },

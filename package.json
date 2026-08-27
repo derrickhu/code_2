@@ -9,8 +9,11 @@
     "test:watch": "vitest",
     "bundle": "vite build",
     "build:wechat": "CODE2_PLATFORM=wechat vite build",
+    "build:web": "vite build --config vite.web.config.ts",
     "build": "npm run typecheck && npm run test && vite build",
-    "dev": "vite build --watch"
+    "dev": "vite --config vite.web.config.ts",
+    "dev:wechat": "vite build --watch",
+    "preview": "vite preview --config vite.web.config.ts"
   },
   "dependencies": {
     "@pixi/unsafe-eval": "^7.3.2",

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>对上了</title>
+    <style>
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: #120e0b;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+      }
+      #frame {
+        width: min(390px, 100vw);
+        height: min(844px, 100vh);
+        background: #1a1612;
+        position: relative;
+        box-shadow: 0 0 0 1px #3a322b;
+      }
+      #game {
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+      }
+      #hint {
+        position: fixed;
+        left: 16px;
+        bottom: 12px;
+        color: #8a8178;
+        font-size: 12px;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="frame">
+      <canvas id="game"></canvas>
+    </div>
+    <div id="hint">浏览器预览 · 同一份也会打进微信包</div>
+    <script type="module" src="./boot.ts"></script>
+  </body>
+</html>
