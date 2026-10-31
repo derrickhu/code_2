@@ -1,0 +1,30 @@
+Common: square 1:1 full-bleed app icon, sharp corners, premium casual key-art quality, chibi heroes copied from hero_wusong / hero_huarong, thick outlines, glossy cel shading, dramatic rim light. Faces inside the center 70 percent. NO TEXT, no letters, no Chinese characters, no numbers, no logo, no watermark, blank flags only.
+
+c1_punch (one punch holds the wall):
+Extreme close dynamic shot. Wu Song bursts forward over a stone battlement toward the viewer, shouting, eyes blazing. Right fist huge in the foreground with strong perspective, shattering an incoming arrow into splinters with a golden-white shockwave ring and sparks. Behind him a dusk red-purple smoky sky, a dark sea of enemy spears and plain blank ragged flags, tiny arrows streaking toward the wall, embers. Battlement edge along the bottom.
+
+c2_gate (last man on the Liangshan gate):
+Heroic low angle up at a mountain fortress gate tower with a sweeping dark-blue tiled roof and red pillars. Wu Song in a wide power stance on the parapet, staff on back, fists glowing with golden aura, headband whipping. A huge blank crimson banner billows behind him. Scaling ladders on the wall, tiny cartoon enemies in grey helmets knocked off comically. Fire arrows arc across an orange-crimson-violet sunset, god rays behind him like a halo.
+
+c3_duo (brothers hold the wall):
+Wu Song and Hua Rong back to back on a stone battlement, slight low angle. Wu Song front-left roaring and punching toward the viewer with a golden impact burst; Hua Rong behind-right drawing his bow with a glowing golden arrow. Dark crimson dusk sky, smoke and embers, silhouette enemy army of spears and blank flags below, incoming arrow tips at the bottom.
+
+Post: c2 and c3 came back with baked rounded corners; center-cropped 60 / 66 px per side and resized back to 1024.
+
+--- Round 2: non-chibi, 2026 trending Chinese dark guofeng (no reference images, they pull the result back to chibi) ---
+
+Common: adult heroic proportions, NOT chibi, NOT cartoon. Crimson / violet / gold palette. Full-bleed square, painted to every corner. NO TEXT, blank flags.
+
+d1_face: Black Myth inspired semi-realistic thick paint. Wu Song head-and-shoulders close-up, burning eyes, stubble, headband tails, tiger pelt, gold-fire fist in the foreground. Burning fortress wall, dark-red flag, fire arrows behind.
+d2_gate: low angle, Wu Song alone on the Liangshan gate battlement with his staff, huge apricot banner, blood moon, enemy spear tide and ladders below.
+d3_strike: Wu Song swings his staff at the viewer, golden burst shatters arrows and spear tips, burning gate tower and red flag behind.
+e1_hero: Honor of Kings style hero portrait, clean high-saturation rendering, confident grin, blue headband, tiger mantle, gold-fire fist, crimson sunset, gate tower, fire arrows.
+--- Round 3: bright, low detail, icon-first (redraw from d3 / e2 / e1 as composition reference) ---
+
+Common: polished stylized Chinese hero illustration, adult proportions, bold clean shapes, smooth cel shading, crisp outlines, LOW detail. No grime, no smoke, no embers, no scenery clutter. Background is one bright gradient or flat color plus a simple light-grey battlement along the bottom.
+
+f1_strike: staff swing at upper left, white-gold starburst shattering arrows, gold-to-red-orange radial background.
+f2_banner: upper body, low angle, staff upright, blank apricot banner, sky-blue gradient with white sunburst.
+f3_portrait: bust, confident glare, gold flame fist, flat crimson background.
+
+e2_banner: Chinese 3D donghua render. Wu Song on the battlement planting his staff, giant blank apricot-yellow banner, sunburst halo, arrows shattering on a golden shield, gate tower roof.
