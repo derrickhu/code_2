@@ -7,8 +7,13 @@ namespace Liangshan.Sim
     public sealed class Loadout
     {
         public HeroId[] Lineup;
-        public float[] HeroDmg, HeroSpeed, HeroUltCd;
-        public float AllDmg = 1, AllSpeed = 1, WallMul = 1, WallResist, UltCd = 1;
+        /// <summary>寨主攻击力：所有好汉伤害 = 攻击力 × 好汉系数。</summary>
+        public float Atk = Meta.BaseAtk, Crit = Meta.BaseCrit, CritDmg = Meta.BaseCritDmg;
+        public float[] HeroDmg, HeroSpeed, HeroUltCd, UltPow;
+        public bool[] Ult, Passive;
+        /// <summary>按职业的伤害加成（装备突破）。</summary>
+        public float[] RoleDmg;
+        public float AllSpeed = 1, WallMul = 1, WallResist, UltCd = 1;
         public int StartCoins;
         public readonly List<string> StartPerks = new List<string>();
 
@@ -19,7 +24,16 @@ namespace Liangshan.Sim
             lo.HeroDmg = new float[n];
             lo.HeroSpeed = new float[n];
             lo.HeroUltCd = new float[n];
-            for (int i = 0; i < n; i++) lo.HeroDmg[i] = lo.HeroSpeed[i] = lo.HeroUltCd[i] = 1f;
+            lo.UltPow = new float[n];
+            lo.Ult = new bool[n];
+            lo.Passive = new bool[n];
+            for (int i = 0; i < n; i++)
+            {
+                lo.HeroDmg[i] = lo.HeroSpeed[i] = lo.HeroUltCd[i] = lo.UltPow[i] = 1f;
+                lo.Ult[i] = true;
+            }
+            lo.RoleDmg = new float[Defs.RoleCount];
+            for (int i = 0; i < lo.RoleDmg.Length; i++) lo.RoleDmg[i] = 1f;
             return lo;
         }
     }
@@ -35,6 +49,8 @@ namespace Liangshan.Sim
         public int[] HeroLv = new int[0], Shards = new int[0];
         public int[] Lineup = { 0, 1, 2, 3 };
         public int Cleared, Selected = 1;
+        /// <summary>寨主天赋已点亮的节点数。</summary>
+        public int Talent;
         public int[] Stars = new int[0];
         public int[] EquipLv = new int[0];
         public int RecruitLv = 1, RecruitExp, Pity, Pulls;
@@ -95,6 +111,8 @@ namespace Liangshan.Sim
         public string Name, Icon, Stat;
         public float Per, Cap;
         public bool Pct = true;
+        /// <summary>突破加成的职业。</summary>
+        public Role Role;
     }
 
     public sealed class TaskDef
@@ -112,7 +130,9 @@ namespace Liangshan.Sim
         public const int BattleStamina = 5;
         public const int AdIngotsMax = 5, AdStaminaMax = 3, AdRecruitMax = 3, AdIdleMax = 3, DailyTriesMax = 2, EscortTriesMax = 2, ShopStaminaMax = 2;
         public const int TalentStep = 5;
-        public const float GlobalPerLv = 0.003f;
+        public const float BaseAtk = 50f, BaseCrit = 0.05f, BaseCritDmg = 1.5f;
+        /// <summary>任意好汉每升一级，全军暴击伤害 +1%。</summary>
+        public const float CritDmgPerLv = 0.01f;
         public const int IdleCapHours = 8;
 
         // ---------------- 存档 ----------------
@@ -229,40 +249,39 @@ namespace Liangshan.Sim
 
         public static float LevelDmg(int lv) => 1f + 0.12f * (Math.Max(1, lv) - 1);
 
-        public static float HeroDmg(int lv)
-        {
-            float m = LevelDmg(lv);
-            if (lv >= 10) m *= 1.2f;
-            if (lv >= 25) m *= 1.3f;
-            return m;
-        }
+        /// <summary>好汉普攻伤害倍率：等级成长，10 级再 +20%。</summary>
+        public static float HeroDmg(int lv) => LevelDmg(lv) * (lv >= 10 ? 1.2f : 1f);
 
-        /// <summary>每升一级给全军加的伤害，所有好汉一起算。</summary>
-        public static float GlobalDmg(SaveData s)
+        /// <summary>所有好汉等级之和带来的暴击伤害加成。</summary>
+        public static float LevelCritDmg(SaveData s)
         {
             int sum = 0;
             foreach (var lv in s.HeroLv) if (lv > 1) sum += lv - 1;
-            return sum * GlobalPerLv;
+            return sum * CritDmgPerLv;
         }
 
         public static string FirstPerk(HeroId h)
         {
             foreach (var p in Defs.Perks)
-                if (p.Hero == h && !p.Ult) return p.Id;
+                if (p.Hero == h && !p.Star) return p.Id;
             return null;
         }
 
-        /// <summary>第 i 个天赋（0..5），在 5、10…30 级解锁。</summary>
+        /// <summary>好汉等级解锁表：1 级普攻和大招，之后每 5 级一档。</summary>
+        public static readonly int[] UnlockLv = { 1, 5, 10, 15, 20, 25, 30 };
+
         public static string Talent(HeroId h, int i)
         {
+            var d = Defs.Hero(h);
             switch (i)
             {
-                case 0: return $"开局自带「{Defs.Perk(FirstPerk(h)).Name}」";
-                case 1: return "伤害 +20%";
-                case 2: return "大招冷却 -15%";
-                case 3: return $"开局自带大招「{Defs.Hero(h).UltName}」";
-                case 4: return "伤害 +30%";
-                default: return "攻速 +20%";
+                case 0: return $"解锁普攻「{d.AtkName}」与大招「{d.UltName}」";
+                case 1: return $"解锁被动「{d.PassiveName}」";
+                case 2: return "普攻伤害 +20%";
+                case 3: return "大招冷却 -15%";
+                case 4: return $"开局自带强化「{Defs.Perk(FirstPerk(h)).Name}」";
+                case 5: return "大招威力 +50%";
+                default: return "攻击速度 +20%";
             }
         }
 
@@ -270,7 +289,8 @@ namespace Liangshan.Sim
         {
             var d = Defs.Hero(h);
             int lv = Math.Max(1, s.HeroLv[(int)h]);
-            return (int)(d.Damage / d.Interval * HeroDmg(lv) * (lv >= 30 ? 1.2f : 1f) * 10);
+            float aura = d.Aura == AuraKind.None ? 0 : 0.6f;
+            return (int)((d.Coef + aura) * BaseAtk / d.Interval * HeroDmg(lv) * (lv >= 30 ? 1.2f : 1f) * (lv >= 5 ? 1.08f : 1f) * 10);
         }
 
         public static int TeamPower(SaveData s)
@@ -280,22 +300,77 @@ namespace Liangshan.Sim
             foreach (var h in lo.Lineup)
             {
                 var d = Defs.Hero(h);
-                p += d.Damage / d.Interval * lo.HeroDmg[(int)h] * lo.HeroSpeed[(int)h];
+                float aura = d.Aura == AuraKind.None ? 0 : 0.6f;
+                p += (d.Coef + aura) / d.Interval * lo.HeroDmg[(int)h] * lo.HeroSpeed[(int)h] * lo.RoleDmg[(int)d.Kind];
             }
-            return (int)(p * lo.AllDmg * lo.AllSpeed * 10 + lo.WallMul * 6000 / 20);
+            float crit = 1f + lo.Crit * (lo.CritDmg - 1f);
+            return (int)(p * lo.Atk * lo.AllSpeed * crit * 10 + lo.WallMul * 300 / (1f - lo.WallResist));
+        }
+
+        // ---------------- 寨主天赋 ----------------
+
+        public const int TalentMax = 150;
+        public static int TalentCap(SaveData s) => Math.Min(TalentMax, 6 + s.Cleared * 3);
+        public static int TalentCost(int i) => 60 + 15 * i;
+
+        /// <summary>第 i 个节点（1 起）：每个 +1 攻击，逢 10 再 +5；另按 i%5 给一项副属性。</summary>
+        public static int TalentAtk(int i) => 1 + (i % 10 == 0 ? 5 : 0);
+
+        public enum TalentStat { CritDmg, Crit, Wall, Coins, Speed }
+
+        public static TalentStat TalentKind(int i) => (TalentStat)(i % 5);
+
+        public static float TalentValue(TalentStat k) =>
+            k == TalentStat.Crit ? 0.004f : k == TalentStat.Wall ? 0.015f : k == TalentStat.Coins ? 4f : k == TalentStat.Speed ? 0.006f : 0.03f;
+
+        public static string TalentStatName(TalentStat k) =>
+            k == TalentStat.Crit ? "暴击率" : k == TalentStat.Wall ? "寨墙生命" : k == TalentStat.Coins ? "开局银两" : k == TalentStat.Speed ? "攻击速度" : "暴击伤害";
+
+        public static string TalentText(int i)
+        {
+            var k = TalentKind(i);
+            float v = TalentValue(k);
+            string sub = k == TalentStat.Coins ? $"{TalentStatName(k)} +{v:0}" : $"{TalentStatName(k)} +{v * 100:0.#}%";
+            return $"攻击力 +{TalentAtk(i)}，{sub}";
+        }
+
+        /// <summary>前 n 个节点的总加成。</summary>
+        public static void TalentSum(int n, out float atk, out float crit, out float critDmg, out float wall, out float coins, out float speed)
+        {
+            atk = n + n / 10 * 5;
+            int Count(int r) => n / 5 + (r != 0 && n % 5 >= r ? 1 : 0);
+            critDmg = Count(0) * TalentValue(TalentStat.CritDmg);
+            crit = Count(1) * TalentValue(TalentStat.Crit);
+            wall = Count(2) * TalentValue(TalentStat.Wall);
+            coins = Count(3) * TalentValue(TalentStat.Coins);
+            speed = Count(4) * TalentValue(TalentStat.Speed);
+        }
+
+        public static bool CanTalent(SaveData s) => s.Talent < TalentCap(s) && s.Copper >= TalentCost(s.Talent + 1);
+
+        public static bool LearnTalent(SaveData s)
+        {
+            if (!CanTalent(s)) return false;
+            s.Copper -= TalentCost(s.Talent + 1);
+            s.Talent++;
+            return true;
         }
 
         // ---------------- 装备（寨主宋江） ----------------
 
         public static readonly EquipDef[] Equips =
         {
-            new EquipDef { Name = "佩剑", Icon = "eq_weapon", Stat = "全军伤害", Per = 0.04f, Cap = 9 },
-            new EquipDef { Name = "头盔", Icon = "eq_helmet", Stat = "寨墙生命", Per = 0.05f, Cap = 9 },
-            new EquipDef { Name = "铠甲", Icon = "eq_armor", Stat = "寨墙减伤", Per = 0.015f, Cap = 0.45f },
-            new EquipDef { Name = "战靴", Icon = "eq_boots", Stat = "全军攻速", Per = 0.025f, Cap = 9 },
-            new EquipDef { Name = "玉佩", Icon = "eq_amulet", Stat = "开局银两", Per = 8, Cap = 999, Pct = false },
-            new EquipDef { Name = "号角", Icon = "eq_horn", Stat = "大招冷却", Per = 0.015f, Cap = 0.4f },
+            new EquipDef { Name = "佩剑", Icon = "eq_weapon", Stat = "攻击力", Per = 2f, Cap = 999, Pct = false, Role = Role.Fighter },
+            new EquipDef { Name = "头盔", Icon = "eq_helmet", Stat = "寨墙生命", Per = 0.05f, Cap = 9, Role = Role.Control },
+            new EquipDef { Name = "铠甲", Icon = "eq_armor", Stat = "寨墙减伤", Per = 0.015f, Cap = 0.45f, Role = Role.Bomber },
+            new EquipDef { Name = "战靴", Icon = "eq_boots", Stat = "攻击速度", Per = 0.025f, Cap = 9, Role = Role.Archer },
+            new EquipDef { Name = "玉佩", Icon = "eq_amulet", Stat = "暴击率", Per = 0.003f, Cap = 0.3f, Role = Role.Mage },
+            new EquipDef { Name = "号角", Icon = "eq_horn", Stat = "大招冷却", Per = 0.015f, Cap = 0.4f, Role = Role.Support },
         };
+
+        /// <summary>装备每 10 级突破一次，给对应职业 +4% 伤害。</summary>
+        public const float BreakDmg = 0.04f;
+        public static int Breaks(int lv) => lv / 10;
 
         public static int EquipMax(SaveData s) => Math.Min(40, 5 + s.Cleared * 7 / 10);
         public static int IronCost(int lv) => 3 + lv * 2;
@@ -316,6 +391,12 @@ namespace Liangshan.Sim
             float v = EquipValue(slot, lv);
             string sign = slot == 2 || slot == 5 ? "-" : "+";
             return d.Pct ? $"{d.Stat} {sign}{v * 100:0.#}%" : $"{d.Stat} +{v:0}";
+        }
+
+        public static string BreakText(int slot, int lv)
+        {
+            var r = Equips[slot].Role;
+            return $"{Defs.RoleName(r)}伤害 +{Breaks(lv) * BreakDmg * 100:0}%";
         }
 
         public static bool CanForge(SaveData s, int slot)
@@ -344,19 +425,22 @@ namespace Liangshan.Sim
                 lo.HeroDmg[h] = HeroDmg(lv);
                 lo.HeroSpeed[h] = lv >= 30 ? 1.2f : 1f;
                 lo.HeroUltCd[h] = lv >= 15 ? 0.85f : 1f;
+                lo.UltPow[h] = lv >= 25 ? 1.5f : 1f;
+                lo.Passive[h] = lv >= 5;
             }
-            lo.AllDmg = (1f + GlobalDmg(s)) * (1f + EquipValue(0, s.EquipLv[0]));
-            lo.WallMul = 1f + EquipValue(1, s.EquipLv[1]);
+            TalentSum(s.Talent, out var tAtk, out var tCrit, out var tCritDmg, out var tWall, out var tCoins, out var tSpeed);
+            lo.Atk = BaseAtk + tAtk + EquipValue(0, s.EquipLv[0]);
+            lo.Crit = BaseCrit + tCrit + EquipValue(4, s.EquipLv[4]);
+            lo.CritDmg = BaseCritDmg + tCritDmg + LevelCritDmg(s);
+            lo.WallMul = 1f + EquipValue(1, s.EquipLv[1]) + tWall;
             lo.WallResist = EquipValue(2, s.EquipLv[2]);
-            lo.AllSpeed = 1f + EquipValue(3, s.EquipLv[3]);
-            lo.StartCoins = (int)EquipValue(4, s.EquipLv[4]);
+            lo.AllSpeed = 1f + EquipValue(3, s.EquipLv[3]) + tSpeed;
+            lo.StartCoins = (int)tCoins;
             lo.UltCd = 1f - EquipValue(5, s.EquipLv[5]);
+            for (int i = 0; i < Equips.Length; i++)
+                lo.RoleDmg[(int)Equips[i].Role] += Breaks(s.EquipLv[i]) * BreakDmg;
             foreach (var h in lo.Lineup)
-            {
-                int lv = s.HeroLv[(int)h];
-                if (lv >= 5) lo.StartPerks.Add(FirstPerk(h));
-                if (lv >= 20) lo.StartPerks.Add(Defs.Hero(h).Ult);
-            }
+                if (s.HeroLv[(int)h] >= 20) lo.StartPerks.Add(FirstPerk(h));
             return lo;
         }
 
@@ -365,8 +449,17 @@ namespace Liangshan.Sim
         public static int StarsFor(float wallPct) => wallPct >= 0.7f ? 3 : wallPct >= 0.35f ? 2 : 1;
 
         /// <summary>首通送好汉：前几章各解锁一位新人。</summary>
-        public static HeroId? UnlockAt(int level) =>
-            level == 4 ? HeroId.ZhangQing : level == 8 ? HeroId.WuYong : level == 15 ? HeroId.LuZhiShen : level == 25 ? HeroId.LinChong : (HeroId?)null;
+        static readonly (int lv, HeroId h)[] Unlocks =
+        {
+            (4, HeroId.ZhangQing), (8, HeroId.WuYong), (12, HeroId.ShiXiu), (15, HeroId.LuZhiShen), (18, HeroId.RuanXiaoqi),
+            (22, HeroId.TangLong), (25, HeroId.LinChong), (30, HeroId.HuSanniang), (35, HeroId.GuanSheng), (40, HeroId.LuJunyi), (45, HeroId.DaiZong),
+        };
+
+        public static HeroId? UnlockAt(int level)
+        {
+            foreach (var u in Unlocks) if (u.lv == level) return u.h;
+            return null;
+        }
 
         public static Rewards BattleRewards(SaveData s, LevelDef st, bool win, int wave, float wallPct, int porters, Rng rng)
         {
@@ -664,6 +757,15 @@ namespace Liangshan.Sim
 
         static int ExpectedLv(int n) => Math.Min(MaxHeroLv, 1 + (int)((n - 1) * 0.5f));
         static int ExpectedEquip(int n) => Math.Min(Math.Min(40, 5 + (n - 1) * 7 / 10), (int)((n - 1) * 0.6f));
+        static int ExpectedTalent(int n) => Math.Min(Math.Min(TalentMax, 6 + (n - 1) * 3), 2 * (n - 1));
+
+        /// <summary>打到第 n 关前首通解锁的好汉数。</summary>
+        static int ExpectedUnlocked(int n)
+        {
+            int k = 0;
+            foreach (var u in Unlocks) if (u.lv <= n - 1) k++;
+            return k;
+        }
 
         /// <summary>正常推进到第 n 关时大致的养成：调难度曲线、写单测都用它。</summary>
         public static SaveData ExpectedSave(int n)
@@ -671,29 +773,50 @@ namespace Liangshan.Sim
             var s = NewSave(0);
             int lv = ExpectedLv(n);
             for (int h = 0; h < 4; h++) s.HeroLv[h] = lv;
-            for (int h = 4; h < Defs.HeroCount; h++) s.HeroLv[h] = Math.Max(0, lv - 4);
+            foreach (var u in Unlocks)
+                if (u.lv <= n - 1) s.HeroLv[(int)u.h] = Math.Max(1, lv - 4);
             s.Cleared = n - 1;
             int eq = ExpectedEquip(n);
             for (int i = 0; i < s.EquipLv.Length; i++) s.EquipLv[i] = eq;
+            s.Talent = ExpectedTalent(n);
             return s;
         }
 
-        /// <summary>ExpectedSave(n) 的单个好汉输出倍率（伤害 × 攻速），不依赖关卡表，关卡表初始化时可以调。</summary>
+        static readonly float PlainCrit = 1f + BaseCrit * (BaseCritDmg - 1f);
+
+        /// <summary>一位好汉的输出倍率（相对白板）：攻击力 × 等级 × 攻速 × 暴击期望 × 职业突破。</summary>
+        public static float PowerOf(Loadout lo, HeroId h)
+        {
+            var d = Defs.Hero(h);
+            float crit = 1f + Math.Min(0.8f, lo.Crit) * (lo.CritDmg - 1f);
+            return lo.Atk / BaseAtk * lo.HeroDmg[(int)h] * lo.HeroSpeed[(int)h] * lo.AllSpeed * lo.RoleDmg[(int)d.Kind] * crit / PlainCrit;
+        }
+
+        /// <summary>被动、大招冷却、开局强化、大招威力这几档解锁的大致收益。</summary>
+        public static float UnlockFactor(int lv) => (lv >= 5 ? 1.08f : 1f) * (lv >= 15 ? 1.05f : 1f) * (lv >= 20 ? 1.06f : 1f) * (lv >= 25 ? 1.1f : 1f);
+
+        /// <summary>ExpectedSave(n) 的单个好汉输出倍率，不依赖关卡表，关卡表初始化时可以调。和 PowerOf(BuildLoadout(ExpectedSave(n))) 保持一致。</summary>
         public static float ExpectedPower(int n)
         {
             int lv = ExpectedLv(n);
-            int lv2 = Math.Max(0, lv - 4);
+            int lv2 = Math.Max(1, lv - 4);
             int eq = ExpectedEquip(n);
-            float global = (4 * (lv - 1) + 4 * Math.Max(0, lv2 - 1)) * GlobalPerLv;
-            float talents = (lv >= 5 ? 1.08f : 1f) * (lv >= 15 ? 1.05f : 1f) * (lv >= 20 ? 1.15f : 1f);
-            return HeroDmg(lv) * (lv >= 30 ? 1.2f : 1f) * (1f + global) * (1f + EquipValue(0, eq)) * (1f + EquipValue(3, eq)) * talents;
+            TalentSum(ExpectedTalent(n), out var tAtk, out var tCrit, out var tCritDmg, out _, out _, out var tSpeed);
+            float atk = BaseAtk + tAtk + EquipValue(0, eq);
+            float critRate = Math.Min(0.8f, BaseCrit + tCrit + EquipValue(4, eq));
+            float critDmg = BaseCritDmg + tCritDmg + (4 * (lv - 1) + ExpectedUnlocked(n) * (lv2 - 1)) * CritDmgPerLv;
+            float crit = 1f + critRate * (critDmg - 1f);
+            float speed = (lv >= 30 ? 1.2f : 1f) * (1f + EquipValue(3, eq) + tSpeed);
+            float role = 1f + Breaks(eq) * BreakDmg;
+            return atk / BaseAtk * HeroDmg(lv) * speed * role * crit / PlainCrit * UnlockFactor(lv);
         }
 
-        /// <summary>ExpectedSave(n) 的寨墙等效血量倍率（头盔加血、铠甲减伤）。</summary>
+        /// <summary>ExpectedSave(n) 的寨墙等效血量倍率（头盔、天赋加血，铠甲减伤）。</summary>
         public static float ExpectedWall(int n)
         {
             int eq = ExpectedEquip(n);
-            return (1f + EquipValue(1, eq)) / (1f - EquipValue(2, eq));
+            TalentSum(ExpectedTalent(n), out _, out _, out _, out var tWall, out _, out _);
+            return (1f + EquipValue(1, eq) + tWall) / (1f - EquipValue(2, eq));
         }
     }
 }

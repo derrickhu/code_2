@@ -1,6 +1,6 @@
 namespace Liangshan.Sim
 {
-    /// <summary>自动玩家：数值验证和自动截图用。Skill 0 只会召唤，1 会合成，2 还会买强化、优先拿大招。</summary>
+    /// <summary>自动玩家：数值验证和自动截图用。Skill 0 只会召唤，1 会合成，2 还会买强化、优先强化场上星级最高的好汉。</summary>
     public sealed class Bot
     {
         readonly int _skill;
@@ -14,8 +14,14 @@ namespace Liangshan.Sim
             {
                 int pick = 0;
                 if (_skill >= 2)
+                {
+                    int best = -1;
                     for (int i = 0; i < b.Choices.Length; i++)
-                        if (b.Choices[i].Ult) { pick = i; break; }
+                    {
+                        int star = BestStar(b, b.Choices[i].Hero);
+                        if (star > best) { best = star; pick = i; }
+                    }
+                }
                 b.Pick(pick);
                 return;
             }
@@ -34,6 +40,14 @@ namespace Liangshan.Sim
             if (_skill >= 2 && b.Coins >= b.EnhanceCost && b.EnhanceCost < b.SummonCost * 1.6f && b.Enhance()) return;
             if (b.CanSummon) { b.Summon(); return; }
             if (_skill >= 2 && !b.HasEmptySlot() && b.Coins >= b.EnhanceCost) b.Enhance();
+        }
+
+        static int BestStar(Battle b, HeroId h)
+        {
+            int best = 0;
+            foreach (var s in b.Slots)
+                if (s.Unit != null && s.Unit.Hero == h && s.Unit.Star > best) best = s.Unit.Star;
+            return best;
         }
 
         static bool TryMerge(Battle b)

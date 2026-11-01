@@ -19,6 +19,14 @@ TARGETS = {
     "hawk": "en_hawk", "armored": "en_armored", "firebomb": "en_firebomb", "chainhorse": "en_chainhorse",
     "luan": "en_luan", "shiwengong": "en_shiwen", "huyan": "en_huyan", "gaoqiu": "en_gaoqiu",
 }
+# 第二批 24 位好汉：帧画布 384（战场上只占 150 像素左右，省包体）。
+SMALL = [
+    "lujunyi", "guansheng", "yanqing", "fanrui", "husanniang", "andaoquan", "daizong", "qinming",
+    "likui", "qiaodaoqing", "zhuwu", "xuning", "shantinggui", "weidingguo",
+    "shixiu", "xiezhen", "xiebao", "maling", "kongliang", "tanglong", "sunerniang", "ruanxiaoqi", "shiqian", "jiangjing",
+]
+for _k in SMALL:
+    TARGETS[_k] = "hero_" + _k
 BIG = {"en_boss", "en_luan", "en_shiwen", "en_huyan", "en_gaoqiu"}
 FRAMES = 4
 ART = os.path.join(os.path.dirname(__file__), "..", "Assets", "Resources", "Art")
@@ -125,7 +133,7 @@ def main(src_dir):
             ok = (ty >= 0) & (ty < side) & (tx >= 0) & (tx < side)
             canvas[ty[ok], tx[ok]] = rgba[ys[ok], xs[ok]]
             img = Image.fromarray(canvas)
-            target = 768 if name in BIG else 512
+            target = 768 if name in BIG else 384 if key in SMALL else 512
             img = img.resize((target, target), Image.LANCZOS)
             img.save(os.path.join(ART, f"{name}_{i}.png"))
             frames.append(img)
@@ -151,6 +159,18 @@ def main(src_dir):
         "            new Dictionary<string, (float, float, float, float)>",
         "        {",
     ]
+    # 这次没给原图的角色沿用 AnimMeta.cs 里已有的数值。
+    done = {m[0] for m in meta}
+    if os.path.exists(META):
+        old = []
+        for ln in open(META, encoding="utf-8"):
+            ln = ln.strip()
+            if ln.startswith('["'):
+                name = ln[2:ln.index('"', 2)]
+                nums = [float(x.strip().rstrip("f")) for x in ln[ln.index("(") + 1:ln.index(")")].split(",")]
+                if name not in done:
+                    old.append((name, *nums))
+        meta = old + meta
     for name, body, foot, leg_cx, leg_top in meta:
         lines.append(f'            ["{name}"] = ({body:.4f}f, {foot:.4f}f, {leg_cx:.4f}f, {leg_top:.4f}f),')
     lines += ["        };", "", f"        public const int Frames = {FRAMES};", "    }", "}", ""]

@@ -69,6 +69,63 @@ namespace Liangshan.Tests
         }
 
         [Test]
+        public void EnhanceOnlyOffersLineupHeroesRegularPerks()
+        {
+            var b = new Battle(6, Lineup) { Coins = 100000 };
+            for (int k = 0; k < 6; k++)
+            {
+                Assert.IsTrue(b.Enhance());
+                foreach (var p in b.Choices)
+                {
+                    Assert.IsFalse(p.Star);
+                    Assert.IsTrue(b.InLineup(p.Hero));
+                }
+                b.Pick(0);
+            }
+        }
+
+        [Test]
+        public void FirstFullStarMergeOffersStarSkillsOnce()
+        {
+            var b = new Battle(7, new[] { HeroId.HuaRong, HeroId.HuaRong, HeroId.HuaRong, HeroId.HuaRong });
+            b.Slots[0].Unit = new Unit { Hero = HeroId.HuaRong, Star = 3 };
+            b.Slots[1].Unit = new Unit { Hero = HeroId.HuaRong, Star = 3 };
+            Assert.IsTrue(b.Drop(0, 1));
+            Assert.AreEqual(4, b.Slots[1].Unit.Star);
+            Assert.AreEqual(Phase.Choosing, b.Phase);
+            Assert.AreEqual(HeroId.HuaRong, b.StarPick);
+            Assert.AreEqual(3, b.Choices.Length);
+            foreach (var p in b.Choices) Assert.IsTrue(p.Star);
+            b.Reroll();
+            Assert.IsTrue(b.Choices[0].Star);
+            b.Pick(1);
+            Assert.AreEqual(Phase.Running, b.Phase);
+            Assert.IsTrue(b.StarTaken(HeroId.HuaRong));
+
+            b.Slots[2].Unit = new Unit { Hero = HeroId.HuaRong, Star = 3 };
+            b.Slots[3].Unit = new Unit { Hero = HeroId.HuaRong, Star = 3 };
+            b.Drop(2, 3);
+            Assert.AreEqual(Phase.Running, b.Phase);
+        }
+
+        [Test]
+        public void ElitesAndBossesAlwaysDropTreasureBossIsJackpot()
+        {
+            var b = new Battle(8, Lineup, Defs.Level(5));
+            Assert.AreEqual(0, b.Stage.PorterWaves.Length);
+            var boss = Defs.Enemy(Defs.Level(5).BossKind);
+            b.Enemies.Add(new Enemy { Id = 999, Def = boss, Hp = 1, MaxHp = 1, Pos = new V2(0, 3) });
+            b.Slots[0].Unit = new Unit { Hero = HeroId.GongSun, Star = 4 };
+            for (int i = 0; i < 300 && b.Phase == Phase.Running; i++) b.Update(1f / 30f);
+            Assert.AreEqual(Phase.Reels, b.Phase);
+            Assert.IsTrue(b.NextIsJackpot);
+            var r = b.SpinReels();
+            Assert.IsTrue(r[0] == r[1] && r[1] == r[2] && r[2] == r[3]);
+            b.ApplyReels(r);
+            Assert.IsFalse(b.NextIsJackpot);
+        }
+
+        [Test]
         public void ReelsJackpotDoublesSilver()
         {
             var b = new Battle(5, Lineup) { Phase = Phase.Reels, PendingReels = 1 };

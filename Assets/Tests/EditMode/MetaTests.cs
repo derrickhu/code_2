@@ -32,7 +32,9 @@ namespace Liangshan.Tests
             Assert.AreEqual(100 - (3 + 4 + 5 + 6), s.Shards[0]);
             var lo = Meta.BuildLoadout(s);
             Assert.Greater(lo.HeroDmg[0], before);
-            Assert.Contains(Meta.FirstPerk(HeroId.HuaRong), lo.StartPerks);
+            Assert.IsTrue(lo.Passive[0]);
+            Assert.IsFalse(lo.Passive[1]);
+            Assert.Greater(lo.CritDmg, Meta.BaseCritDmg);
             Assert.AreEqual(1, s.Task[2]);
         }
 
@@ -46,7 +48,11 @@ namespace Liangshan.Tests
             Assert.AreEqual(Meta.EquipMax(s), s.EquipLv[0]);
             s.Cleared = 20;
             Assert.IsTrue(Meta.Forge(s, 0));
-            Assert.Greater(Meta.BuildLoadout(s).AllDmg, 1.2f);
+            var lo = Meta.BuildLoadout(s);
+            Assert.Greater(lo.Atk, Meta.BaseAtk + 10);
+            Assert.AreEqual(1f, lo.RoleDmg[(int)Role.Fighter], 1e-4f);
+            s.EquipLv[0] = 10;
+            Assert.AreEqual(1f + Meta.BreakDmg, Meta.BuildLoadout(s).RoleDmg[(int)Role.Fighter], 1e-4f);
         }
 
         [Test]
@@ -161,6 +167,52 @@ namespace Liangshan.Tests
             }
             for (int n = 2; n <= Defs.LevelCount; n++)
                 Assert.GreaterOrEqual(Defs.Level(n).HpMul, Defs.Level(n - 1).HpMul * 0.98f, "第" + n + "关");
+        }
+
+        [Test]
+        public void HeroRosterHasRaritiesRolesAndPerks()
+        {
+            Assert.AreEqual(32, Defs.HeroCount);
+            for (int r = 2; r <= 4; r++) Assert.Greater(Defs.Heroes.Count(d => d.Rarity == r), 5);
+            for (int r = 0; r < Defs.RoleCount; r++) Assert.GreaterOrEqual(Defs.Heroes.Count(d => (int)d.Kind == r), 4);
+            foreach (var d in Defs.Heroes)
+            {
+                Assert.AreEqual(4, Defs.PerksOf(d.Id, false).Count, d.Name);
+                Assert.AreEqual(3, Defs.PerksOf(d.Id, true).Count, d.Name);
+                Assert.IsNotNull(Meta.FirstPerk(d.Id));
+            }
+            Assert.AreEqual(Defs.Perks.Length, Defs.Perks.Select(p => p.Id).Distinct().Count());
+        }
+
+        [Test]
+        public void TalentsCostCopperAndAddKingStats()
+        {
+            var s = Meta.NewSave(0);
+            s.Copper = 1000000;
+            var before = Meta.BuildLoadout(s);
+            while (Meta.LearnTalent(s)) { }
+            Assert.AreEqual(Meta.TalentCap(s), s.Talent);
+            var lo = Meta.BuildLoadout(s);
+            Assert.AreEqual(before.Atk + 6, lo.Atk, 0.01f);
+            Assert.Greater(lo.Crit, before.Crit);
+            Assert.Greater(lo.StartCoins, 0);
+            s.Cleared = 10;
+            Assert.IsTrue(Meta.LearnTalent(s));
+        }
+
+        [Test]
+        public void ExpectedPowerMatchesExpectedSaveLoadout()
+        {
+            foreach (var n in new[] { 1, 5, 10, 20, 30, 40, 50 })
+            {
+                var s = Meta.ExpectedSave(n);
+                var lo = Meta.BuildLoadout(s);
+                int lv = s.HeroLv[0];
+                float actual = Meta.PowerOf(lo, HeroId.HuaRong) * Meta.UnlockFactor(lv);
+                Assert.AreEqual(Meta.ExpectedPower(n), actual, Meta.ExpectedPower(n) * 0.05f, "第" + n + "关");
+                float wall = lo.WallMul / (1f - lo.WallResist);
+                Assert.AreEqual(Meta.ExpectedWall(n), wall, wall * 0.02f, "第" + n + "关寨墙");
+            }
         }
 
         static int Wins(int level, SaveData s)

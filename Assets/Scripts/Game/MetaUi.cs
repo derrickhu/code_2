@@ -14,12 +14,10 @@ namespace Liangshan
 
         // ---------------- 颜色、图标 ----------------
 
-        public static Color RoleColor(Role r) =>
-            r == Role.Archer ? Pal.GreenDeep : r == Role.Bomber ? Pal.Hex("C0601A") : r == Role.Mage ? Pal.Hex("3C6CC0") :
-            r == Role.Support ? Pal.Hex("2E8C8A") : Pal.RedDeep;
+        public static Color RoleColor(Role r) => Pal.Hex(Defs.RoleColors[(int)r]).Mul(0.85f);
 
         public static Color RarityColor(int r) => r >= 4 ? Pal.Hex("E0862A") : r == 3 ? Pal.Hex("9A5BD8") : Pal.Hex("4F86B8");
-        public static string RarityName(int r) => r >= 4 ? "传说" : r == 3 ? "史诗" : "精良";
+        public static string RarityName(int r) => r >= 4 ? "传说" : r == 3 ? "史诗" : "稀有";
 
         public static string CurIcon(Item it) =>
             it.Cur == Cur.Ingot ? "ic_ingot" : it.Cur == Cur.Copper ? "ic_coins" : it.Cur == Cur.Iron ? "ic_iron" :
@@ -574,38 +572,50 @@ namespace Liangshan
             int lv = S.HeroLv[(int)h];
             bool owned = lv > 0;
             var m = Modal(layer, "hero", d.Name, new Vector2(1000, 1560), out var p, RarityColor(d.Rarity));
-            Ui.Skin(p, "dark", new Vector2(920, 470), new Vector2(0, 490));
-            Ui.Box(p, new Vector2(600, 300), new Vector2(-180, 380), RarityColor(d.Rarity).A(0.55f), Art.SoftDot);
-            var art = Ui.Icon(p, d.Art, 440, new Vector2(-190, 500));
+            Ui.Skin(p, "dark", new Vector2(920, 420), new Vector2(0, 520));
+            Ui.Box(p, new Vector2(600, 300), new Vector2(-180, 400), RarityColor(d.Rarity).A(0.55f), Art.SoftDot);
+            var art = Ui.Icon(p, d.Art, 420, new Vector2(-190, 520));
             if (!owned) art.color = new Color(0.3f, 0.3f, 0.32f);
             Ui.Outlined(p, $"「{d.Nick}」", 40, Pal.Hex("FFE08A"), new Vector2(230, 660), new Vector2(400, 56), Pal.Ink, 2.5f);
             Badge(p, d.Role, RoleColor(d.Kind), new Vector2(136, 56), new Vector2(150, 596), 28);
             Badge(p, RarityName(d.Rarity), RarityColor(d.Rarity), new Vector2(136, 56), new Vector2(300, 596), 28);
             Ui.Outlined(p, owned ? $"Lv.{lv}" : "未获得", 56, Color.white, new Vector2(230, 520), new Vector2(400, 70), Pal.Ink, 3f);
             if (owned) Ui.Label(p, $"战力 {Meta.HeroPower(S, h)}", 32, Pal.Hex("FFE7B0"), new Vector2(230, 460), new Vector2(400, 44), TextAnchor.MiddleCenter, Fonts.Heavy);
-            Ui.Label(p, d.Desc, 26, Pal.Cream, new Vector2(230, 360), new Vector2(400, 150));
+            Ui.Label(p, d.Desc, 26, Pal.Cream, new Vector2(230, 400), new Vector2(400, 110));
 
-            // 攻击、大招
-            Ui.Skin(p, "row", new Vector2(920, 210), new Vector2(0, 140));
-            Ui.Icon(p, d.AtkIcon, 80, new Vector2(-400, 190));
-            Ui.Label(p, $"{d.AtkName}（{d.Element}）· 每 {d.Interval:0.#} 秒造成 {d.Damage * Meta.HeroDmg(Mathf.Max(1, lv)):0} 伤害", 28, Pal.Ink, new Vector2(40, 190), new Vector2(800, 60), TextAnchor.MiddleLeft, Fonts.Heavy);
-            Ui.Icon(p, d.UltIcon, 80, new Vector2(-400, 90));
-            Ui.Label(p, $"大招「{d.UltName}」：{d.UltDesc}", 26, Pal.Hex("5A3A1A"), new Vector2(40, 90), new Vector2(800, 90), TextAnchor.MiddleLeft);
-
-            // 天赋
-            Ui.Label(p, "天赋（每 5 级解锁一项）", 32, Pal.Ink, new Vector2(0, -10), new Vector2(800, 50), TextAnchor.MiddleCenter, Fonts.Heavy);
-            for (int i = 0; i < 6; i++)
+            // 普攻、大招、被动
+            int ulv = Mathf.Max(1, lv);
+            string[] names = { $"普攻「{d.AtkName}」· {d.Interval:0.##}秒", $"大招「{d.UltName}」· 冷却{d.UltCd * (ulv >= 15 ? 0.85f : 1f):0.#}秒", $"被动「{d.PassiveName}」" };
+            string[] descs = { HeroText.Atk(d), HeroText.Ult(d, ulv >= 25 ? 1.5f : 1f), HeroText.Passive(d) + (ulv >= 5 ? "" : "（5级解锁）") };
+            string[] icons = { d.AtkIcon, d.UltIcon, "ic_star" };
+            for (int i = 0; i < 3; i++)
             {
-                int need = (i + 1) * Meta.TalentStep;
+                float y = 240 - i * 124;
+                bool locked = i == 2 && ulv < 5;
+                Ui.Skin(p, "row", new Vector2(920, 120), new Vector2(0, y), 0.6f, locked ? new Color(0.85f, 0.83f, 0.8f) : Color.white);
+                Ui.Box(p, new Vector2(92, 92), new Vector2(-400, y), i == 1 ? Pal.Hex("D9A21E") : i == 2 ? Pal.Hex("8A5AD0") : Pal.Hex("3D6FB8"), Art.Hex6)
+                    .rectTransform.localRotation = Quaternion.Euler(0, 0, 90);
+                var ic = Ui.Icon(p, icons[i], 64, new Vector2(-400, y));
+                if (locked) ic.color = new Color(0.5f, 0.5f, 0.55f);
+                Ui.Label(p, names[i], 28, Pal.Ink, new Vector2(40, y + 34), new Vector2(800, 40), TextAnchor.MiddleLeft, Fonts.Heavy);
+                Ui.Label(p, descs[i].Replace("\n", " "), 22, Pal.Hex("5A3A1A"), new Vector2(40, y - 18), new Vector2(800, 70), TextAnchor.UpperLeft);
+            }
+
+            // 等级解锁
+            Ui.Label(p, $"等级解锁（{d.Coef * 100:0}%攻击力 · {HeroText.Tip(d)}）", 28, Pal.Ink, new Vector2(0, -120), new Vector2(900, 46), TextAnchor.MiddleCenter, Fonts.Heavy);
+            for (int i = 0; i < Meta.UnlockLv.Length; i++)
+            {
+                int need = Meta.UnlockLv[i];
                 bool on = lv >= need;
-                var pos = new Vector2((i % 2 == 0 ? -1 : 1) * 228, -80 - (i / 2) * 88);
-                Ui.Skin(p, on ? "tab_on" : "row", new Vector2(444, 76), pos, 0.6f, on ? Color.white : new Color(0.85f, 0.83f, 0.8f));
-                Badge(p, $"{need}级", on ? Pal.Hex("D8452F") : Pal.Slate, new Vector2(100, 58), pos + new Vector2(-166, 0), 24);
-                Ui.Label(p, Meta.Talent(h, i), 24, on ? Pal.Ink : Pal.Hex("7A6A58"), pos + new Vector2(50, 0), new Vector2(330, 70), TextAnchor.MiddleLeft, Fonts.Heavy);
+                var pos = i == 0 ? new Vector2(0, -172) : new Vector2((i % 2 == 1 ? -1 : 1) * 228, -172 - ((i + 1) / 2) * 62);
+                var size = i == 0 ? new Vector2(900, 58) : new Vector2(444, 58);
+                Ui.Skin(p, on ? "tab_on" : "row", size, pos, 0.6f, on ? Color.white : new Color(0.85f, 0.83f, 0.8f));
+                Badge(p, $"{need}级", on ? Pal.Hex("D8452F") : Pal.Slate, new Vector2(92, 46), pos + new Vector2(-size.x / 2 + 56, 0), 22);
+                Ui.Label(p, Meta.Talent(h, i), 22, on ? Pal.Ink : Pal.Hex("7A6A58"), pos + new Vector2(50, 0), new Vector2(size.x - 130, 54), TextAnchor.MiddleLeft, Fonts.Heavy);
             }
 
             // 升级
-            float by = -420;
+            float by = -510;
             if (owned && lv < Meta.MaxHeroLv)
             {
                 int sc = Meta.ShardCost(lv), cc = Meta.CopperCost(lv);
@@ -627,9 +637,11 @@ namespace Liangshan
                     Sfx.Play(Snd.Merge, 0.8f);
                     HeroDetail(layer, h);
                     int nl = S.HeroLv[(int)h];
-                    Ui.Toast(nl % Meta.TalentStep == 0 ? $"升到 {nl} 级，解锁天赋：{Meta.Talent(h, nl / Meta.TalentStep - 1)}" : $"{d.Name} 升到 {nl} 级 · 全军伤害 +0.3%", 200);
+                    int ui = Array.IndexOf(Meta.UnlockLv, nl);
+                    Ui.Toast(ui > 0 ? $"升到 {nl} 级，解锁：{Meta.Talent(h, ui)}" : $"{d.Name} 升到 {nl} 级 · 全军暴击伤害 +1%", 200);
                 }, 46);
                 if (can) Dot(up, new Vector2(138, 50));
+                Ui.Label(p, "升级奖励：全军暴击伤害 +1%", 26, Pal.GreenDeep, new Vector2(260, by - 60), new Vector2(400, 40), TextAnchor.MiddleCenter, Fonts.Heavy);
             }
             else if (owned) Ui.Outlined(p, "已满级", 48, Pal.Hex("FFE08A"), new Vector2(0, by + 26), new Vector2(400, 70), Pal.Ink, 3f);
             else
@@ -644,8 +656,8 @@ namespace Liangshan
             int slot = Array.IndexOf(S.Lineup, (int)h);
             if (owned)
             {
-                if (slot >= 0) Ui.Outlined(p, $"已上阵 · 第 {slot + 1} 位", 36, Pal.GreenDeep, new Vector2(0, -620), new Vector2(500, 56), Pal.Cream, 1f);
-                else Ui.Btn(p, "上阵", new Vector2(300, 110), new Vector2(0, -620), Pal.Hex("F2B632"), () => PickSwap(layer, h), 44);
+                if (slot >= 0) Ui.Outlined(p, $"已上阵 · 第 {slot + 1} 位", 36, Pal.GreenDeep, new Vector2(0, -660), new Vector2(500, 56), Pal.Cream, 1f);
+                else Ui.Btn(p, "上阵", new Vector2(300, 110), new Vector2(0, -660), Pal.Hex("F2B632"), () => PickSwap(layer, h), 44);
             }
         }
 
@@ -695,7 +707,7 @@ namespace Liangshan
             Ui.Icon(p, "ic_fast", 60, new Vector2(0, 26));
             Ui.Label(p, "下一级", 28, Pal.Hex("7A5432"), new Vector2(220, 50), new Vector2(300, 40));
             Ui.Label(p, lv < max ? Meta.EquipText(slot, lv + 1) : "—", 32, Pal.GreenDeep, new Vector2(220, 6), new Vector2(380, 50), TextAnchor.MiddleCenter, Fonts.Heavy);
-            Ui.Label(p, "每 10 级突破一次，之后每级加成提高一成", 24, Pal.Hex("8A6A4A"), new Vector2(0, -60), new Vector2(800, 40));
+            Ui.Label(p, $"每 10 级突破：{Defs.RoleName(e.Role)}伤害 +4%，之后每级加成提高一成（当前 {Meta.BreakText(slot, lv)}）", 24, Pal.Hex("8A6A4A"), new Vector2(0, -60), new Vector2(880, 40));
             if (lv >= max)
             {
                 Ui.Label(p, lv >= 40 ? "已强化到顶" : "已到当前上限：继续通关提高强化上限", 32, Pal.Ink, new Vector2(0, -200), new Vector2(800, 60), TextAnchor.MiddleCenter, Fonts.Heavy);
@@ -721,6 +733,99 @@ namespace Liangshan
                 Ui.Toast($"{e.Name} 强化到 {S.EquipLv[slot]} 级", 200);
             }, 50);
             Tween.Run(ic, 999f, k => ic.transform.localRotation = Quaternion.Euler(0, 0, 4f * Mathf.Sin(k * 999f * 2f)));
+        }
+
+        // ---------------- 寨主天赋 ----------------
+
+        /// <summary>参考视频：竖向一串节点，逐个点亮，每个节点加攻击力和一项副属性；进度跟主线通关走。</summary>
+        public static void TalentTree(Transform layer, Action changed = null)
+        {
+            var m = Modal(layer, "talent", "寨主天赋", new Vector2(1000, 1560), out var p, Pal.Hex("8A5A32"));
+            int have = S.Talent, cap = Meta.TalentCap(S);
+            Meta.TalentSum(have, out var atk, out var crit, out var cd, out var wall, out var coins, out var spd);
+            Ui.Skin(p, "dark", new Vector2(920, 200), new Vector2(0, 600));
+            Ui.Outlined(p, $"已点亮 {have}/{Meta.TalentMax}", 40, Pal.Hex("FFE08A"), new Vector2(0, 660), new Vector2(800, 56), Pal.Ink, 2.5f);
+            Ui.Label(p, $"攻击力 +{atk:0}   暴击率 +{crit * 100:0.#}%   暴击伤害 +{cd * 100:0}%\n寨墙生命 +{wall * 100:0.#}%   攻速 +{spd * 100:0.#}%   开局银两 +{coins:0}", 28, Pal.Cream, new Vector2(0, 580), new Vector2(880, 100), TextAnchor.MiddleCenter, Fonts.Heavy);
+
+            var view = Ui.Rect(p, "view");
+            view.sizeDelta = new Vector2(920, 920);
+            view.anchoredPosition = new Vector2(0, 0);
+            view.gameObject.AddComponent<RectMask2D>();
+            var content = Ui.Rect(view, "content");
+            const float step = 130;
+            int show = Math.Min(Meta.TalentMax, Math.Max(cap, have) + 4);
+            content.sizeDelta = new Vector2(920, show * step + 100);
+            content.anchorMin = content.anchorMax = new Vector2(0.5f, 1f);
+            content.pivot = new Vector2(0.5f, 1f);
+            var top = Ui.Rect(content, "top");
+            top.anchorMin = top.anchorMax = new Vector2(0.5f, 1f);
+            top.sizeDelta = Vector2.zero;
+            const float amp = 70;
+            for (int i = 1; i <= show; i++)
+            {
+                float y = -60 - (show - i) * step;
+                float x = (i % 2 == 0 ? 1 : -1) * amp;
+                bool on = i <= have, next = i == have + 1, locked = i > cap;
+                if (i < show)
+                {
+                    float nx = -x;
+                    var line = Ui.Box(top, new Vector2(10, Mathf.Sqrt(step * step + 4 * amp * amp)), new Vector2(0, y - step / 2), on ? Pal.Gold : Pal.Hex("B8A890"), Art.White);
+                    line.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(nx - x, step) * Mathf.Rad2Deg);
+                    line.transform.SetAsFirstSibling();
+                }
+                var kind = Meta.TalentKind(i);
+                bool big = i % 10 == 0;
+                if (next) Ui.Box(top, Vector2.one * 170, new Vector2(x, y), Pal.Gold.A(0.6f), Art.SoftDot);
+                var node = Ui.Box(top, Vector2.one * (big ? 112 : 92), new Vector2(x, y), on ? Pal.GoldDeep : next ? Pal.Hex("F2B632") : Pal.Hex("6A5A48"), Art.Hex6);
+                node.rectTransform.localRotation = Quaternion.Euler(0, 0, 90);
+                Ui.Box(top, Vector2.one * (big ? 96 : 78), new Vector2(x, y), on ? Pal.Hex("FFE7A0") : locked ? Pal.Hex("4A4038") : Pal.Hex("2C241E"), Art.Hex6)
+                    .rectTransform.localRotation = Quaternion.Euler(0, 0, 90);
+                string icon = kind == Meta.TalentStat.Crit || kind == Meta.TalentStat.CritDmg ? "ic_sword" : kind == Meta.TalentStat.Wall ? "ic_wall" : kind == Meta.TalentStat.Coins ? "ic_silver" : "ic_fast";
+                var ic = Ui.Icon(top, icon, big ? 64 : 52, new Vector2(x, y));
+                if (!on) ic.color = locked ? new Color(0.4f, 0.4f, 0.42f) : new Color(0.8f, 0.8f, 0.8f);
+                bool left = x < 0;
+                var col = on ? Pal.Hex("A8650F") : next ? Pal.Ink : locked ? Pal.Hex("A89880") : Pal.Hex("6A5A48");
+                Ui.Label(top, $"{i}. {Meta.TalentText(i)}", big ? 26 : 24, col, new Vector2(left ? x - 70 - 170 : x + 70 + 170, y), new Vector2(340, 70),
+                    left ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft, Fonts.Heavy);
+            }
+            float total = content.sizeDelta.y;
+            content.anchoredPosition = new Vector2(0, Mathf.Clamp(60 + (show - have - 1) * step - 460, 0, Mathf.Max(0, total - 920)));
+            var sr = view.gameObject.AddComponent<ScrollRect>();
+            sr.content = content;
+            sr.horizontal = false;
+            sr.movementType = ScrollRect.MovementType.Clamped;
+            Ui.Fill(view, new Color(0, 0, 0, 0.001f), true, "hit").transform.SetAsFirstSibling();
+
+            if (have >= Meta.TalentMax)
+            {
+                Ui.Outlined(p, "天赋已全部点亮", 44, Pal.Hex("FFE08A"), new Vector2(0, -620), new Vector2(600, 60), Pal.Ink, 3f);
+                return;
+            }
+            if (have >= cap)
+            {
+                Ui.Label(p, "继续通关主线解锁更多天赋（每关 +3）", 32, Pal.Ink, new Vector2(0, -560), new Vector2(880, 50), TextAnchor.MiddleCenter, Fonts.Heavy);
+                return;
+            }
+            int cost = Meta.TalentCost(have + 1);
+            Ui.Label(p, $"下一个：{Meta.TalentText(have + 1)}", 28, Pal.Ink, new Vector2(0, -540), new Vector2(880, 44), TextAnchor.MiddleCenter, Fonts.Heavy);
+            Ui.Icon(p, "ic_coins", 64, new Vector2(-330, -640));
+            Ui.Outlined(p, $"{Ui.Num(S.Copper)}/{Ui.Num(cost)}", 34, S.Copper >= cost ? Color.white : Pal.Hex("FF8070"), new Vector2(-160, -640), new Vector2(300, 50), Pal.Ink, 2f);
+            bool can = Meta.CanTalent(S);
+            var b = Ui.Btn(p, "点亮", new Vector2(300, 120), new Vector2(240, -640), can ? Pal.Hex("E8862A") : Pal.Slate, () =>
+            {
+                if (!Meta.LearnTalent(S))
+                {
+                    Sfx.Play(Snd.Deny);
+                    Ui.Toast("铜钱不足：巡山、通关获得", 200);
+                    return;
+                }
+                Save();
+                Sfx.Play(Snd.Merge, 0.8f, 1.2f);
+                Close(m);
+                TalentTree(layer, changed);
+                changed?.Invoke();
+            }, 46);
+            if (can) Dot(b, new Vector2(138, 50));
         }
     }
 }

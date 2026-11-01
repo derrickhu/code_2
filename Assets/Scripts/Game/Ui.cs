@@ -76,6 +76,12 @@ namespace Liangshan
         /// <summary>界面高度（设计像素）。宽窗口恒为 1920。</summary>
         public static float Height => Root.rect.height;
 
+        /// <summary>扣掉刘海和胶囊后比 1920 设计稿多出来的高度。局外页按比例分给各段间距，不全堆在一处。</summary>
+        public static float Spare => Mathf.Max(0f, Height - SafeTop - H);
+
+        /// <summary>桌面自检用：命令行 -safe-top / -safe-bottom（屏幕像素）模拟微信胶囊和底部横条。</summary>
+        public static float FakeSafeTopPx = -1f, FakeSafeBottomPx = -1f;
+
         // ---------- 搭建 ----------
 
         public static RectTransform Rect(Transform parent, string name = "rect")
@@ -143,7 +149,12 @@ namespace Liangshan
             int key = Screen.width * 73856093 ^ Screen.height * 19349663;
             if (key == _safeKey) return;
             _safeKey = key;
-            if (!WxSafe(out _topPx, out _bottomPx))
+            if (FakeSafeTopPx >= 0f)
+            {
+                _topPx = FakeSafeTopPx;
+                _bottomPx = Mathf.Max(0f, FakeSafeBottomPx);
+            }
+            else if (!WxSafe(out _topPx, out _bottomPx))
             {
                 var sa = Screen.safeArea;
                 _topPx = Mathf.Max(0f, Screen.height - sa.yMax);

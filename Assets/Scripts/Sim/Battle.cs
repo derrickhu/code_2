@@ -30,15 +30,18 @@ namespace Liangshan.Sim
         public V2 Pos;
         public float LaneX;
         public float SlowT, Stun, AtkCd;
+        /// <summary>八门金锁：易伤剩余时间。</summary>
+        public float VulnT;
         public bool Attacking, Dead, Escaped;
         public float HitT;
         /// <summary>首领：技能计时、冲锋、护盾。</summary>
         public float SkillT, ChargeT, Shield;
         public bool ShieldUsed;
         public bool Big => Def.Big;
+        public bool Mounted => Def.Kind == EnemyKind.Cavalry || Def.Kind == EnemyKind.ChainHorse || Def.Kind == EnemyKind.HuYan;
     }
 
-    public enum ShotKind { Arrow, FireArrow, Bomb, BigBomb, MiniBomb, Bolt, Lightning, Punch, Stone, Spear, Slam, Wind, Frost, Hammer, Ball }
+    public enum ShotKind { Arrow, FireArrow, Bomb, BigBomb, MiniBomb, Bolt, Lightning, Punch, Stone, Spear, Slam, Wind, Frost, Hammer, Ball, Fireball, Lasso }
 
     public sealed class Shot
     {
@@ -50,8 +53,8 @@ namespace Liangshan.Sim
         public float Damage, Radius;
         public int TargetId = -1;
         public int Pierce;
-        public bool Crit, Ult;
-        public float Stun, Knock;
+        public bool Crit, Ult, Split;
+        public float Stun, StunChance, Knock, Slow;
         /// <summary>飞石已经打过的敌人。</summary>
         public List<int> Hit;
     }
@@ -60,6 +63,11 @@ namespace Liangshan.Sim
     {
         Summon, Merge, Move, SlotAdded, Fire, Hit, Damage, Kill, WallHit, Ult, WaveStart, BossComing, EliteComing,
         Rage, PorterKilled, PorterEscaped, Enhance, Victory, Defeat, Revive, Coin, Reels, BossSkill, Explode, UnitStun,
+        /// <summary>精英、首领倒下掉出生辰纲。</summary>
+        Treasure,
+        /// <summary>合成出满星，弹出额外技能三选一。</summary>
+        StarPick,
+        Heal,
     }
 
     public enum BossSkill { Hammer = 1, Charge, Summon, Ball, Shield }
@@ -91,6 +99,8 @@ namespace Liangshan.Sim
         public readonly float[] DamageBy = new float[Defs.HeroCount];
         public readonly float[] UltTimer = new float[Defs.HeroCount];
         public readonly HashSet<EnemyKind> Seen = new HashSet<EnemyKind>();
+        readonly float[,] _stat = new float[Defs.HeroCount, Defs.EffCount];
+        readonly bool[] _starDone = new bool[Defs.HeroCount];
 
         public Phase Phase = Phase.Running;
         public float Time;
@@ -103,12 +113,16 @@ namespace Liangshan.Sim
         public bool Rage;
         public bool RevivedOnce, RerolledOnce;
         public PerkDef[] Choices;
+        /// <summary>不为空时 Choices 是这位好汉的满星额外技能。</summary>
+        public HeroId? StarPick;
         public int FreeEnhances;
-        public int PendingReels;
+        public int PendingReels, JackpotReels;
         public int PortersKilled, ElitesKilled, BossesKilled;
-        /// <summary>吴用大招：全军急攻剩余时间。</summary>
-        public float HasteT;
-        public float Aura;
+        /// <summary>急攻（运筹帷幄、神行甲马）、神兵（打造神兵）剩余时间与倍率。</summary>
+        public float HasteT, HasteMul = 1f, ForgeT, ForgeV;
+        /// <summary>辅助光环：攻速、伤害、大招充能、击杀银两加成、每 4 秒利息比例。</summary>
+        public float Aura, DmgAura, ChargeAura, CoinAura, Interest;
+        float _interestT;
         int _highStars;
         bool _owePity;
 
@@ -130,8 +144,9 @@ namespace Liangshan.Sim
                 var p = Defs.Perk(id);
                 if (p == null || Level(id) >= p.Max) continue;
                 Perks[id] = Level(id) + 1;
-                if (p.Ult && p.Hero.HasValue) UltTimer[(int)p.Hero.Value] = 3f;
             }
+            foreach (var h in Lineup) UltTimer[(int)h] = 4f;
+            RebuildStats();
         }
 
         public Rng Rng => _rng;
@@ -141,10 +156,28 @@ namespace Liangshan.Sim
         public float WaveProgress => Wave == 0 ? 0 : M.Clamp01((Time - (Wave - 1) * Defs.WaveTime) / Defs.WaveTime);
         public bool AllSpawned => Wave >= Stage.Waves && _queue.Count == 0;
         public int Level(string perk) => Perks.TryGetValue(perk, out var n) ? n : 0;
-        public bool HasUlt(HeroId h) => Level(UltPerk(h)) > 0;
+        public bool HasUlt(HeroId h) => Lo.Ult[(int)h];
         public bool InLineup(HeroId h) => Array.IndexOf(Lineup, h) >= 0;
+        public bool StarTaken(HeroId h) => _starDone[(int)h];
 
-        public static string UltPerk(HeroId h) => Defs.Hero(h).Ult;
+        /// <summary>这位好汉身上某种效果的总量：已选强化 × 等级 + 5 级被动。</summary>
+        public float Stat(HeroId h, Eff e) => _stat[(int)h, (int)e];
+
+        void RebuildStats()
+        {
+            Array.Clear(_stat, 0, _stat.Length);
+            foreach (var kv in Perks)
+            {
+                var p = Defs.Perk(kv.Key);
+                if (p != null) _stat[(int)p.Hero, (int)p.Eff] += p.V * kv.Value;
+            }
+            for (int h = 0; h < Defs.HeroCount; h++)
+            {
+                if (!Lo.Passive[h]) continue;
+                var d = Defs.Heroes[h];
+                _stat[h, (int)d.PassiveEff] += d.PassiveV;
+            }
+        }
 
         void Emit(Ev t, V2 pos = default, int slot = -1, int value = 0, HeroId hero = HeroId.HuaRong)
             => Events.Add(new BattleEvent { Type = t, Pos = pos, Slot = slot, Value = value, Hero = hero });
@@ -154,6 +187,14 @@ namespace Liangshan.Sim
             var s = new Slot { Index = Slots.Count, Pos = Layout.SlotPos(Slots.Count) };
             Slots.Add(s);
             return s;
+        }
+
+        Slot SlotOf(HeroId h)
+        {
+            Slot best = null;
+            foreach (var s in Slots)
+                if (s.Unit != null && s.Unit.Hero == h && (best == null || s.Unit.Star > best.Unit.Star)) best = s;
+            return best;
         }
 
         // ---------------- 玩家操作 ----------------
@@ -230,11 +271,14 @@ namespace Liangshan.Sim
                 sa.Unit = null;
                 sb.Unit = new Unit { Id = _nextId++, Hero = MergeResult(star), Star = star, Cd = 0, Burst = true };
                 Emit(Ev.Merge, sb.Pos, b, star, sb.Unit.Hero);
-                if (Level("wy_coin") > 0)
+                foreach (var h in Lineup)
                 {
-                    Coins += 15;
-                    Emit(Ev.Coin, sb.Pos, b, 15, HeroId.WuYong);
+                    int coin = (int)Stat(h, Eff.Coin);
+                    if (coin <= 0 || SlotOf(h) == null) continue;
+                    Coins += coin;
+                    Emit(Ev.Coin, sb.Pos, b, coin, h);
                 }
+                if (star == 4 && !_starDone[(int)sb.Unit.Hero]) OpenStar(sb.Unit.Hero, sb);
                 return true;
             }
             var t = sb.Unit;
@@ -242,6 +286,18 @@ namespace Liangshan.Sim
             sa.Unit = t;
             Emit(Ev.Move, sb.Pos, b);
             return true;
+        }
+
+        void OpenStar(HeroId h, Slot at)
+        {
+            _starDone[(int)h] = true;
+            var pool = Defs.PerksOf(h, true);
+            pool.RemoveAll(p => Level(p.Id) >= p.Max);
+            if (pool.Count == 0) return;
+            Choices = pool.ToArray();
+            StarPick = h;
+            Phase = Phase.Choosing;
+            Emit(Ev.StarPick, at.Pos, at.Index, 4, h);
         }
 
         public bool CanEnhance => Phase == Phase.Running && (FreeEnhances > 0 || Coins >= EnhanceCost) && RollChoices(false) != null;
@@ -260,13 +316,14 @@ namespace Liangshan.Sim
                 Enhances++;
             }
             Choices = c;
+            StarPick = null;
             Phase = Phase.Choosing;
             return true;
         }
 
         public void Reroll()
         {
-            if (Phase != Phase.Choosing) return;
+            if (Phase != Phase.Choosing || StarPick.HasValue) return;
             RerolledOnce = true;
             Choices = RollChoices(true) ?? Choices;
         }
@@ -276,15 +333,11 @@ namespace Liangshan.Sim
             if (Phase != Phase.Choosing || Choices == null || i < 0 || i >= Choices.Length) return;
             var p = Choices[i];
             Perks[p.Id] = Level(p.Id) + 1;
-            if (p.Id == "wall")
-            {
-                WallMax += 1000;
-                Wall = Math.Min(WallMax, Wall + 1500);
-            }
-            if (p.Ult && p.Hero.HasValue) UltTimer[(int)p.Hero.Value] = 1.2f;
+            RebuildStats();
             Choices = null;
+            StarPick = null;
             Phase = Phase.Running;
-            Emit(Ev.Enhance, default, -1, 0, p.Hero ?? HeroId.HuaRong);
+            Emit(Ev.Enhance, default, -1, p.Star ? 1 : 0, p.Hero);
         }
 
         PerkDef[] RollChoices(bool consume)
@@ -292,20 +345,17 @@ namespace Liangshan.Sim
             var pool = new List<PerkDef>();
             foreach (var p in Defs.Perks)
             {
-                if (Level(p.Id) >= p.Max) continue;
-                if (p.Hero.HasValue && !InLineup(p.Hero.Value)) continue;
-                if (p.Id == "hr_rain" && !HasUlt(HeroId.HuaRong)) continue;
+                if (p.Star || Level(p.Id) >= p.Max || !InLineup(p.Hero)) continue;
                 pool.Add(p);
             }
             if (pool.Count == 0) return null;
             if (!consume) return new PerkDef[0];
             var pick = new List<PerkDef>();
-            var rng = _rng;
             while (pick.Count < 3 && pool.Count > 0)
             {
                 float sum = 0;
                 foreach (var p in pool) sum += Weight(p);
-                float r = rng.F() * sum;
+                float r = _rng.F() * sum;
                 int k = 0;
                 for (; k < pool.Count - 1; k++)
                 {
@@ -318,31 +368,26 @@ namespace Liangshan.Sim
             return pick.ToArray();
         }
 
-        /// <summary>场上有这位好汉的词条更容易出；大招词条权重本来就高。</summary>
+        /// <summary>场上星级越高的好汉，他的强化越容易出；不在场的也能出，但概率低。</summary>
         float Weight(PerkDef p)
         {
-            float w = p.Weight;
-            if (p.Hero.HasValue)
-            {
-                int best = 0;
-                foreach (var s in Slots)
-                    if (s.Unit != null && s.Unit.Hero == p.Hero.Value) best = Math.Max(best, s.Unit.Star);
-                w *= best == 0 ? 0.35f : 1f + best * 0.25f;
-            }
-            return w;
+            var s = SlotOf(p.Hero);
+            int best = s?.Unit.Star ?? 0;
+            return p.Weight * (best == 0 ? 0.35f : 1f + best * 0.25f);
         }
 
-        /// <summary>老虎机：四个格子，每格一种奖励。四格相同翻倍。</summary>
+        /// <summary>老虎机：四个格子，每格一种奖励。四格相同翻倍；首领掉的那次必中四格相同。</summary>
         public Reel[] SpinReels()
         {
             if (Phase != Phase.Reels) return null;
             var r = new Reel[4];
-            bool jackpot = _rng.Chance(0.16f);
+            bool jackpot = JackpotReels > 0 || _rng.Chance(0.16f);
             var first = (Reel)_rng.Int(4);
             for (int i = 0; i < 4; i++) r[i] = jackpot ? first : (Reel)_rng.Int(4);
             return r;
         }
 
+        public bool NextIsJackpot => JackpotReels > 0;
         public int ReelSilver => 40 + Wave * 18;
 
         public void ApplyReels(Reel[] r)
@@ -361,6 +406,7 @@ namespace Liangshan.Sim
                 }
             }
             PendingReels = Math.Max(0, PendingReels - 1);
+            if (JackpotReels > 0) JackpotReels--;
             Phase = Phase.Running;
             for (int i = 0; i < banners; i++)
                 if (Summon(true, all ? 2 : 1) == null) Coins += ReelSilver;
@@ -390,8 +436,9 @@ namespace Liangshan.Sim
         {
             if (Phase != Phase.Running) return;
             Time += dt;
-            if (HasteT > 0) HasteT -= dt;
-            UpdateAura();
+            if (HasteT > 0) { HasteT -= dt; if (HasteT <= 0) HasteMul = 1f; }
+            if (ForgeT > 0) ForgeT -= dt;
+            UpdateAuras(dt);
             UpdateWaves();
             UpdateEnemies(dt);
             UpdateUnits(dt);
@@ -419,12 +466,38 @@ namespace Liangshan.Sim
             }
         }
 
-        void UpdateAura()
+        void UpdateAuras(float dt)
         {
-            float a = 0;
+            float spd = 0, dmg = 0, charge = 0, coin = 0, interest = 0;
+            Slot banker = null;
             foreach (var s in Slots)
-                if (s.Unit != null && s.Unit.Hero == HeroId.WuYong && s.Unit.Stun <= 0) a += 0.04f * s.Unit.Star;
-            Aura = Math.Min(0.5f, a * (Level("wy_aura") > 0 ? 2f : 1f));
+            {
+                var u = s.Unit;
+                if (u == null || u.Stun > 0) continue;
+                var d = u.Def;
+                if (d.Aura == AuraKind.None) continue;
+                float v = d.AuraV * u.Star * (1f + Stat(u.Hero, Eff.Aura));
+                switch (d.Aura)
+                {
+                    case AuraKind.Speed: spd += v; break;
+                    case AuraKind.Dmg: dmg += v; break;
+                    case AuraKind.Charge: charge += v; break;
+                    case AuraKind.Coin: coin += v; break;
+                    case AuraKind.Interest: interest += v; banker = s; break;
+                }
+            }
+            Aura = Math.Min(0.5f, spd);
+            DmgAura = Math.Min(0.4f, dmg);
+            ChargeAura = Math.Min(0.6f, charge);
+            CoinAura = Math.Min(1f, coin);
+            Interest = Math.Min(0.08f, interest);
+            if (Interest <= 0 || Wave == 0) { _interestT = 0; return; }
+            _interestT += dt;
+            if (_interestT < 4f) return;
+            _interestT -= 4f;
+            int gain = M.Clamp((int)Math.Round(Coins * Interest), 1, 25);
+            Coins += gain;
+            Emit(Ev.Coin, banker.Pos, banker.Index, gain, banker.Unit.Hero);
         }
 
         void UpdateWaves()
@@ -524,6 +597,7 @@ namespace Liangshan.Sim
                 if (e.Dead) continue;
                 if (e.HitT > 0) e.HitT -= dt;
                 if (e.SlowT > 0) e.SlowT -= dt;
+                if (e.VulnT > 0) e.VulnT -= dt;
                 if (e.ChargeT > 0) e.ChargeT -= dt;
                 if (e.Def.IsBoss && e.Pos.Y < Layout.EngageY) BossSkills(e, dt);
                 if (e.Stun > 0) { e.Stun -= dt; continue; }
@@ -631,6 +705,14 @@ namespace Liangshan.Sim
             Events.Add(new BattleEvent { Type = Ev.WallHit, Pos = pos, Value = (int)dmg });
         }
 
+        void HealWall(float amount, V2 pos, HeroId h)
+        {
+            if (amount <= 0 || Wall >= WallMax) return;
+            float add = Math.Min(WallMax - Wall, amount);
+            Wall += add;
+            Emit(Ev.Heal, pos, -1, (int)Math.Ceiling(add), h);
+        }
+
         /// <summary>兵挤兵：轻推开，免得几十个叠成一坨。飞的不跟地上的挤。</summary>
         void Separate(float dt)
         {
@@ -659,38 +741,50 @@ namespace Liangshan.Sim
             }
         }
 
+        // ---------------- 好汉数值 ----------------
+
+        /// <summary>寨主攻击力 × 好汉等级 × 职业突破 × 强化 × 关卡增益 × 光环。乘上系数和星级就是一次普攻的伤害。</summary>
         public float HeroDmgMul(HeroId h)
         {
-            float m = (1f + 0.15f * Level("all_dmg")) * Lo.AllDmg * Lo.HeroDmg[(int)h];
-            if (Stage.BuffRole.HasValue && Defs.Hero(h).Kind == Stage.BuffRole.Value) m *= 1f + Stage.BuffPct;
-            switch (h)
-            {
-                case HeroId.HuaRong: m *= 1f + 0.1f * Level("hr_pierce"); break;
-                case HeroId.LingZhen: m *= (1f + 0.15f * Level("lz_big")) * (1f - 0.2f * Level("lz_double") * 0.5f); break;
-                case HeroId.ZhangQing: m *= 1f + 0.25f * Level("zq_big"); break;
-                case HeroId.LinChong: m *= 1f + 0.1f * Level("lc_reach"); break;
-                case HeroId.WuYong: m *= 1f + 0.6f * Level("wy_wind"); break;
-            }
+            var d = Defs.Hero(h);
+            float m = Lo.Atk * Lo.HeroDmg[(int)h] * Lo.RoleDmg[(int)d.Kind] * (1f + Stat(h, Eff.Dmg)) * (1f + DmgAura);
+            if (Stage.BuffRole.HasValue && d.Kind == Stage.BuffRole.Value) m *= 1f + Stage.BuffPct;
+            if (ForgeT > 0) m *= 1f + ForgeV;
             return m;
         }
+
+        public float AtkPower(HeroId h, int star) => Defs.Hero(h).Coef * Defs.StarMul[star - 1] * HeroDmgMul(h);
+
+        public float UltPower(HeroId h, int star) => AtkPower(h, star) * Lo.UltPow[(int)h] * (1f + Stat(h, Eff.UltPow));
 
         public float HeroSpeedMul(HeroId h)
-        {
-            float m = (1f + 0.12f * Level("all_speed")) * Lo.AllSpeed * Lo.HeroSpeed[(int)h] * (1f + Aura) * (HasteT > 0 ? 1.6f : 1f);
-            if (h == HeroId.WuSong) m *= 1f + 0.45f * Level("ws_fast");
-            if (h == HeroId.LuZhiShen) m *= 1f + 0.4f * Level("lzs_rage");
-            return m;
-        }
+            => Lo.AllSpeed * Lo.HeroSpeed[(int)h] * (1f + Stat(h, Eff.Speed)) * (1f + Aura) * (HasteT > 0 ? HasteMul : 1f);
 
-        public float HeroRange(HeroId h)
+        public float HeroRange(HeroId h) => Defs.Hero(h).Range + Stat(h, Eff.Range);
+
+        public float CritRate(HeroId h) => Math.Min(0.8f, Lo.Crit + Stat(h, Eff.Crit));
+
+        public float UltCd(HeroId h)
+            => Defs.Hero(h).UltCd * Lo.UltCd * Lo.HeroUltCd[(int)h] * (1f - Math.Min(0.6f, Stat(h, Eff.UltCd)));
+
+        /// <summary>控制效果：(时长, 几率)。自带必控（套索、渔网）的强化加时长，其余加几率。</summary>
+        public (float dur, float chance) StunOf(HeroId h)
         {
             var d = Defs.Hero(h);
-            return d.Range + (h == HeroId.LinChong ? 1.5f * Level("lc_reach") : 0f);
+            float add = Stat(h, Eff.Stun);
+            if (d.Stun > 0 && d.StunChance <= 0) return (d.Stun + add, 1f);
+            float chance = d.StunChance + add;
+            return (d.Stun > 0 ? d.Stun : 0.8f, Math.Min(1f, chance));
         }
+
+        public float SlowOf(HeroId h) => Defs.Hero(h).Slow + Stat(h, Eff.Slow);
+        public float AreaOf(HeroId h) => 1f + Stat(h, Eff.Area);
+        public int CountOf(HeroId h) => Defs.Hero(h).Count + (int)Stat(h, Eff.Count);
+        public int ChainOf(HeroId h) => Defs.Hero(h).Chain + (int)Stat(h, Eff.Chain);
 
         Enemy PickTarget(HeroDef def, V2 from, int skip = -1)
         {
-            bool melee = def.Kind == Role.Fighter;
+            bool melee = def.Melee;
             float maxY = melee ? Layout.StopY + HeroRange(def.Id) : 99f;
             Enemy best = null;
             float bestScore = float.MaxValue;
@@ -700,6 +794,7 @@ namespace Liangshan.Sim
                 if (melee && e.Def.Flying) continue;
                 float score = e.Pos.Y + Math.Abs(e.Pos.X - from.X) * 0.25f;
                 if (e.Big || e.Def.Kind == EnemyKind.Porter) score -= 6f;
+                if (def.Shot == ShotKind.Lasso && e.Big) score -= 4f;
                 if (score < bestScore) { bestScore = score; best = e; }
             }
             return best;
@@ -718,95 +813,141 @@ namespace Liangshan.Sim
                 var target = PickTarget(def, s.Pos);
                 if (target == null) { u.Cd = 0.1f; continue; }
                 u.Cd = def.Interval;
-                float dmg = def.Damage * Defs.StarMul[u.Star - 1] * HeroDmgMul(u.Hero);
+                float dmg = AtkPower(u.Hero, u.Star);
                 if (u.Burst) { dmg *= 2.5f; u.Burst = false; }
                 Fire(s, u, target, dmg);
             }
         }
 
+        bool RollCrit(HeroId h, ref float dmg)
+        {
+            if (!_rng.Chance(CritRate(h))) return false;
+            dmg *= Lo.CritDmg;
+            return true;
+        }
+
         void Fire(Slot s, Unit u, Enemy target, float dmg)
         {
-            Events.Add(new BattleEvent { Type = Ev.Fire, Slot = s.Index, Hero = u.Hero, Pos = target.Pos });
-            switch (u.Hero)
+            var d = u.Def;
+            var h = u.Hero;
+            Events.Add(new BattleEvent { Type = Ev.Fire, Slot = s.Index, Hero = h, Pos = target.Pos });
+            int extra = (int)Stat(h, Eff.Count);
+            int count = d.Count + extra;
+            float each = extra > 0 && d.Shot != ShotKind.Lasso && d.Shot != ShotKind.Punch ? dmg * Math.Max(0.4f, 1f - 0.15f * extra) : dmg;
+            float area = AreaOf(h);
+            int chain = ChainOf(h);
+            var (stun, chance) = StunOf(h);
+            float slow = SlowOf(h);
+            var used = new List<int>();
+            switch (d.Shot)
             {
-                case HeroId.HuaRong:
-                {
-                    int n = 1 + Level("hr_multi");
-                    float each = dmg * (n > 1 ? 1f - 0.15f * Level("hr_multi") : 1f);
-                    var used = new List<int>();
-                    for (int i = 0; i < n; i++)
+                case ShotKind.Arrow:
+                    for (int i = 0; i < count; i++)
                     {
                         var t = i == 0 ? target : PickOther(target, used) ?? target;
                         used.Add(t.Id);
-                        bool crit = Level("hr_crit") > 0 && _rng.Chance(0.25f);
-                        AddShot(ShotKind.Arrow, u.Hero, s.Pos, t, crit ? each * 2.5f : each, 0.35f, 0.18f + V2.Dist(s.Pos, t.Pos) / 26f, crit);
+                        float v = each;
+                        bool crit = RollCrit(h, ref v);
+                        var shot = AddShot(ShotKind.Arrow, h, s.Pos, t, v, 0.35f, 0.18f + V2.Dist(s.Pos, t.Pos) / 26f, crit);
+                        shot.Pierce = chain;
+                        shot.T = -i * 0.05f;
                     }
                     break;
-                }
-                case HeroId.LingZhen:
-                {
-                    int n = 1 + Level("lz_double");
-                    float r = 1.0f * (1f + 0.35f * Level("lz_big"));
-                    var used = new List<int>();
-                    for (int i = 0; i < n; i++)
+                case ShotKind.Bomb:
+                case ShotKind.Fireball:
+                    for (int i = 0; i < count; i++)
                     {
                         var t = i == 0 ? target : PickOther(target, used) ?? target;
                         used.Add(t.Id);
-                        var lead = Lead(t, 0.6f);
-                        Shots.Add(new Shot { Id = _nextId++, Kind = ShotKind.Bomb, Hero = u.Hero, From = s.Pos, To = lead, Dur = 0.6f, Damage = dmg, Radius = r });
+                        float v = each;
+                        bool crit = RollCrit(h, ref v);
+                        float dur = d.Shot == ShotKind.Bomb ? 0.6f : 0.35f + V2.Dist(s.Pos, t.Pos) / 24f;
+                        Shots.Add(new Shot
+                        {
+                            Id = _nextId++, Kind = d.Shot, Hero = h, From = s.Pos, To = Lead(t, dur), Dur = dur, T = -i * 0.08f,
+                            Damage = v, Radius = d.Radius * area, Crit = crit, Split = Stat(h, Eff.Split) > 0, Knock = 0.12f,
+                        });
                     }
                     break;
-                }
-                case HeroId.GongSun:
-                    Shots.Add(new Shot
-                    {
-                        Id = _nextId++, Kind = ShotKind.Lightning, Hero = u.Hero, From = s.Pos, To = target.Pos, TargetId = target.Id,
-                        Dur = 0.1f, Damage = dmg, Radius = 0.75f, Pierce = 1 + 2 * Level("gs_chain"), Stun = Level("gs_stun") > 0 ? 0.8f : 0,
-                    });
-                    break;
-                case HeroId.WuSong:
-                    Shots.Add(new Shot
-                    {
-                        Id = _nextId++, Kind = ShotKind.Punch, Hero = u.Hero, From = s.Pos, To = target.Pos, TargetId = target.Id,
-                        Dur = 0.12f, Damage = dmg, Radius = 0.8f * (1f + 0.5f * Level("ws_quake")), Knock = 0.35f + 0.3f * Level("ws_quake"),
-                    });
-                    break;
-                case HeroId.ZhangQing:
+                case ShotKind.Lightning:
                 {
-                    bool crit = false;
+                    float v = each;
+                    bool crit = RollCrit(h, ref v);
                     Shots.Add(new Shot
                     {
-                        Id = _nextId++, Kind = ShotKind.Stone, Hero = u.Hero, From = s.Pos, To = target.Pos, TargetId = target.Id,
-                        Dur = 0.16f + V2.Dist(s.Pos, target.Pos) / 30f, Damage = dmg, Radius = 0.3f, Pierce = 1 + 2 * Level("zq_bounce"),
-                        Stun = Level("zq_stun") > 0 ? 1f : 0f, Crit = crit, Hit = new List<int>(),
+                        Id = _nextId++, Kind = ShotKind.Lightning, Hero = h, From = s.Pos, To = target.Pos, TargetId = target.Id,
+                        Dur = 0.1f, Damage = v, Radius = d.Radius * area, Pierce = 1 + chain, Crit = crit,
+                        Stun = chance > 0 ? stun : 0, StunChance = chance, Slow = slow,
                     });
                     break;
                 }
-                case HeroId.LinChong:
+                case ShotKind.Punch:
+                case ShotKind.Slam:
+                    for (int i = 0; i < count; i++)
+                    {
+                        float v = each;
+                        bool crit = RollCrit(h, ref v);
+                        Shots.Add(new Shot
+                        {
+                            Id = _nextId++, Kind = d.Shot, Hero = h, From = s.Pos, To = target.Pos, TargetId = target.Id, T = -i * 0.14f,
+                            Dur = d.Shot == ShotKind.Punch ? 0.12f : 0.16f, Damage = v, Radius = d.Radius * area, Knock = d.Knock * (1f + 0.5f * Stat(h, Eff.Area)), Crit = crit,
+                        });
+                    }
+                    break;
+                case ShotKind.Spear:
                 {
-                    bool crit = Level("lc_crit") > 0 && _rng.Chance(0.3f);
+                    float v = each;
+                    bool crit = RollCrit(h, ref v);
                     Shots.Add(new Shot
                     {
-                        Id = _nextId++, Kind = ShotKind.Spear, Hero = u.Hero, From = s.Pos, To = target.Pos, TargetId = target.Id,
-                        Dur = 0.1f, Damage = crit ? dmg * 2.5f : dmg, Radius = 0.55f, Crit = crit, Knock = 0.15f,
+                        Id = _nextId++, Kind = ShotKind.Spear, Hero = h, From = s.Pos, To = target.Pos, TargetId = target.Id,
+                        Dur = 0.1f, Damage = v, Radius = d.Radius * area, Crit = crit, Knock = d.Knock, Slow = slow,
+                        Stun = chance > 0 ? stun : 0, StunChance = chance,
                     });
                     break;
                 }
-                case HeroId.LuZhiShen:
+                case ShotKind.Stone:
+                {
+                    float v = each;
+                    bool crit = RollCrit(h, ref v);
                     Shots.Add(new Shot
                     {
-                        Id = _nextId++, Kind = ShotKind.Slam, Hero = u.Hero, From = s.Pos, To = target.Pos, TargetId = target.Id,
-                        Dur = 0.16f, Damage = dmg, Radius = 1.15f * (1f + 0.4f * Level("lzs_quake")), Knock = 0.3f,
+                        Id = _nextId++, Kind = ShotKind.Stone, Hero = h, From = s.Pos, To = target.Pos, TargetId = target.Id,
+                        Dur = 0.16f + V2.Dist(s.Pos, target.Pos) / 30f, Damage = v, Radius = d.Radius, Pierce = chain,
+                        Stun = chance > 0 ? stun : 0, StunChance = chance, Crit = crit, Hit = new List<int>(),
                     });
                     break;
-                case HeroId.WuYong:
+                }
+                case ShotKind.Wind:
+                {
+                    float v = each;
+                    bool crit = RollCrit(h, ref v);
                     Shots.Add(new Shot
                     {
-                        Id = _nextId++, Kind = ShotKind.Wind, Hero = u.Hero, From = s.Pos, To = target.Pos, TargetId = target.Id,
-                        Dur = 0.2f + V2.Dist(s.Pos, target.Pos) / 22f, Damage = dmg, Radius = Level("wy_wind") > 0 ? 1.1f : 0.6f,
+                        Id = _nextId++, Kind = ShotKind.Wind, Hero = h, From = s.Pos, To = target.Pos, TargetId = target.Id,
+                        Dur = 0.2f + V2.Dist(s.Pos, target.Pos) / 22f, Damage = v, Radius = d.Radius * area, Slow = slow, Crit = crit,
+                        Stun = chance > 0 ? stun : 0, StunChance = chance,
                     });
+                    break;
+                }
+                case ShotKind.Lasso:
+                    for (int i = 0; i < count; i++)
+                    {
+                        var t = i == 0 ? target : PickOther(target, used);
+                        if (t == null) break;
+                        used.Add(t.Id);
+                        float v = each;
+                        bool crit = RollCrit(h, ref v);
+                        Shots.Add(new Shot
+                        {
+                            Id = _nextId++, Kind = ShotKind.Lasso, Hero = h, From = s.Pos, To = t.Pos, TargetId = t.Id, T = -i * 0.08f,
+                            Dur = 0.22f, Damage = v, Radius = 0.4f, Stun = stun, StunChance = 1f, Crit = crit,
+                        });
+                    }
                     break;
             }
+            if (d.Aura == AuraKind.Heal)
+                HealWall(WallMax * d.AuraV * u.Star * (1f + Stat(h, Eff.Aura)), s.Pos, h);
         }
 
         Enemy PickOther(Enemy first, List<int> used)
@@ -828,13 +969,15 @@ namespace Liangshan.Sim
             return new V2(e.Pos.X, y);
         }
 
-        void AddShot(ShotKind k, HeroId h, V2 from, Enemy t, float dmg, float r, float dur, bool crit = false, bool ult = false)
+        Shot AddShot(ShotKind k, HeroId h, V2 from, Enemy t, float dmg, float r, float dur, bool crit = false, bool ult = false)
         {
-            Shots.Add(new Shot
+            var s = new Shot
             {
                 Id = _nextId++, Kind = k, Hero = h, From = from, To = t.Pos, TargetId = t.Id, Dur = dur, Damage = dmg, Radius = r,
-                Pierce = h == HeroId.HuaRong ? Level("hr_pierce") : 0, Crit = crit, Ult = ult,
-            });
+                Crit = crit, Ult = ult,
+            };
+            Shots.Add(s);
+            return s;
         }
 
         Enemy Find(int id)
@@ -854,7 +997,7 @@ namespace Liangshan.Sim
                     continue;
                 }
                 s.T += dt;
-                if (s.TargetId >= 0 && (s.Kind == ShotKind.Arrow || s.Kind == ShotKind.Stone || s.Kind == ShotKind.Wind))
+                if (s.TargetId >= 0 && (s.Kind == ShotKind.Arrow || s.Kind == ShotKind.Stone || s.Kind == ShotKind.Wind || s.Kind == ShotKind.Lasso))
                 {
                     var t = Find(s.TargetId);
                     if (t != null) s.To = t.Pos;
@@ -863,6 +1006,15 @@ namespace Liangshan.Sim
                 Shots.RemoveAt(i);
                 Land(s);
             }
+        }
+
+        bool TryStun(Enemy e, Shot s, float bigMul = 0f)
+        {
+            if (s.Stun <= 0 || s.StunChance <= 0) return false;
+            if (e.Big && bigMul <= 0) return false;
+            if (s.StunChance < 1f && !_rng.Chance(s.StunChance)) return false;
+            e.Stun = Math.Max(e.Stun, e.Big ? s.Stun * bigMul : s.Stun);
+            return true;
         }
 
         void Land(Shot s)
@@ -899,15 +1051,16 @@ namespace Liangshan.Sim
                     return;
                 }
                 case ShotKind.FireArrow:
-                    Splash(s.To, s.Radius, s.Damage, s.Hero, 0, 0);
+                    Splash(s, s.To, s.Radius, s.Damage, 0);
                     EmitHit(s, s.Radius);
                     return;
                 case ShotKind.Bomb:
                 case ShotKind.MiniBomb:
                 case ShotKind.BigBomb:
-                    Splash(s.To, s.Radius, s.Damage, s.Hero, 0, s.Kind == ShotKind.BigBomb ? 0.5f : 0.12f);
+                case ShotKind.Fireball:
+                    Splash(s, s.To, s.Radius, s.Damage, s.Kind == ShotKind.BigBomb ? 0.5f : s.Knock);
                     EmitHit(s, s.Radius);
-                    if (s.Kind == ShotKind.Bomb && Level("lz_split") > 0)
+                    if (s.Split)
                     {
                         for (int k = 0; k < 3; k++)
                         {
@@ -919,8 +1072,7 @@ namespace Liangshan.Sim
                     return;
                 case ShotKind.Lightning:
                 {
-                    bool ice = Level("gs_ice") > 0;
-                    Splash(s.To, s.Radius, s.Damage, s.Hero, s.Stun, 0, ice);
+                    Splash(s, s.To, s.Radius, s.Damage, 0);
                     EmitHit(s, s.Radius);
                     if (s.Pierce > 1)
                     {
@@ -933,7 +1085,7 @@ namespace Liangshan.Sim
                             Shots.Add(new Shot
                             {
                                 Id = _nextId++, Kind = ShotKind.Lightning, Hero = s.Hero, From = from, To = e.Pos, TargetId = e.Id,
-                                T = -delay, Dur = 0.05f, Damage = s.Damage * 0.6f, Radius = 0.45f, Pierce = 0, Stun = s.Stun,
+                                T = -delay, Dur = 0.05f, Damage = s.Damage * 0.6f, Radius = 0.45f, Pierce = 0, Stun = s.Stun, StunChance = s.StunChance, Slow = s.Slow,
                             });
                             from = e.Pos;
                         }
@@ -941,24 +1093,21 @@ namespace Liangshan.Sim
                     return;
                 }
                 case ShotKind.Punch:
-                    Splash(s.To, s.Radius, s.Damage, s.Hero, 0, s.Knock, false, Level("ws_tiger") > 0 ? 2.5f : 1f, true);
-                    EmitHit(s, s.Radius);
-                    return;
                 case ShotKind.Slam:
-                    Splash(s.To, s.Radius, s.Damage, s.Hero, 0, s.Knock, false, Level("lzs_boss") > 0 ? 2.5f : 1f, true);
+                    Splash(s, s.To, s.Radius, s.Damage, s.Knock, true);
                     EmitHit(s, s.Radius);
                     return;
                 case ShotKind.Spear:
                 {
                     // 一枪贯穿目标和它身后同一列的敌人。
-                    bool frost = Level("lc_frost") > 0;
                     foreach (var e in Enemies)
                     {
                         if (e.Dead || e.Def.Flying) continue;
                         float half = s.Radius + e.Def.Size * 0.2f;
                         if (Math.Abs(e.Pos.X - s.To.X) > half || e.Pos.Y < s.To.Y - 0.5f || e.Pos.Y > s.To.Y + 2.2f) continue;
-                        Damage(e, e.Id == s.TargetId ? s.Damage : s.Damage * 0.7f, s.Hero, s.Crit && e.Id == s.TargetId);
-                        if (frost) e.SlowT = Math.Max(e.SlowT, 1.6f);
+                        Damage(e, e.Id == s.TargetId || s.Ult ? s.Damage : s.Damage * 0.7f, s.Hero, s.Crit && e.Id == s.TargetId);
+                        if (s.Slow > 0) e.SlowT = Math.Max(e.SlowT, s.Slow);
+                        TryStun(e, s, s.Ult ? 0.4f : 0f);
                         if (s.Knock > 0 && !e.Big && e.Def.Kind != EnemyKind.Porter) { e.Pos.Y = Math.Min(Layout.SpawnY - 0.5f, e.Pos.Y + s.Knock); e.Attacking = false; }
                     }
                     EmitHit(s, s.Radius);
@@ -970,7 +1119,7 @@ namespace Liangshan.Sim
                     if (t != null)
                     {
                         Damage(t, s.Damage, s.Hero, s.Crit);
-                        if (s.Stun > 0 && !t.Big && _rng.Chance(0.3f)) t.Stun = Math.Max(t.Stun, s.Stun);
+                        TryStun(t, s, s.Ult ? 0.5f : 0f);
                         s.Hit.Add(t.Id);
                     }
                     EmitHit(s, s.Radius);
@@ -988,7 +1137,8 @@ namespace Liangshan.Sim
                             Shots.Add(new Shot
                             {
                                 Id = _nextId++, Kind = ShotKind.Stone, Hero = s.Hero, From = s.To, To = next.Pos, TargetId = next.Id,
-                                Dur = 0.14f, Damage = s.Damage * 0.8f, Radius = s.Radius, Pierce = s.Pierce - 1, Stun = s.Stun, Hit = s.Hit, Ult = s.Ult,
+                                Dur = 0.14f, Damage = s.Damage * 0.8f, Radius = s.Radius, Pierce = s.Pierce - 1, Stun = s.Stun, StunChance = s.StunChance,
+                                Hit = s.Hit, Ult = s.Ult,
                             });
                     }
                     return;
@@ -1000,8 +1150,20 @@ namespace Liangshan.Sim
                         if (e.Dead) continue;
                         float rr = s.Radius + e.Def.Size * 0.25f;
                         if ((e.Pos - s.To).Len2 > rr * rr) continue;
-                        Damage(e, e.Id == s.TargetId || s.Ult ? s.Damage : s.Damage * 0.5f, s.Hero, false);
-                        e.SlowT = Math.Max(e.SlowT, 1.5f);
+                        Damage(e, e.Id == s.TargetId || s.Ult ? s.Damage : s.Damage * 0.5f, s.Hero, s.Crit && e.Id == s.TargetId);
+                        if (s.Slow > 0) e.SlowT = Math.Max(e.SlowT, s.Slow);
+                        TryStun(e, s);
+                    }
+                    EmitHit(s, s.Radius);
+                    return;
+                }
+                case ShotKind.Lasso:
+                {
+                    var t = Find(s.TargetId) ?? Nearest(s.To, 0.8f);
+                    if (t != null)
+                    {
+                        Damage(t, s.Damage, s.Hero, s.Crit);
+                        TryStun(t, s, 0.4f);
                     }
                     EmitHit(s, s.Radius);
                     return;
@@ -1046,7 +1208,7 @@ namespace Liangshan.Sim
             return list;
         }
 
-        void Splash(V2 p, float r, float dmg, HeroId h, float stun, float knock, bool ice = false, float bigMul = 1f, bool ground = false)
+        void Splash(Shot s, V2 p, float r, float dmg, float knock, bool ground = false)
         {
             for (int i = 0; i < Enemies.Count; i++)
             {
@@ -1054,9 +1216,9 @@ namespace Liangshan.Sim
                 if (e.Dead || (ground && e.Def.Flying)) continue;
                 float rr = r + e.Def.Size * 0.25f;
                 if ((e.Pos - p).Len2 > rr * rr) continue;
-                Damage(e, e.Big ? dmg * bigMul : dmg, h, false);
-                if (stun > 0 && !e.Big) e.Stun = Math.Max(e.Stun, stun);
-                if (ice) e.SlowT = Math.Max(e.SlowT, 2f);
+                Damage(e, dmg, s.Hero, false);
+                TryStun(e, s, s.Ult ? 0.4f : 0f);
+                if (s.Slow > 0) e.SlowT = Math.Max(e.SlowT, s.Slow);
                 if (knock > 0 && !e.Big && e.Def.Kind != EnemyKind.Porter && !e.Def.Flying)
                 {
                     e.Pos.Y = Math.Min(Layout.SpawnY - 0.5f, e.Pos.Y + knock);
@@ -1079,6 +1241,10 @@ namespace Liangshan.Sim
         {
             if (e.Dead) return;
             dmg *= Affinity(e.Def, Defs.Hero(h));
+            if (e.Big) dmg *= 1f + Stat(h, Eff.Elite);
+            if (e.Def.Flying) dmg *= 1f + Stat(h, Eff.Fly);
+            if (e.Mounted) dmg *= 1f + Stat(h, Eff.Cav);
+            if (e.VulnT > 0) dmg *= 1.25f;
             if (e.Shield > 0)
             {
                 float a = Math.Min(e.Shield, dmg);
@@ -1094,46 +1260,56 @@ namespace Liangshan.Sim
             if (e.Hp > 0) return;
             e.Dead = true;
             Kills++;
-            int coin = (int)Math.Round(e.Def.Coin * (1f + 0.3f * Level("coin")));
+            int coin = (int)Math.Round(e.Def.Coin * (1f + CoinAura));
             Coins += coin;
             Events.Add(new BattleEvent { Type = Ev.Kill, Pos = e.Pos, Value = coin, EnemyId = e.Id, Hero = h });
             switch (e.Def.Kind)
             {
                 case EnemyKind.Porter:
                     PortersKilled++;
-                    if (Stage.Mode != StageMode.Escort) PendingReels++;
                     Events.Add(new BattleEvent { Type = Ev.PorterKilled, Pos = e.Pos, EnemyId = e.Id });
                     break;
                 case EnemyKind.FireBomb:
                     Events.Add(new BattleEvent { Type = Ev.Explode, Pos = e.Pos, EnemyId = e.Id, Radius = 1.3f });
-                    Splash(e.Pos, 1.3f, e.MaxHp * 3f, h, 0, 0.3f);
+                    Splash(new Shot { Hero = h }, e.Pos, 1.3f, e.MaxHp * 3f, 0.3f);
                     break;
             }
             if (e.Def.Rank == EnemyRank.Elite) ElitesKilled++;
             if (e.Def.IsBoss) BossesKilled++;
+            // 生辰纲：精英、首领倒下必掉，首领那一次四格必中。
+            if (e.Big && Stage.Mode != StageMode.Escort)
+            {
+                PendingReels++;
+                if (e.Def.IsBoss) JackpotReels++;
+                Events.Add(new BattleEvent { Type = Ev.Treasure, Pos = e.Pos, EnemyId = e.Id, Value = e.Def.IsBoss ? 1 : 0 });
+            }
         }
 
         // ---------------- 大招 ----------------
 
         void UpdateUlts(float dt)
         {
-            for (int h = 0; h < Defs.HeroCount; h++)
+            foreach (var hero in Lineup)
             {
-                var hero = (HeroId)h;
+                int h = (int)hero;
                 if (!HasUlt(hero)) continue;
-                Slot best = null;
-                foreach (var s in Slots)
-                    if (s.Unit != null && s.Unit.Hero == hero && s.Unit.Stun <= 0 && (best == null || s.Unit.Star > best.Unit.Star)) best = s;
-                if (best == null) continue;
-                UltTimer[h] -= dt * HeroSpeedMul(hero);
+                var best = SlotOf(hero);
+                if (best == null || best.Unit.Stun > 0) continue;
+                UltTimer[h] -= dt * HeroSpeedMul(hero) * (1f + ChargeAura);
                 if (UltTimer[h] > 0 || Enemies.Count == 0) continue;
                 var def = Defs.Hero(hero);
-                bool melee = def.Kind == Role.Fighter;
-                var c = Densest(melee ? Layout.StopY + HeroRange(hero) : 99f, melee);
+                if (def.Ult == UltKind.Heal && Wall > WallMax * 0.85f && !AnyStunned()) { UltTimer[h] = 0.5f; continue; }
+                var c = Densest(def.Melee ? Layout.StopY + HeroRange(hero) : 99f, def.Melee);
                 if (c == null) { UltTimer[h] = 0.5f; continue; }
-                UltTimer[h] = def.UltCd * Lo.UltCd * Lo.HeroUltCd[h];
-                CastUlt(hero, best, c.Pos);
+                UltTimer[h] = UltCd(hero);
+                CastUlt(hero, best, c);
             }
+        }
+
+        bool AnyStunned()
+        {
+            foreach (var s in Slots) if (s.Unit != null && s.Unit.Stun > 0) return true;
+            return false;
         }
 
         Enemy Densest(float maxY, bool ground)
@@ -1160,101 +1336,243 @@ namespace Liangshan.Sim
             return targets;
         }
 
-        void CastUlt(HeroId hero, Slot from, V2 at)
+        /// <summary>首领 &gt; 精英 &gt; 血最多。</summary>
+        Enemy Strongest()
+        {
+            Enemy best = null;
+            float bs = -1;
+            foreach (var e in Enemies)
+            {
+                if (e.Dead || e.Pos.Y > Layout.EngageY - 0.3f) continue;
+                float s = e.Hp + (e.Def.IsBoss ? 1e7f : e.Big ? 1e6f : 0);
+                if (s > bs) { bs = s; best = e; }
+            }
+            return best;
+        }
+
+        void CastUlt(HeroId hero, Slot from, Enemy focus)
         {
             var u = from.Unit;
             var def = u.Def;
-            float power = def.Damage * Defs.StarMul[u.Star - 1] * HeroDmgMul(hero);
+            float power = UltPower(hero, u.Star) * def.UltCoef;
+            float boost = 1f + Stat(hero, Eff.UltPow);
+            var at = focus.Pos;
             Events.Add(new BattleEvent { Type = Ev.Ult, Slot = from.Index, Hero = hero, Pos = at, Value = u.Star });
-            switch (hero)
+            switch (def.Ult)
             {
-                case HeroId.HuaRong:
-                {
-                    int n = 10 + 6 * Level("hr_rain");
-                    for (int i = 0; i < n; i++)
+                case UltKind.Rain:
+                    for (int i = 0; i < def.UltN; i++)
                     {
                         var to = at + new V2(_rng.Range(-1.6f, 1.6f), _rng.Range(-1.2f, 1.6f));
                         Shots.Add(new Shot
                         {
                             Id = _nextId++, Kind = ShotKind.FireArrow, Hero = hero, From = new V2(from.Pos.X + _rng.Range(-0.4f, 0.4f), from.Pos.Y),
-                            To = to, T = -i * 0.06f, Dur = 0.45f, Damage = power * 2.2f, Radius = 0.6f, Ult = true,
+                            To = to, T = -i * 0.06f, Dur = 0.45f, Damage = power, Radius = 0.6f, Ult = true,
                         });
                     }
                     break;
-                }
-                case HeroId.LingZhen:
-                    Shots.Add(new Shot { Id = _nextId++, Kind = ShotKind.BigBomb, Hero = hero, From = from.Pos, To = at, Dur = 0.95f, Damage = power * 7f, Radius = 2.3f, Ult = true });
+                case UltKind.BigBomb:
+                    Shots.Add(new Shot { Id = _nextId++, Kind = ShotKind.BigBomb, Hero = hero, From = from.Pos, To = at, Dur = 0.95f, Damage = power, Radius = def.UltRadius * (1f + Stat(hero, Eff.Area) * 0.5f), Ult = true });
                     break;
-                case HeroId.GongSun:
+                case UltKind.Thunder:
                 {
                     var targets = FrontTargets();
-                    for (int i = 0; i < 5; i++)
+                    for (int i = 0; i < def.UltN; i++)
                     {
                         V2 p = i == 0 ? at : targets.Count > 0 ? targets[_rng.Int(Math.Min(targets.Count, 14))].Pos : at;
                         Shots.Add(new Shot
                         {
                             Id = _nextId++, Kind = ShotKind.Lightning, Hero = hero, From = p + new V2(0, 6), To = p, T = -i * 0.16f,
-                            Dur = 0.08f, Damage = power * 4f, Radius = 1.15f, Stun = 1f, Ult = true,
+                            Dur = 0.08f, Damage = power, Radius = def.UltRadius, Stun = def.UltStun, StunChance = 1f, Ult = true,
                         });
                     }
                     break;
                 }
-                case HeroId.WuSong:
-                    for (int i = 0; i < 18; i++)
+                case UltKind.Barrage:
+                    for (int i = 0; i < def.UltN; i++)
                     {
                         var p = at + new V2(_rng.Range(-1.8f, 1.8f), _rng.Range(-0.6f, 1.4f));
                         Shots.Add(new Shot
                         {
-                            Id = _nextId++, Kind = ShotKind.Punch, Hero = hero, From = from.Pos, To = p, T = -i * 0.16f, Dur = 0.05f,
-                            Damage = power * 1.6f, Radius = 1.0f, Knock = 0.5f, Ult = true,
+                            Id = _nextId++, Kind = ShotKind.Punch, Hero = hero, From = from.Pos, To = p, T = -i * 3f / def.UltN, Dur = 0.05f,
+                            Damage = power, Radius = 1.0f, Knock = 0.5f, Ult = true,
                         });
                     }
                     break;
-                case HeroId.ZhangQing:
+                case UltKind.Volley:
+                case UltKind.Arrows:
                 {
                     var targets = FrontTargets();
-                    for (int i = 0; i < 12 && targets.Count > 0; i++)
+                    bool stone = def.Ult == UltKind.Volley;
+                    for (int i = 0; i < def.UltN && targets.Count > 0; i++)
                     {
                         var t = targets[_rng.Int(Math.Min(targets.Count, 16))];
                         Shots.Add(new Shot
                         {
-                            Id = _nextId++, Kind = ShotKind.Stone, Hero = hero, From = from.Pos, To = t.Pos, TargetId = t.Id, T = -i * 0.08f,
-                            Dur = 0.22f, Damage = power * 2.5f, Radius = 0.45f, Stun = 1f, Ult = true, Hit = new List<int>(),
+                            Id = _nextId++, Kind = stone ? ShotKind.Stone : ShotKind.Arrow, Hero = hero, From = from.Pos, To = t.Pos, TargetId = t.Id, T = -i * 0.08f,
+                            Dur = 0.22f + (stone ? 0 : V2.Dist(from.Pos, t.Pos) / 30f), Damage = power, Radius = 0.45f, Stun = def.UltStun, StunChance = def.UltStun > 0 ? 1f : 0f,
+                            Ult = true, Hit = new List<int>(), Pierce = stone ? 0 : ChainOf(hero), Crit = true,
                         });
                     }
                     break;
                 }
-                case HeroId.LinChong:
+                case UltKind.Frost:
                     Shots.Add(new Shot
                     {
                         Id = _nextId++, Kind = ShotKind.Frost, Hero = hero, From = from.Pos, To = at, Dur = 0.35f,
-                        Damage = power * 5f, Radius = 1.9f, Stun = 2.5f, Ult = true,
+                        Damage = power, Radius = def.UltRadius, Stun = def.UltStun, Ult = true,
                     });
                     break;
-                case HeroId.LuZhiShen:
-                    for (int i = 0; i < 5; i++)
+                case UltKind.Sweep:
+                    for (int i = 0; i < def.UltN; i++)
                     {
-                        var p = new V2(-3.6f + i * 1.8f, Layout.StopY + 1.1f);
+                        var p = new V2(-3.6f + i * 7.2f / Math.Max(1, def.UltN - 1), Layout.StopY + 1.1f);
                         Shots.Add(new Shot
                         {
                             Id = _nextId++, Kind = ShotKind.Slam, Hero = hero, From = from.Pos, To = p, T = -i * 0.1f, Dur = 0.1f,
-                            Damage = power * 4f, Radius = 1.5f, Knock = 1.2f, Ult = true,
+                            Damage = power, Radius = 1.5f, Knock = 1.2f, Ult = true,
                         });
                     }
                     break;
-                case HeroId.WuYong:
+                case UltKind.Haste:
                 {
-                    HasteT = 6f;
-                    int coin = 10 + 10 * u.Star;
+                    HasteT = 6f * boost;
+                    HasteMul = Math.Max(HasteMul, 1.6f);
+                    int coin = (int)((10 + 10 * u.Star) * boost);
                     Coins += coin;
                     Emit(Ev.Coin, from.Pos, from.Index, coin, hero);
                     Shots.Add(new Shot
                     {
                         Id = _nextId++, Kind = ShotKind.Wind, Hero = hero, From = from.Pos, To = at, Dur = 0.4f,
-                        Damage = power * 3f, Radius = 2f, Ult = true,
+                        Damage = power, Radius = def.UltRadius, Slow = 2f, Ult = true,
                     });
                     break;
                 }
+                case UltKind.Heal:
+                    HealWall(WallMax * def.UltCoef * boost * (0.7f + 0.1f * u.Star), from.Pos, hero);
+                    foreach (var s in Slots) if (s.Unit != null) s.Unit.Stun = 0;
+                    break;
+                case UltKind.Bind:
+                {
+                    var targets = new List<Enemy>(Enemies);
+                    targets.RemoveAll(e => e.Dead || e.Pos.Y > Layout.EngageY - 0.3f);
+                    targets.Sort((a, b) => (b.Big ? 1 : 0).CompareTo(a.Big ? 1 : 0) != 0 ? (b.Big ? 1 : 0).CompareTo(a.Big ? 1 : 0) : a.Pos.Y.CompareTo(b.Pos.Y));
+                    int n = def.UltN + (int)Stat(hero, Eff.Count);
+                    for (int i = 0; i < n && i < targets.Count; i++)
+                    {
+                        var t = targets[i];
+                        Shots.Add(new Shot
+                        {
+                            Id = _nextId++, Kind = ShotKind.Lasso, Hero = hero, From = from.Pos, To = t.Pos, TargetId = t.Id, T = -i * 0.07f,
+                            Dur = 0.25f, Damage = power, Radius = 0.5f, Stun = def.UltStun + Stat(hero, Eff.Stun), StunChance = 1f, Ult = true,
+                        });
+                    }
+                    break;
+                }
+                case UltKind.Snipe:
+                case UltKind.Brick:
+                {
+                    var t = Strongest() ?? focus;
+                    bool brick = def.Ult == UltKind.Brick;
+                    Shots.Add(new Shot
+                    {
+                        Id = _nextId++, Kind = brick ? ShotKind.Stone : ShotKind.Arrow, Hero = hero, From = from.Pos, To = t.Pos, TargetId = t.Id,
+                        Dur = brick ? 0.45f : 0.3f, Damage = power, Radius = brick ? 0.9f : 0.5f, Crit = true, Ult = true, Hit = new List<int>(),
+                        Stun = def.UltStun, StunChance = def.UltStun > 0 ? 1f : 0f,
+                    });
+                    break;
+                }
+                case UltKind.Tornado:
+                case UltKind.Net:
+                case UltKind.Powder:
+                    Shots.Add(new Shot
+                    {
+                        Id = _nextId++, Kind = ShotKind.Wind, Hero = hero, From = from.Pos, To = at, Dur = 0.45f,
+                        Damage = power, Radius = def.UltRadius * (1f + Stat(hero, Eff.Area) * 0.5f), Slow = 3f,
+                        Stun = def.UltStun + (def.Ult == UltKind.Tornado ? 0 : Stat(hero, Eff.Stun)), StunChance = 1f, Ult = true,
+                    });
+                    break;
+                case UltKind.Meteor:
+                {
+                    var targets = FrontTargets();
+                    for (int i = 0; i < def.UltN; i++)
+                    {
+                        V2 p = i == 0 ? at : targets.Count > 0 ? targets[_rng.Int(Math.Min(targets.Count, 12))].Pos : at;
+                        Shots.Add(new Shot
+                        {
+                            Id = _nextId++, Kind = ShotKind.Fireball, Hero = hero, From = p + new V2(-1.2f, 6f), To = p, T = -i * 0.18f,
+                            Dur = 0.5f, Damage = power, Radius = def.UltRadius, Knock = 0.4f, Ult = true,
+                        });
+                    }
+                    break;
+                }
+                case UltKind.FireLine:
+                    for (int i = 0; i < def.UltN; i++)
+                    {
+                        var p = new V2(-3.6f + i * 7.2f / Math.Max(1, def.UltN - 1), Layout.StopY + 1.2f + _rng.Range(-0.3f, 0.6f));
+                        Shots.Add(new Shot
+                        {
+                            Id = _nextId++, Kind = ShotKind.Bomb, Hero = hero, From = from.Pos, To = p, T = -i * 0.12f, Dur = 0.6f,
+                            Damage = power, Radius = 1.3f, Knock = 0.3f, Ult = true,
+                        });
+                    }
+                    break;
+                case UltKind.Formation:
+                    foreach (var e in Enemies)
+                    {
+                        if (e.Dead || e.Pos.Y > Layout.EngageY) continue;
+                        e.SlowT = Math.Max(e.SlowT, 4f * boost);
+                        e.VulnT = Math.Max(e.VulnT, 6f * boost);
+                        Damage(e, power, hero, false);
+                    }
+                    break;
+                case UltKind.Wave:
+                    for (int row = 0; row < 2; row++)
+                        for (int i = 0; i < 4; i++)
+                        {
+                            var p = new V2(-3.3f + i * 2.2f, Layout.StopY + 1.3f + row * 2.4f);
+                            Shots.Add(new Shot
+                            {
+                                Id = _nextId++, Kind = ShotKind.Wind, Hero = hero, From = new V2(p.X, Layout.WallRowY), To = p, T = -row * 0.25f - i * 0.05f,
+                                Dur = 0.35f, Damage = power, Radius = 1.5f, Slow = 3f, Knock = 0.6f, Ult = true,
+                            });
+                        }
+                    break;
+                case UltKind.Hook:
+                    for (int i = 0; i < def.UltN; i++)
+                    {
+                        var p = new V2(-3.6f + i * 7.2f / Math.Max(1, def.UltN - 1), Layout.StopY + 0.6f);
+                        Shots.Add(new Shot
+                        {
+                            Id = _nextId++, Kind = ShotKind.Spear, Hero = hero, From = new V2(p.X, Layout.WallRowY), To = p, T = -i * 0.08f, Dur = 0.12f,
+                            Damage = power, Radius = 0.9f, Stun = def.UltStun, StunChance = 1f, Slow = 2f, Ult = true,
+                        });
+                    }
+                    break;
+                case UltKind.Steal:
+                {
+                    int coin = (int)((20 + 10 * u.Star + Wave * 4) * boost);
+                    Coins += coin;
+                    Emit(Ev.Coin, from.Pos, from.Index, coin, hero);
+                    break;
+                }
+                case UltKind.Interest:
+                {
+                    int coin = M.Clamp((int)(Coins * def.UltCoef * boost), 30, 400);
+                    Coins += coin;
+                    Emit(Ev.Coin, from.Pos, from.Index, coin, hero);
+                    break;
+                }
+                case UltKind.Forge:
+                    ForgeT = 6f;
+                    ForgeV = def.UltCoef * boost * (0.8f + 0.1f * u.Star);
+                    break;
+                case UltKind.Charge:
+                    foreach (var h in Lineup)
+                        if (h != hero) UltTimer[(int)h] *= 1f - def.UltCoef;
+                    HasteT = Math.Max(HasteT, 4f * boost);
+                    HasteMul = Math.Max(HasteMul, 1.3f);
+                    break;
             }
         }
     }

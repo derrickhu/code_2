@@ -553,14 +553,14 @@ namespace Liangshan
             Ui.Label(_info, d.Name, 38, Pal.Hex("2B3442"), card + new Vector2(0, -102), new Vector2(214, 60), TextAnchor.MiddleCenter, Fonts.Heavy);
 
             // 第一行：攻击力 + 定位
-            float atk = d.Damage * Defs.StarMul[u.Star - 1] * B.HeroDmgMul(d.Id);
+            float atk = B.AtkPower(d.Id, u.Star);
             var row = new Vector2(132, 116);
             Ui.Box(_info, new Vector2(750, 62), row, Pal.Hex("121C2A"), Art.Rounded);
             Ui.Icon(_info, "ic_sword", 46, row + new Vector2(-330, 0));
             Ui.Label(_info, Ui.Num(atk), 38, Color.white, row + new Vector2(-200, 0), new Vector2(200, 56), TextAnchor.MiddleLeft, Fonts.Heavy);
             Ui.Box(_info, new Vector2(54, 54), row + new Vector2(90, 0), Pal.Hex("3D6FB8"), Art.Circle);
             Ui.Icon(_info, d.AtkIcon, 40, row + new Vector2(90, 0));
-            Ui.Label(_info, $"{d.Role} · {d.Element}", 32, Pal.Hex("D7E4F5"), row + new Vector2(240, 2), new Vector2(240, 56), TextAnchor.MiddleLeft, Fonts.Heavy);
+            Ui.Label(_info, $"{d.Role} · {d.RarityName}", 32, Pal.Hex("D7E4F5"), row + new Vector2(240, 2), new Vector2(240, 56), TextAnchor.MiddleLeft, Fonts.Heavy);
             Ui.Box(_info, new Vector2(150, 3), row + new Vector2(194, -22), Pal.Hex("D7E4F5").A(0.7f), Art.White);
 
             // 技能块
@@ -575,12 +575,12 @@ namespace Liangshan
             Ui.Box(_info, new Vector2(716, 2), blk + new Vector2(0, 54), Color.white.A(0.1f), Art.White);
             Ui.Label(_info, sk.Desc, 27, Pal.Hex("D7E0EC"), blk + new Vector2(0, 0), new Vector2(712, 100), TextAnchor.UpperLeft);
 
-            // 六边形技能槽：普攻 / 大招 / 强化
-            string[] icons = { d.AtkIcon, d.UltIcon, "ic_scroll" };
-            for (int i = 0; i < 3; i++)
+            // 六边形技能槽：普攻 / 大招 / 被动 / 强化
+            string[] icons = { d.AtkIcon, d.UltIcon, "ic_star", "ic_scroll" };
+            for (int i = 0; i < 4; i++)
             {
                 var info = Skill(u, i);
-                var hp = new Vector2(150 + i * 128, -150);
+                var hp = new Vector2(112 + i * 124, -150);
                 bool sel = i == tab;
                 var edge = Ui.Box(_info, new Vector2(118, 118), hp, sel ? Pal.Hex("FFD24A") : Pal.Hex("0B1119"), Art.Hex6, "hex" + i);
                 edge.rectTransform.localRotation = Quaternion.Euler(0, 0, 90);
@@ -631,75 +631,23 @@ namespace Liangshan
                 t.Cd = d.Interval;
                 t.Cut = d.Interval - d.Interval / s;
                 t.Lv = u.Star;
-                switch (h)
-                {
-                    case HeroId.HuaRong:
-                    {
-                        int n = 1 + B.Level("hr_multi");
-                        int pct = Mathf.RoundToInt(100 * (n > 1 ? 1f - 0.15f * B.Level("hr_multi") : 1f));
-                        t.Desc = $"向最前方的敌人射出{O(n)}支箭，每支造成{O(pct + "%")}物理伤害";
-                        if (B.Level("hr_pierce") > 0) t.Desc += $"，可穿透{O(B.Level("hr_pierce"))}个敌人";
-                        if (B.Level("hr_crit") > 0) t.Desc += $"；{O("25%")}几率暴击，伤害{O("×2.5")}";
-                        break;
-                    }
-                    case HeroId.LingZhen:
-                    {
-                        int n = 1 + B.Level("lz_double");
-                        t.Desc = $"向敌群投掷{O(n)}枚炸弹，爆炸对范围内敌人造成{O("100%")}火系伤害";
-                        if (B.Level("lz_split") > 0) t.Desc += $"，并分裂出{O(3)}枚小炸弹（{O("40%")}伤害）";
-                        break;
-                    }
-                    case HeroId.GongSun:
-                    {
-                        int chain = 2 * B.Level("gs_chain");
-                        t.Desc = $"召下天雷劈中敌人，造成{O("100%")}雷系伤害";
-                        if (chain > 0) t.Desc += $"，并连锁{O(chain)}个敌人";
-                        if (B.Level("gs_stun") > 0) t.Desc += $"，麻痹{O("0.8秒")}";
-                        if (B.Level("gs_ice") > 0) t.Desc += $"，冰冻减速{O("45%")}";
-                        break;
-                    }
-                    case HeroId.WuSong:
-                        t.Desc = $"只打墙前近身的敌人，一拳造成{O("100%")}物理伤害并击退";
-                        if (B.Level("ws_tiger") > 0) t.Desc += $"；对精英、首领伤害{O("×2.5")}";
-                        break;
-                    case HeroId.ZhangQing:
-                        t.Desc = $"掷出飞石造成{O("100%")}物理伤害，再弹射{O(1 + 2 * B.Level("zq_bounce"))}次（每次{O("80%")}）";
-                        if (B.Level("zq_stun") > 0) t.Desc += $"；{O("30%")}几率击晕{O("1秒")}";
-                        break;
-                    case HeroId.LinChong:
-                        t.Desc = $"长枪贯穿目标和身后一列敌人，造成{O("100%")}物理伤害，攻击距离{O(B.HeroRange(h).ToString("0.#"))}";
-                        if (B.Level("lc_crit") > 0) t.Desc += $"；{O("30%")}几率暴击{O("×2.5")}";
-                        if (B.Level("lc_frost") > 0) t.Desc += "，命中减速";
-                        break;
-                    case HeroId.LuZhiShen:
-                        t.Desc = $"禅杖砸地，对周围敌人造成{O("100%")}物理伤害并震退";
-                        if (B.Level("lzs_boss") > 0) t.Desc += $"；对精英、首领伤害{O("×2.5")}";
-                        break;
-                    default:
-                        t.Desc = $"羽扇风刃造成{O("100%")}风系伤害并减速；在场每星为全军加{O("4%")}攻速（当前{O("+" + Mathf.RoundToInt(B.Aura * 100) + "%")}）";
-                        break;
-                }
-                t.Desc += "\n<color=#8E9BAC>" + (d.Kind == Role.Fighter ? "近战：打不到飞行敌人" : d.Physical ? "物理：被重甲减半" : "法术：克制重甲") + "</color>";
+                t.Desc = HeroText.Atk(d, B) + "\n<color=#8E9BAC>" + HeroText.Tip(d) + "</color>";
             }
             else if (tab == 1)
             {
+                float cd = B.UltCd(h);
                 t.Name = d.UltName;
                 t.Cd = d.UltCd;
-                t.Cut = d.UltCd - d.UltCd / spd;
+                t.Cut = d.UltCd - cd / spd;
                 t.Locked = !B.HasUlt(h);
                 t.Lv = t.Locked ? 0 : 1;
-                switch (h)
-                {
-                    case HeroId.HuaRong: t.Desc = $"火箭齐射{O(10 + 6 * B.Level("hr_rain"))}支，覆盖敌群最密处，每支造成{O("220%")}火系伤害"; break;
-                    case HeroId.LingZhen: t.Desc = $"砸下一枚巨型火炮，对大范围敌人造成{O("700%")}火系伤害并震退"; break;
-                    case HeroId.GongSun: t.Desc = $"五道天雷劈向敌群，每道造成{O("400%")}雷系伤害并麻痹{O("1秒")}"; break;
-                    case HeroId.WuSong: t.Desc = $"三秒连环醉拳{O(18)}击，每击造成{O("160%")}物理伤害并击退"; break;
-                    case HeroId.ZhangQing: t.Desc = $"十二枚飞石连打前排敌人，每枚造成{O("250%")}物理伤害并击晕{O("1秒")}"; break;
-                    case HeroId.LinChong: t.Desc = $"风雪冰封一片敌人，造成{O("500%")}物理伤害，冻住{O("2.5秒")}"; break;
-                    case HeroId.LuZhiShen: t.Desc = $"横扫墙前一整排，五段各造成{O("400%")}物理伤害并击飞"; break;
-                    default: t.Desc = $"全军攻速{O("+60%")}持续{O("6秒")}，并获得{O(10 + 10 * u.Star)}银两"; break;
-                }
-                if (t.Locked) t.Desc += $"\n<color=#8E9BAC>强化三选一抽到「{d.UltName}」后解锁</color>";
+                t.Desc = HeroText.Ult(d, B.Lo.UltPow[(int)h] * (1f + B.Stat(h, Eff.UltPow)));
+            }
+            else if (tab == 2)
+            {
+                t.Name = d.PassiveName;
+                t.Locked = !B.Lo.Passive[(int)h];
+                t.Desc = HeroText.Passive(d) + (t.Locked ? "\n<color=#8E9BAC>好汉升到 5 级解锁</color>" : "");
             }
             else
             {
@@ -708,13 +656,13 @@ namespace Liangshan
                 foreach (var p in Defs.Perks)
                 {
                     int lv = B.Level(p.Id);
-                    if (lv <= 0 || p.Ult || (p.Hero.HasValue && p.Hero.Value != h)) continue;
+                    if (lv <= 0 || p.Hero != h) continue;
                     if (sb.Length > 0) sb.Append("  ");
-                    sb.Append(p.Name).Append(O(" Lv" + lv));
+                    sb.Append(p.Star ? "<color=#FFD24A>★</color>" : "").Append(p.Name).Append(O(" Lv" + lv));
                     t.Lv += lv;
                 }
                 t.Locked = t.Lv == 0;
-                t.Desc = t.Locked ? "<color=#8E9BAC>强化三选一中选择专属或全军强化后，在这里查看</color>" : sb.ToString();
+                t.Desc = t.Locked ? "<color=#8E9BAC>强化三选一中选到他的专属强化后，在这里查看；合成满星可额外选一个满星技能</color>" : sb.ToString();
             }
             return t;
         }
@@ -781,17 +729,7 @@ namespace Liangshan
             ? $"<color=#D8402E>{m.Value}</color>"
             : $"<color=#2E9A38>{m.Value}</color>");
 
-        static string PerkIcon(PerkDef p)
-        {
-            if (p.Hero.HasValue) return Defs.Hero(p.Hero.Value).Art;
-            switch (p.Id)
-            {
-                case "all_speed": return "prop_drum";
-                case "all_dmg": return "ic_crown";
-                case "coin": return "ic_coins";
-                default: return "ic_wall";
-            }
-        }
+        static string PerkIcon(PerkDef p) => Defs.Hero(p.Hero).Art;
 
         int Recommend(PerkDef[] c)
         {
@@ -800,11 +738,10 @@ namespace Liangshan
             for (int i = 0; i < c.Length; i++)
             {
                 var p = c[i];
-                float s = p.Ult ? 10 : 1;
-                if (p.Hero.HasValue)
-                    foreach (var sl in B.Slots)
-                        if (sl.Unit != null && sl.Unit.Hero == p.Hero.Value) s += sl.Unit.Star;
-                if (p.Id == "wall" && B.Wall < B.WallMax * 0.5f) s += 12;
+                float s = 1;
+                foreach (var sl in B.Slots)
+                    if (sl.Unit != null && sl.Unit.Hero == p.Hero) s += sl.Unit.Star;
+                if (p.Eff == Eff.Dmg || p.Eff == Eff.Count || p.Eff == Eff.UltPow) s += 0.5f;
                 if (s > bs) { bs = s; best = i; }
             }
             return best;
@@ -814,8 +751,17 @@ namespace Liangshan
         {
             var c = OpenModal("cards", 0.72f);
             Sfx.Play(Snd.Card);
-            var head = Ui.Outlined(c, "请选择", 64, Color.white, new Vector2(0, 470), new Vector2(400, 90), Pal.Ink, 3f);
-            for (int s = -1; s <= 1; s += 2)
+            bool star = B.StarPick.HasValue;
+            if (star)
+            {
+                Sfx.Play(Snd.Jackpot, 0.7f);
+                Ui.Box(c, new Vector2(900, 380), new Vector2(0, 560), Pal.Gold.A(0.4f), Art.SoftDot);
+                Ui.Icon(c, Defs.Hero(B.StarPick.Value).Art, 230, new Vector2(0, 640));
+            }
+            var head = star
+                ? Ui.Outlined(c, $"恭喜获得满星{Defs.Hero(B.StarPick.Value).Name}！\n请选择1个额外技能", 50, Pal.Hex("FFE27A"), new Vector2(0, 450), new Vector2(980, 140), Pal.Ink, 3f)
+                : Ui.Outlined(c, "请选择", 64, Color.white, new Vector2(0, 470), new Vector2(400, 90), Pal.Ink, 3f);
+            for (int s = -1; s <= 1 && !star; s += 2)
             {
                 Ui.Box(c, new Vector2(220, 6), new Vector2(s * 290, 470), Pal.Hex("A9D6E6"), Art.Pill);
                 var dia = Ui.Box(c, new Vector2(24, 24), new Vector2(s * 175, 470), Pal.Hex("A9D6E6"), Art.RoundedSmall);
@@ -832,7 +778,8 @@ namespace Liangshan
             {
                 int left = B.RerolledOnce ? 0 : 1;
                 watch.text = $"本局剩余观看次数 {left}/1";
-                if (reroll) reroll.gameObject.SetActive(left > 0);
+                if (reroll) reroll.gameObject.SetActive(left > 0 && !star);
+                watch.gameObject.SetActive(!star);
             };
             reroll = Ui.Btn(c, "刷新", new Vector2(300, 104), new Vector2(0, -425), Pal.Teal, () =>
             {
@@ -852,7 +799,6 @@ namespace Liangshan
 
         int AutoPick()
         {
-            for (int i = 0; i < B.Choices.Length; i++) if (B.Choices[i].Ult) return i;
             return Recommend(B.Choices);
         }
 
@@ -867,30 +813,31 @@ namespace Liangshan
                 var card = Ui.Rect(c, "card" + i);
                 card.sizeDelta = new Vector2(310, 500);
                 card.anchoredPosition = new Vector2(x, 70);
-                var edgeC = p.Ult ? Pal.GoldDeep : Pal.Hex("2E3D52");
-                if (p.Ult) Ui.Box(card, new Vector2(370, 560), Vector2.zero, Pal.Gold.A(0.55f), Art.SoftDot, "aura");
+                var hd = Defs.Hero(p.Hero);
+                var roleC = Pal.Hex(Defs.RoleColors[(int)hd.Kind]);
+                var headC = p.Star ? Pal.Hex("D9A21E") : roleC.Mul(0.85f);
+                var edgeC = p.Star ? Pal.GoldDeep : Pal.Hex("2E3D52");
+                if (p.Star) Ui.Box(card, new Vector2(370, 560), Vector2.zero, Pal.Gold.A(0.55f), Art.SoftDot, "aura");
                 Ui.Box(card, new Vector2(318, 508), new Vector2(0, -8), Pal.Shadow, Art.Rounded);
                 var face = Ui.Box(card, new Vector2(318, 508), Vector2.zero, edgeC, Art.Rounded);
                 Ui.Box(card, new Vector2(302, 492), Vector2.zero, Pal.Hex("F6EEDC"), Art.Rounded);
-                Ui.Box(card, new Vector2(302, 84), new Vector2(0, 204), p.Ult ? Pal.Hex("D9A21E") : Pal.Hex("4F6E92"), Art.Rounded);
-                Ui.Box(card, new Vector2(302, 30), new Vector2(0, 177), p.Ult ? Pal.Hex("D9A21E") : Pal.Hex("4F6E92"), Art.White);
-                Ui.Outlined(card, p.Name, 42, Color.white, new Vector2(0, 206), new Vector2(300, 70), (p.Ult ? Pal.GoldDeep : Pal.Hex("2E3D52")).Mul(0.6f), 2.5f);
+                Ui.Box(card, new Vector2(302, 84), new Vector2(0, 204), headC, Art.Rounded);
+                Ui.Box(card, new Vector2(302, 30), new Vector2(0, 177), headC, Art.White);
+                Ui.Outlined(card, p.Name, 42, Color.white, new Vector2(0, 206), new Vector2(300, 70), headC.Mul(0.45f), 2.5f);
                 Ui.Box(card, new Vector2(210, 60), new Vector2(0, -5), new Color(0, 0, 0, 0.12f), Art.SoftDot);
                 Ui.Icon(card, PerkIcon(p), 200, new Vector2(0, 75));
-                string who = p.Hero.HasValue ? Defs.Hero(p.Hero.Value).Name : "全军";
+                string who = $"{hd.Name} · {hd.Role}";
                 Ui.Label(card, who, 28, Pal.Hex("8A6A48"), new Vector2(0, -32), new Vector2(280, 40), TextAnchor.MiddleCenter, Fonts.Heavy);
                 Ui.Label(card, Colorize(p.Desc), 32, Pal.Hex("3A2C20"), new Vector2(0, -122), new Vector2(280, 130));
                 if (p.Max > 1)
                     Ui.Label(card, $"等级 {B.Level(p.Id)}→{B.Level(p.Id) + 1}", 24, Pal.Hex("9A8670"), new Vector2(0, -205), new Vector2(280, 34));
-                var gem = Ui.Box(card, new Vector2(18, 18), new Vector2(0, -238), p.Ult ? Pal.Hex("D9A21E") : Pal.Hex("8FA6BF"), Art.RoundedSmall);
+                var gemC = p.Star ? Pal.Hex("D9A21E") : Pal.Hex("8FA6BF");
+                var gem = Ui.Box(card, new Vector2(18, 18), new Vector2(0, -238), gemC, Art.RoundedSmall);
                 gem.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
-                Ui.Box(card, new Vector2(240, 3), new Vector2(0, -238), (p.Ult ? Pal.Hex("D9A21E") : Pal.Hex("8FA6BF")).A(0.5f), Art.White);
-                if (p.Ult)
-                {
-                    var tag = Ui.Box(card, new Vector2(110, 50), new Vector2(118, 252), Pal.Red, Art.Pill);
-                    tag.rectTransform.localRotation = Quaternion.Euler(0, 0, -12);
-                    Ui.Outlined(tag.transform, "大招", 30, Color.white, Vector2.zero, new Vector2(110, 50), Pal.RedDeep, 2f);
-                }
+                Ui.Box(card, new Vector2(240, 3), new Vector2(0, -238), gemC.A(0.5f), Art.White);
+                var tag = Ui.Box(card, new Vector2(110, 50), new Vector2(118, 252), p.Star ? Pal.Red : roleC.Mul(0.7f), Art.Pill);
+                tag.rectTransform.localRotation = Quaternion.Euler(0, 0, -12);
+                Ui.Outlined(tag.transform, p.Star ? "满星" : "专属", 30, Color.white, Vector2.zero, new Vector2(110, 50), Pal.Ink, 2f);
                 if (i == rec)
                 {
                     var r = Ui.Rect(card, "recommend");
@@ -930,7 +877,7 @@ namespace Liangshan
             {
                 CloseModal();
                 B.Pick(i);
-                Ui.Toast((p.Ult ? "大招解锁：" : "获得：") + p.Name, -200);
+                Ui.Toast((p.Star ? "满星技能：" : "获得：") + p.Name, -200);
             });
         }
 
@@ -945,7 +892,7 @@ namespace Liangshan
             var panel = Ui.Panel(c, new Vector2(940, 760), new Vector2(0, 30), "reelPanel");
             Ui.Icon(c, "ic_chest_open", 260, new Vector2(0, 480));
             Ui.Ribbon(c, "智取生辰纲", new Vector2(0, 370), 600);
-            Ui.Label(panel, "四格相同 奖励翻倍！", 34, Pal.Hex("8A5A2A"), new Vector2(0, 230), new Vector2(800, 50), TextAnchor.MiddleCenter, Fonts.Heavy);
+            Ui.Label(panel, B.NextIsJackpot ? "击败首领，必中四格相同！" : "四格相同 奖励翻倍！", 34, Pal.Hex("8A5A2A"), new Vector2(0, 230), new Vector2(800, 50), TextAnchor.MiddleCenter, Fonts.Heavy);
             var icons = new Image[4];
             var names = new Text[4];
             var windows = new RectTransform[4];

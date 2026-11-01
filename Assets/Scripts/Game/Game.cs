@@ -40,6 +40,7 @@ namespace Liangshan
         {
             Application.targetFrameRate = 60;
             Input.multiTouchEnabled = false;
+            ParseArgs();
             var camGo = new GameObject("Camera");
             camGo.transform.SetParent(transform, false);
             _cam = camGo.AddComponent<Camera>();
@@ -64,7 +65,6 @@ namespace Liangshan
             _floatLayer.offsetMin = _floatLayer.offsetMax = Vector2.zero;
             WorldFx.Create(transform, _floatLayer, _cam.transform);
 
-            ParseArgs();
             Profile.Load();
             Sfx.On = Profile.S.Sound == 1;
             Sfx.Music = Profile.S.Music == 1;
@@ -114,6 +114,8 @@ namespace Liangshan
             for (int i = 0; i < args.Length - 1; i++)
             {
                 if (args[i] == "-shots") _shots = args[i + 1];
+                if (args[i] == "-safe-top" && float.TryParse(args[i + 1], out float st)) Ui.FakeSafeTopPx = st;
+                if (args[i] == "-safe-bottom" && float.TryParse(args[i + 1], out float sb)) Ui.FakeSafeBottomPx = sb;
             }
             _metaOnly = Array.IndexOf(args, "-quickmeta") >= 0;
             if (_shots != null)
@@ -449,6 +451,8 @@ namespace Liangshan
             for (int i = 0; i < 11; i++) s.Stars[i] = i % 4 == 0 ? 2 : 3;
             s.HeroLv[(int)HeroId.ZhangQing] = 3;
             s.HeroLv[(int)HeroId.WuYong] = 2;
+            foreach (var h in new[] { HeroId.HuSanniang, HeroId.QinMing, HeroId.AnDaoquan, HeroId.ShiXiu, HeroId.ZhuWu, HeroId.SunErniang, HeroId.ShiQian, HeroId.XieZhen })
+                s.HeroLv[(int)h] = Mathf.Max(1, s.HeroLv[(int)h]);
             s.Shards[0] = 30;
             s.Shards[2] = 5;
             s.Tokens = 14;
@@ -487,11 +491,13 @@ namespace Liangshan
             yield return Snap("19_heroes");
             yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, HeroId.HuaRong), "20_hero_detail");
             yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, HeroId.LinChong), "20b_hero_locked");
+            yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, HeroId.HuSanniang), "20c_hero_control");
             CloseModals();
             _home.SetTab(HomeScreen.TabForge);
             yield return WaitReal(1.0f);
             yield return Snap("21_forge");
             yield return ModalShot(() => MetaUi.ForgeSlot(_home.Layer, 0), "22_forge_slot");
+            yield return ModalShot(() => MetaUi.TalentTree(_home.Layer), "22b_talent");
             CloseModals();
             _home.SetTab(HomeScreen.TabFort);
             yield return WaitReal(1.0f);
