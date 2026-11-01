@@ -603,7 +603,7 @@ namespace Liangshan.Sim
         static readonly Role[] BuffCycle = { Sim.Role.Mage, Sim.Role.Archer, Sim.Role.Fighter, Sim.Role.Bomber, Sim.Role.Control, Sim.Role.Archer, Sim.Role.Mage, Sim.Role.Fighter };
 
         /// <summary>第 n 关（1 起）的敌人血量倍率：跟着正常推进时的养成战力走，再逐关加压，落后养成就过不去。大招开局即有，整体血量 ×1.6 起。</summary>
-        public static float StageHp(int n) => Meta.ExpectedPower(n) * (1.6f - 0.004f * (n - 1) - 0.02f * System.Math.Max(0, n - 40)) * (1f + 0.35f * System.Math.Min(1f, (n - 1) / 12f) + 0.009f * (n - 1) + 0.00015f * (n - 1) * (n - 1));
+        public static float StageHp(int n) => Meta.ExpectedPower(n) * Meta.ExpectedRoster(n) * (1.6f - 0.004f * (n - 1) - 0.02f * System.Math.Max(0, n - 40)) * (1f + 0.35f * System.Math.Min(1f, (n - 1) / 12f) + 0.009f * (n - 1) + 0.00015f * (n - 1) * (n - 1));
         public static float StageAtk(int n) => Meta.ExpectedWall(n) * (1f + 0.012f * (n - 1));
 
         public static readonly LevelDef[] Levels = BuildLevels();
@@ -627,7 +627,7 @@ namespace Liangshan.Sim
                         EliteWaves = EliteSets[(n - 1) % EliteSets.Length],
                         EliteKinds = ch.Elites, Troops = ch.Mix,
                         BossKind = chBoss || c == 0 ? ch.Boss : Chapters[c - 1].Boss,
-                        BossMul = i == 10 ? 1.0f : i == 5 ? 0.8f : c == 0 ? 1f : 0.7f,
+                        BossMul = i == 10 ? (c >= 4 ? 0.85f : 1.0f) : i == 5 ? 0.8f : c == 0 ? 1f : 0.7f,
                         HpMul = StageHp(n), AtkMul = StageAtk(n),
                         CountMul = 1f + 0.05f * c + (i == 10 ? 0.08f : 0f),
                     };

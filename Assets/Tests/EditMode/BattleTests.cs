@@ -141,7 +141,7 @@ namespace Liangshan.Tests
             int wins = 0;
             for (int seed = 1; seed <= 10; seed++)
             {
-                var b = new Battle(seed, Lineup);
+                var b = new Battle(seed, Meta.Starters);
                 var bot = new Bot(2);
                 while (b.Phase != Phase.Victory && b.Phase != Phase.Defeat && b.Time < 400)
                 {
@@ -157,7 +157,7 @@ namespace Liangshan.Tests
         [Test]
         public void IdleSummonerLoses()
         {
-            var b = new Battle(9, Lineup);
+            var b = new Battle(9, Meta.Starters);
             var bot = new Bot(0);
             while (b.Phase != Phase.Victory && b.Phase != Phase.Defeat && b.Time < 400)
             {

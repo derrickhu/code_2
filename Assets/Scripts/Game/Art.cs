@@ -203,6 +203,7 @@ namespace Liangshan
                 case "pill": return new Vector4(30, 0, 30, 0);
                 case "plate": return new Vector4(50, 0, 50, 0);
                 case "plaque": return new Vector4(50, 0, 50, 0);
+                case "flame_bar": return new Vector4(60, 60, 230, 130);
                 default: return Vector4.zero;
             }
         }

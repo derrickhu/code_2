@@ -48,10 +48,15 @@ namespace Liangshan
             rt.offsetMin = rt.offsetMax = Vector2.zero;
         }
 
+        float _slideDir;
+
         public void SetTab(int t)
         {
             if (t == _tab) return;
+            _slideDir = t > _tab ? 1f : -1f;
             _tab = t;
+            _swap = null;
+            Sfx.Play(Snd.Tab, 0.8f);
             Rebuild(true);
         }
 
@@ -91,6 +96,20 @@ namespace Liangshan
                 case TabForge: BuildForge(anim); break;
                 case TabFort: BuildFort(anim); break;
                 default: BuildBattle(anim); break;
+            }
+            // 页面内容收进 body，切页时只让 body 淡入滑入，顶栏和页签不闪
+            var body = Ui.Rect(_page, "body");
+            Stretch(body);
+            while (_page.childCount > 1) _page.GetChild(0).SetParent(body, false);
+            if (anim)
+            {
+                var cg = body.gameObject.AddComponent<CanvasGroup>();
+                float dir = _slideDir;
+                Tween.Run(body, 0.2f, k =>
+                {
+                    cg.alpha = Mathf.Lerp(0.2f, 1f, k);
+                    body.anchoredPosition = new Vector2(dir * 60f * (1 - Tween.OutCubic(k)), 0);
+                });
             }
             BuildTopBar();
             BuildTabs();
@@ -204,7 +223,7 @@ namespace Liangshan
                 Ui.Outlined(tab, names[i], on ? 36 : 30, on ? Color.white : Pal.Hex("E4EEFF"), new Vector2(0, -62), new Vector2(210, 50), on ? Pal.Hex("C0661A") : Pal.Navy, 2f);
                 if (dots[i]) MetaUi.Dot(tab, new Vector2(62, 64));
                 int ti = i;
-                Ui.Tap(face, () => SetTab(ti), tab);
+                Ui.Tap(face, () => SetTab(ti), tab, false);
             }
         }
 
@@ -395,67 +414,145 @@ namespace Liangshan
 
         // ---------------- 好汉 ----------------
 
+        /// <summary>换人模式：详情里点了「上阵」的好汉，等玩家点顶上要替换的位置。</summary>
+        HeroId? _swap;
+        int _popSlot = -1;
+
+        public void BeginSwap(HeroId h)
+        {
+            _swap = h;
+            Sfx.Play(Snd.Swap, 0.6f);
+            Rebuild(false);
+        }
+
+        void EndSwap(int slot)
+        {
+            if (_swap.HasValue && slot >= 0)
+            {
+                var h = _swap.Value;
+                Meta.SetLineup(S, slot, h);
+                Profile.Save();
+                Sfx.Play(Snd.Swap);
+                Ui.Toast($"{Defs.Hero(h).Name} 上阵", 200);
+                _popSlot = slot;
+            }
+            _swap = null;
+            Rebuild(false);
+        }
+
         void BuildHeroes(bool anim)
         {
             Cover("hall_bg", new Vector2(1080, 1920), Color.white, 0.3f);
             Shade(0.3f, 0f);
             float sp = Ui.Spare;
-            var hdr = Top(0, 228 + sp * 0.05f, new Vector2(700, 110), "hdr");
-            Ui.Ribbon(hdr, "梁山好汉", Vector2.zero, 520);
 
-            // 上半：出战的四位站在场景里
+            // 上半：出战的四位站在场景里，下方三个阵容方案
             var line = Meta.Lineup(S);
-            var lu = Top(0, 470 + sp * 0.2f, new Vector2(1000, 300), "lineup");
+            float luY = 420 + sp * 0.16f;
+            var lu = Top(0, luY, new Vector2(1000, 300), "lineup");
             lu.localScale = Vector3.one * (1f + Mathf.Min(0.1f, sp / 2500f));
             for (int i = 0; i < 4; i++)
             {
                 var h = line[i];
                 var d = Defs.Hero(h);
                 var g = Ui.Rect(lu, "lu" + i);
-                g.anchoredPosition = new Vector2((i - 1.5f) * 240, 0);
-                g.sizeDelta = new Vector2(230, 300);
-                Ui.Box(g, new Vector2(210, 64), new Vector2(0, -112), new Color(0, 0, 0, 0.3f), Art.SoftDot);
-                var art = Ui.Icon(g, d.Art, 250, new Vector2(0, 12));
-                Ui.Skin(g, "plate", new Vector2(220, 58), new Vector2(0, -128), -1f);
-                Ui.Outlined(g, $"{d.Name} Lv.{S.HeroLv[(int)h]}", 26, Color.white, new Vector2(0, -126), new Vector2(210, 50), Pal.Navy, 1.5f);
-                if (Meta.CanLevel(S, h)) MetaUi.Dot(g, new Vector2(96, -104));
-                Ui.Tap(art, () => MetaUi.HeroDetail(Layer, h), g);
+                g.anchoredPosition = new Vector2((i - 1.5f) * 250, 0);
+                g.sizeDelta = new Vector2(240, 300);
+                Ui.Box(g, new Vector2(230, 80), new Vector2(0, -104), MetaUi.RarityColor(d.Rarity).A(0.55f), Art.SoftDot, "aura");
+                Ui.Box(g, new Vector2(190, 52), new Vector2(0, -108), new Color(0, 0, 0, 0.35f), Art.SoftDot, "shadow");
+                var art = Ui.Icon(g, d.Art, 250, new Vector2(0, 14), "art");
+                float ph = i * 0.7f;
+                Tween.Run(art, 999f, k => art.rectTransform.anchoredPosition = new Vector2(0, 14 + 4 * Mathf.Sin(k * 999f * 2.2f + ph)));
+                var plate = Ui.Skin(g, "plate", new Vector2(206, 50), new Vector2(0, -128), -1f, MetaUi.RarityColor(d.Rarity).Mul(1.3f));
+                Ui.Outlined(plate.transform, $"Lv.{S.HeroLv[(int)h]} {d.Name}", 25, Color.white, new Vector2(0, 1), new Vector2(206, 48), Pal.Navy, 1.5f);
+                int slot = i;
+                if (_swap.HasValue)
+                {
+                    var arrow = Ui.Icon(g, "ui/arrow", 86, new Vector2(0, 160), "swapArrow");
+                    arrow.transform.localRotation = Quaternion.Euler(0, 0, 90);
+                    arrow.color = Pal.Hex("8CFF6A");
+                    float off = i * 0.4f;
+                    Tween.Run(arrow, 999f, k => arrow.rectTransform.anchoredPosition = new Vector2(0, 160 + 12 * Mathf.Sin(k * 999f * 6f + off)));
+                    Ui.Tap(art, () => EndSwap(slot), g);
+                    Ui.Tap(arrow, () => EndSwap(slot), g);
+                }
+                else
+                {
+                    Ui.Tap(art, () => MetaUi.HeroDetail(Layer, h), g);
+                    if (Meta.CanLevel(S, h)) MetaUi.Dot(g, new Vector2(98, -104));
+                }
                 if (anim) Tween.Pop(g, 0.3f, 0.05f + i * 0.05f);
+                if (_popSlot == i)
+                {
+                    Tween.Pop(g, 0.35f);
+                    MetaFx.Burst(lu, g.anchoredPosition, 10, 180);
+                }
             }
-            var gl = Top(0, 668 + sp * 0.3f, new Vector2(900, 56), "global");
-            Ui.Skin(gl, "pill", new Vector2(760, 54), Vector2.zero, -1f);
-            Ui.Outlined(gl, $"好汉总等级加成：全军暴击伤害 +{Meta.LevelCritDmg(S) * 100:0}%", 28, Pal.Hex("C8FFB0"), Vector2.zero, new Vector2(760, 54), Pal.Ink, 1.5f);
+            _popSlot = -1;
 
-            // 下半：青色面板里的好汉卡
-            float py = 730 + sp * 0.33f;
-            var panel = Top(0, py, new Vector2(1040, 10), "roster");
+            float pgY = luY + 200;
+            for (int i = 0; i < Meta.PresetCount; i++)
+            {
+                bool on = i == S.Preset;
+                var dot = Top((i - 1) * 96, pgY, new Vector2(80, 80), "preset" + i);
+                var face = Ui.Box(dot, Vector2.one * (on ? 72 : 60), Vector2.zero, on ? Pal.Gold : Pal.Hex("C8D4E0"), Art.Circle, "face");
+                Ui.Box(dot, Vector2.one * (on ? 60 : 50), Vector2.zero, on ? Pal.Hex("FFE48A") : Pal.Hex("E6EEF6"), Art.Circle, "inner");
+                Ui.Outlined(dot, (i + 1).ToString(), on ? 36 : 30, on ? Pal.Hex("7A4A08") : Pal.Hex("5A6A7A"), new Vector2(0, 2), new Vector2(80, 60), Color.white.A(0.6f), 1f);
+                int pi = i;
+                Ui.Tap(face, () =>
+                {
+                    if (pi == S.Preset) return;
+                    Meta.UsePreset(S, pi);
+                    Profile.Save();
+                    Sfx.Play(Snd.Swap);
+                    Ui.Toast($"阵容方案 {pi + 1}", 200);
+                    _swap = null;
+                    Rebuild(false);
+                    var l = _page.Find("body/lineup");
+                    if (l) for (int k = 0; k < l.childCount; k++) Tween.Pop(l.GetChild(k), 0.28f, k * 0.04f);
+                }, dot);
+            }
+
+            var pw = Top(0, pgY + 86, new Vector2(420, 76), "power");
+            Ui.Skin(pw, "plate", new Vector2(380, 70), Vector2.zero, -1f);
+            Ui.Icon(pw, "ic_sword", 70, new Vector2(-120, 2));
+            Ui.Outlined(pw, Ui.Num(Meta.TeamPower(S)), 40, Color.white, new Vector2(24, 2), new Vector2(240, 60), Pal.Navy, 2.5f);
+
+            var cd = Top(0, pgY + 160, new Vector2(820, 64), "critBand");
+            Ui.Skin(cd, "pill", new Vector2(760, 62), Vector2.zero, -1f);
+            Ui.Outlined(cd, $"暴击伤害增幅：<color=#FFC93C>{Meta.BuildLoadout(S).CritDmg * 100:0.#}%</color>", 32, Color.white, new Vector2(-20, 1), new Vector2(680, 58), Pal.Ink, 2f);
+            var tip = Ui.Box(cd, Vector2.one * 46, new Vector2(330, 0), Pal.Hex("E6EEF6"), Art.Circle, "tip");
+            Ui.Outlined(tip.transform, "!", 32, Pal.Navy, new Vector2(0, 2), new Vector2(46, 46), Color.white, 1f);
+            Ui.Tap(tip, () => Ui.Toast("任意好汉每升 1 级，全军暴击伤害 +1%", 200));
+
+            // 下半：深色面板里的好汉卡
+            float py = pgY + 210;
+            var panel = Top(0, py, new Vector2(1060, 10), "roster");
             panel.pivot = new Vector2(0.5f, 1f);
-            float ph = Mathf.Max(880f, Ui.Height - Ui.SafeTop - py - 186f);
-            float pe = ph - 900f;
-            Ui.Skin(panel, "dark", new Vector2(1040, ph), new Vector2(0, -ph * 0.5f));
-            int owned = 0;
-            for (int h = 0; h < Defs.HeroCount; h++) if (Meta.Owned(S, (HeroId)h)) owned++;
-            Ui.Skin(panel, "plaque", new Vector2(360, 74), new Vector2(0, -6), -1f);
-            Ui.Outlined(panel, $"好汉 {owned}/{Defs.HeroCount}", 34, Pal.Hex("FFE08A"), new Vector2(0, -4), new Vector2(340, 60), Pal.Ink, 2f);
+            float ph2 = Mathf.Max(820f, Ui.Height - Ui.SafeTop - py - 176f);
+            Ui.Skin(panel, "dark", new Vector2(1060, ph2), new Vector2(0, -ph2 * 0.5f), 1f, Pal.Hex("5E7C96"));
 
-            // 职业筛选
             var roles = new List<int> { -1 };
             foreach (var r in Defs.RoleOrder) roles.Add((int)r);
+            int owned = 0;
+            for (int h = 0; h < Defs.HeroCount; h++) if (Meta.Owned(S, (HeroId)h)) owned++;
             for (int i = 0; i < roles.Count; i++)
             {
                 int rf = roles[i];
                 bool sel = rf == _roleFilter;
                 var col = rf < 0 ? Pal.Hex("C89A4A") : MetaUi.RoleColor((Role)rf);
-                var pos = new Vector2((i - (roles.Count - 1) * 0.5f) * 140, -80);
-                var tb = Ui.Skin(panel, sel ? Ui.BtnSkin(col) : "row", new Vector2(130, 62), pos, -1f, sel ? Color.white : new Color(0.9f, 0.88f, 0.84f));
-                Ui.Outlined(tb.transform, rf < 0 ? "全部" : Defs.RoleName((Role)rf), 28, sel ? Color.white : col.Mul(0.8f), new Vector2(0, 2), new Vector2(130, 60), sel ? Pal.Ink : Color.clear, sel ? 1.5f : 0f);
+                var pos = new Vector2((i - (roles.Count - 1) * 0.5f) * 144, -54);
+                var tb = Ui.Skin(panel, sel ? Ui.BtnSkin(col) : "row", new Vector2(136, 64), pos, -1f, sel ? Color.white : new Color(0.86f, 0.88f, 0.92f));
+                if (rf >= 0) Ui.Icon(tb.transform, MetaUi.RoleArt((Role)rf), 38, new Vector2(-40, 2));
+                Ui.Outlined(tb.transform, rf < 0 ? $"全部{owned}" : Defs.RoleName((Role)rf), rf < 0 ? 24 : 26, sel ? Color.white : col.Mul(0.75f), new Vector2(rf < 0 ? 0 : 16, 2), new Vector2(110, 60), sel ? Pal.Ink : Color.clear, sel ? 1.5f : 0f);
                 Ui.Tap(tb, () =>
                 {
                     if (_roleFilter == rf) return;
                     _roleFilter = rf;
                     _rosterScroll = 0;
+                    Sfx.Play(Snd.Tab, 0.6f);
                     Rebuild(false);
-                }, tb.transform);
+                }, tb.transform, false);
             }
 
             var order = new List<HeroId>();
@@ -465,33 +562,41 @@ namespace Liangshan
             {
                 bool oa = Meta.Owned(S, a), ob = Meta.Owned(S, b);
                 if (oa != ob) return oa ? -1 : 1;
+                bool la = Array.IndexOf(S.Lineup, (int)a) >= 0, lb = Array.IndexOf(S.Lineup, (int)b) >= 0;
+                if (la != lb) return la ? -1 : 1;
                 int r = Defs.Hero(b).Rarity.CompareTo(Defs.Hero(a).Rarity);
-                return r != 0 ? r : a.CompareTo(b);
+                if (r != 0) return r;
+                if (!oa)
+                {
+                    int ua = Meta.UnlockLevelOf(a), ub = Meta.UnlockLevelOf(b);
+                    if (ua != ub) return (ua == 0 ? 999 : ua).CompareTo(ub == 0 ? 999 : ub);
+                }
+                return S.HeroLv[(int)b] != S.HeroLv[(int)a] ? S.HeroLv[(int)b].CompareTo(S.HeroLv[(int)a]) : a.CompareTo(b);
             });
 
-            float viewH = ph - 190;
+            float viewH = ph2 - 106;
             var view = Ui.Rect(panel, "view");
             view.anchorMin = view.anchorMax = new Vector2(0.5f, 1f);
             view.pivot = new Vector2(0.5f, 1f);
-            view.sizeDelta = new Vector2(1010, viewH);
-            view.anchoredPosition = new Vector2(0, -120);
+            view.sizeDelta = new Vector2(1030, viewH);
+            view.anchoredPosition = new Vector2(0, -96);
             view.gameObject.AddComponent<RectMask2D>();
             Ui.Fill(view, new Color(0, 0, 0, 0.001f), true, "hit");
             var content = Ui.Rect(view, "content");
             content.anchorMin = content.anchorMax = new Vector2(0.5f, 1f);
             content.pivot = new Vector2(0.5f, 1f);
-            const float rowH = 360;
+            const float rowH = 318;
             int rows = (order.Count + 3) / 4;
-            content.sizeDelta = new Vector2(1010, rows * rowH + 80);
+            content.sizeDelta = new Vector2(1030, rows * rowH + 80);
             var top = Ui.Rect(content, "top");
             top.anchorMin = top.anchorMax = new Vector2(0.5f, 1f);
             top.sizeDelta = Vector2.zero;
             for (int i = 0; i < order.Count; i++)
             {
-                var c = HeroCard(top, order[i], new Vector2(((i % 4) - 1.5f) * 248, -(186 + (i / 4) * rowH)));
-                if (anim && i < 12) Tween.Pop(c, 0.3f, 0.05f + i * 0.03f);
+                var c = HeroCard(top, order[i], new Vector2(((i % 4) - 1.5f) * 250, -(162 + (i / 4) * rowH)));
+                if (anim && i < 12) Tween.Pop(c, 0.28f, 0.04f + i * 0.025f);
             }
-            Ui.Outlined(top, "碎片来源：通关 · 擂鼓招募 · 签到 · 章节宝箱", 26, Pal.Cream, new Vector2(0, -(rows * rowH + 30)), new Vector2(900, 44), Pal.Ink, 1.5f);
+            Ui.Outlined(top, "碎片来源：通关 · 擂鼓招募 · 签到 · 章节宝箱", 26, Pal.Cream, new Vector2(0, -(rows * rowH + 34)), new Vector2(900, 44), Pal.Ink, 1.5f);
             var sr = view.gameObject.AddComponent<ScrollRect>();
             sr.content = content;
             sr.horizontal = false;
@@ -499,8 +604,24 @@ namespace Liangshan
             sr.scrollSensitivity = 30;
             content.anchoredPosition = new Vector2(0, Mathf.Clamp(_rosterScroll, 0, Mathf.Max(0, content.sizeDelta.y - viewH)));
             sr.onValueChanged.AddListener(_ => _rosterScroll = content.anchoredPosition.y);
+
+            if (_swap.HasValue)
+            {
+                var sh = _swap.Value;
+                var dim = Ui.Box(panel, new Vector2(1060, ph2), new Vector2(0, -ph2 * 0.5f), new Color(0.02f, 0.05f, 0.1f, 0.78f), Art.Rounded, "swapDim");
+                dim.raycastTarget = true;
+                Ui.Tap(dim, () => EndSwap(-1), null, false);
+                var card = HeroCard(panel, sh, new Vector2(0, -ph2 * 0.36f));
+                card.localScale = Vector3.one * 1.3f;
+                foreach (var g in card.GetComponentsInChildren<Graphic>()) g.raycastTarget = false;
+                var glow = Ui.Box(panel, new Vector2(520, 560), new Vector2(0, -ph2 * 0.36f), Pal.Gold.A(0.4f), Art.SoftDot, "glow");
+                glow.transform.SetSiblingIndex(card.GetSiblingIndex());
+                Ui.Outlined(panel, "点击上方要替换的好汉", 40, Pal.Hex("FFE08A"), new Vector2(0, -ph2 * 0.36f - 260), new Vector2(900, 56), Pal.Ink, 2.5f);
+                Ui.Btn(panel, "取消", new Vector2(240, 96), new Vector2(0, -ph2 * 0.36f - 360), Pal.Hex("A08A70"), () => EndSwap(-1), 38);
+            }
         }
 
+        /// <summary>好汉卡：职业圆标、出战中、等级圈、碎片条、可升级绿箭头；未获得的压暗加锁并写来源。</summary>
         RectTransform HeroCard(Transform parent, HeroId h, Vector2 pos)
         {
             var d = Defs.Hero(h);
@@ -508,36 +629,45 @@ namespace Liangshan
             bool owned = lv > 0;
             var c = Ui.Rect(parent, "card_" + h);
             c.anchoredPosition = pos;
-            c.sizeDelta = new Vector2(232, 340);
-            var face = MetaUi.Card(c, owned ? MetaUi.RarityCard(d.Rarity) : "card_lock", new Vector2(232, 340), Vector2.zero);
-            var art = Ui.Icon(c, d.Art, 214, new Vector2(0, 34));
-            if (!owned) art.color = new Color(0.12f, 0.12f, 0.15f, 0.9f);
-            Ui.Outlined(c, d.Name, 32, Color.white, new Vector2(0, -136), new Vector2(220, 44), Pal.Ink, 2f);
-            MetaUi.Badge(c, d.Role, MetaUi.RoleColor(d.Kind), new Vector2(96, 46), new Vector2(-54, 138), 24);
-            Ui.Outlined(c, d.RarityName, 22, MetaUi.RarityColor(d.Rarity).Mul(1.3f), new Vector2(-62, -170), new Vector2(100, 30), Pal.Ink, 1.5f);
+            c.sizeDelta = new Vector2(236, 300);
+            var face = MetaUi.Card(c, owned ? MetaUi.RarityCard(d.Rarity) : "card_lock", new Vector2(230, 250), new Vector2(0, 22));
+            var art = Ui.Icon(c, d.Art, 216, new Vector2(0, 44));
+            if (!owned) art.color = new Color(0.1f, 0.1f, 0.13f, 0.85f);
+
+            Ui.Box(c, Vector2.one * 58, new Vector2(-84, 120), Color.white, Art.Circle, "roleRing");
+            Ui.Box(c, Vector2.one * 50, new Vector2(-84, 120), owned ? MetaUi.RoleColor(d.Kind) : Pal.Slate, Art.Circle, "roleBg");
+            Ui.Icon(c, MetaUi.RoleArt(d.Kind), 38, new Vector2(-84, 121));
+            Ui.Outlined(c, d.Name, 30, owned ? Color.white : Pal.Hex("B8C0CC"), new Vector2(0, -128), new Vector2(230, 42), Pal.Ink, 2f);
+
             if (owned)
             {
-                Ui.Icon(c, "ui/lv", 72, new Vector2(74, 132));
-                Ui.Outlined(c, lv.ToString(), 30, Pal.Hex("FFE7B0"), new Vector2(74, 133), new Vector2(72, 44), Pal.Ink, 2f);
-                int need = Meta.ShardCost(lv);
-                MetaUi.Bar(c, new Vector2(0, -92), new Vector2(190, 26), lv >= Meta.MaxHeroLv ? 1 : S.Shards[(int)h] / (float)need, Pal.Hex("4FB548"),
-                    lv >= Meta.MaxHeroLv ? "满级" : $"{S.Shards[(int)h]}/{need}");
                 if (Array.IndexOf(S.Lineup, (int)h) >= 0)
                 {
-                    var on = Ui.Icon(c, "ui/tag", 108, new Vector2(-66, 70), "onTag");
-                    Ui.Outlined(on.transform, "出战", 26, Color.white, new Vector2(-6, 2), new Vector2(100, 60), Pal.RedDeep, 1.5f);
+                    var on = Ui.Icon(c, "ui/tag", 118, new Vector2(-54, -30), "onTag");
+                    Ui.Outlined(on.transform, "出战中", 24, Color.white, new Vector2(-6, 2), new Vector2(110, 50), Pal.RedDeep, 1.5f);
                 }
-                if (Meta.CanLevel(S, h))
+                var lvc = Ui.Icon(c, "ui/lv", 60, new Vector2(-86, -76), "lv");
+                Ui.Outlined(lvc.transform, lv.ToString(), 28, Pal.Hex("FFE7B0"), new Vector2(0, 1), new Vector2(60, 40), Pal.Ink, 1.5f);
+                int need = Meta.ShardCost(lv);
+                bool max = lv >= Meta.MaxHeroLv;
+                bool can = Meta.CanLevel(S, h);
+                MetaUi.Bar(c, new Vector2(16, -76), new Vector2(128, 26), max ? 1 : S.Shards[(int)h] / (float)need, can ? Pal.Hex("4FB548") : Pal.Hex("4FA8D8"),
+                    max ? "满级" : $"{S.Shards[(int)h]}/{need}");
+                if (can)
                 {
-                    MetaUi.Dot(c, new Vector2(100, 158));
-                    var up = Ui.Icon(c, "ic_fast", 56, new Vector2(86, -40));
+                    var up = Ui.Icon(c, "ic_fast", 46, new Vector2(98, -70), "up");
                     up.transform.localRotation = Quaternion.Euler(0, 0, 90);
+                    up.color = Pal.Hex("7CFF5A");
+                    Tween.Run(up, 999f, k => up.rectTransform.anchoredPosition = new Vector2(98, -70 + 5 * Mathf.Sin(k * 999f * 6f)));
+                    MetaUi.Dot(c, new Vector2(100, 136));
                 }
             }
             else
             {
-                Ui.Outlined(c, "未获得", 28, Pal.Hex("D8D0C0"), new Vector2(0, -92), new Vector2(200, 40), Pal.Ink, 1.5f);
-                Ui.Icon(c, "ic_lock", 84, new Vector2(0, 40));
+                Ui.Icon(c, "ic_lock", 50, new Vector2(84, 120));
+                int at = Meta.UnlockLevelOf(h);
+                string src = at > 0 ? $"第{at}关入伙" : d.Rarity >= 4 && !Meta.OrangeOpened(S) ? $"第{Meta.OrangeOpen}关后可招" : "招募获得";
+                Ui.Outlined(c, src, 24, Pal.Hex("D8D0C0"), new Vector2(0, -76), new Vector2(220, 36), Pal.Ink, 1.5f);
             }
             Ui.Tap(face, () => MetaUi.HeroDetail(Layer, h), c);
             return c;
@@ -674,9 +804,17 @@ namespace Liangshan
             Ui.Box(ban, new Vector2(900, 116), new Vector2(0, -195), Pal.Navy.A(0.6f), Art.White);
             var hdr = Top(0, 228 + sp * 0.08f, new Vector2(700, 110), "hdr");
             Ui.Ribbon(hdr, "擂鼓招募", Vector2.zero, 520);
-            Ui.Outlined(ban, $"传说 {Meta.OrangeRate(S) * 100:0}% · 史诗 {Meta.PurpleRate(S) * 100:0}% · 十连必出史诗", 28, Pal.Hex("FFE7B0"), new Vector2(0, -170), new Vector2(880, 40), Pal.Ink, 1.5f);
-            int left = Meta.OrangePity - S.Pity;
-            Ui.Outlined(ban, $"再招募 {left} 次必得传说好汉", 30, Pal.Hex("FFB050"), new Vector2(0, -218), new Vector2(880, 44), Pal.Ink, 2f);
+            if (Meta.OrangeOpened(S))
+            {
+                Ui.Outlined(ban, $"传说 {Meta.OrangeRate(S) * 100:0}% · 史诗 {Meta.PurpleRate(S) * 100:0}% · 十连必出史诗", 28, Pal.Hex("FFE7B0"), new Vector2(0, -170), new Vector2(880, 40), Pal.Ink, 1.5f);
+                int left = Meta.OrangePity - S.Pity;
+                Ui.Outlined(ban, $"再招募 {left} 次必得传说好汉", 30, Pal.Hex("FFB050"), new Vector2(0, -218), new Vector2(880, 44), Pal.Ink, 2f);
+            }
+            else
+            {
+                Ui.Outlined(ban, $"史诗 {Meta.PurpleRate(S) * 100:0}% · 十连必出史诗", 28, Pal.Hex("FFE7B0"), new Vector2(0, -170), new Vector2(880, 40), Pal.Ink, 1.5f);
+                Ui.Outlined(ban, $"传说好汉：通关第 {Meta.OrangeOpen} 关后开放", 30, Pal.Hex("FFB050"), new Vector2(0, -218), new Vector2(880, 44), Pal.Ink, 2f);
+            }
             var lv = Ui.Rect(ban, "lv");
             lv.anchoredPosition = new Vector2(-250, 170);
             Ui.Skin(lv, "pill", new Vector2(380, 74), Vector2.zero, -1f);

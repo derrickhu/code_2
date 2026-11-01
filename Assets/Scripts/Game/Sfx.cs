@@ -10,6 +10,7 @@ namespace Liangshan
         Tap, Deny, Coin, Card, Reel, ReelStop, Jackpot, SlotAdd, Warn,
         Summon, Merge, Bow, ArrowHit, Bomb, Thunder, Fist, WallHit, Kill, Wave,
         UltArrow, UltBomb, UltThunder, UltFist,
+        Tab, Open, Close, LevelUp, Unlock, Talent, Forge, Reward, Reveal, Flip, Drum, Swap, Tick,
     }
 
     public enum Bgm { None, Menu, Battle, Boss, Victory, Defeat }
@@ -76,6 +77,23 @@ namespace Liangshan
             Load(Snd.UltBomb, "ult_cannon", Snd.Warn);
             Load(Snd.UltThunder, "ult_thunder", Snd.Warn);
             Load(Snd.UltFist, "ult_smash", Snd.Warn);
+
+            Load(Snd.Tap, "ui_tap", Snd.Tap);
+            Load(Snd.Deny, "ui_deny", Snd.Deny);
+            Load(Snd.Coin, "ui_coin", Snd.Coin);
+            Load(Snd.Tab, "ui_tab", Snd.Tap);
+            Load(Snd.Open, "ui_open", Snd.Tap);
+            Load(Snd.Close, "ui_close", Snd.Tap);
+            Load(Snd.LevelUp, "ui_levelup", Snd.Jackpot);
+            Load(Snd.Unlock, "ui_unlock", Snd.SlotAdd);
+            Load(Snd.Talent, "ui_talent", Snd.SlotAdd);
+            Load(Snd.Forge, "ui_forge", Snd.WallHit);
+            Load(Snd.Reward, "ui_reward", Snd.Jackpot);
+            Load(Snd.Reveal, "ui_reveal", Snd.Jackpot);
+            Load(Snd.Flip, "ui_flip", Snd.Card);
+            Load(Snd.Drum, "ui_drum", Snd.Wave);
+            Load(Snd.Swap, "ui_swap", Snd.Tap);
+            Load(Snd.Tick, "ui_tick", Snd.Reel);
         }
 
         void Load(Snd s, string file, Snd fallback)

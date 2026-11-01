@@ -184,11 +184,21 @@ namespace Liangshan
 
         public HomeScreen Home => _home;
 
+        /// <summary>首通解锁的新好汉：回到主页后全屏揭晓一次。</summary>
+        HeroId? _pendingReveal;
+
         public void ShowHome(int tab = 2)
         {
             Clear();
             _home = HomeScreen.Create(tab);
             Sfx.PlayMusic(Bgm.Menu);
+            if (_pendingReveal.HasValue && _autoSkill < 0)
+            {
+                var h = _pendingReveal.Value;
+                var home = _home;
+                Tween.Run(home, 0.35f, k => { }, () => MetaFx.HeroReveal(home.Layer, h));
+            }
+            _pendingReveal = null;
         }
 
         public void StartLevel(int no) => Play(Defs.Level(Mathf.Min(no, Profile.S.Cleared + 1)));
@@ -267,6 +277,7 @@ namespace Liangshan
             Meta.FinishMain(s, b.Stage, win, r);
             Meta.MarkSeen(s, b.Seen);
             Profile.Save();
+            if (r.Unlock.HasValue && r.First) _pendingReveal = r.Unlock;
             _last = r;
             return r;
         }
@@ -453,8 +464,8 @@ namespace Liangshan
             s.HeroLv[(int)HeroId.WuYong] = 2;
             foreach (var h in new[] { HeroId.HuSanniang, HeroId.QinMing, HeroId.AnDaoquan, HeroId.ShiXiu, HeroId.ZhuWu, HeroId.SunErniang, HeroId.ShiQian, HeroId.XieZhen })
                 s.HeroLv[(int)h] = Mathf.Max(1, s.HeroLv[(int)h]);
-            s.Shards[0] = 30;
-            s.Shards[2] = 5;
+            s.Shards[(int)Meta.Starters[0]] = 30;
+            s.Shards[(int)Meta.Starters[2]] = 5;
             s.Tokens = 14;
             s.Ingots = 860;
             s.Copper = 26000;
@@ -492,6 +503,24 @@ namespace Liangshan
             yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, HeroId.HuaRong), "20_hero_detail");
             yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, HeroId.LinChong), "20b_hero_locked");
             yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, HeroId.HuSanniang), "20c_hero_control");
+            yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, Meta.Starters[0]), "20d_hero_starter");
+            yield return ModalShot(() => MetaUi.GetPaths(_home.Layer, Meta.Starters[1]), "20e_getpaths");
+            CloseModals();
+            _home.BeginSwap(HeroId.ZhangQing);
+            yield return WaitReal(0.8f);
+            yield return Snap("20f_swap");
+            _home.SetTab(HomeScreen.TabBattle);
+            _home.SetTab(HomeScreen.TabHero);
+            var lh = Meta.Starters[0];
+            MetaFx.LevelUp(_home.Layer, new MetaFx.LevelUpInfo { Hero = lh, NewLv = 5, OldPower = Meta.HeroPowerAt(lh, 4), NewPower = Meta.HeroPowerAt(lh, 5), OldCritDmg = 1.6f, NewCritDmg = 1.61f }, null);
+            yield return WaitReal(1.4f);
+            yield return Snap("20g_levelup");
+            yield return WaitReal(2.2f);
+            yield return Snap("20h_perma");
+            CloseModals();
+            MetaFx.HeroReveal(_home.Layer, HeroId.HuaRong);
+            yield return WaitReal(1.6f);
+            yield return Snap("20i_reveal");
             CloseModals();
             _home.SetTab(HomeScreen.TabForge);
             yield return WaitReal(1.0f);

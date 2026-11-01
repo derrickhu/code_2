@@ -8,32 +8,60 @@ namespace Liangshan.Tests
     public class MetaTests
     {
         [Test]
-        public void NewSaveOwnsFirstFourHeroesAndAllArraysSized()
+        public void NewSaveOwnsFourCommonStartersAndAllArraysSized()
         {
             var s = Meta.NewSave(1000);
             Assert.AreEqual(Defs.HeroCount, s.HeroLv.Length);
             Assert.AreEqual(Defs.LevelCount, s.Stars.Length);
             Assert.AreEqual(Defs.Enemies.Length, s.Seen.Length);
-            for (int h = 0; h < Defs.HeroCount; h++) Assert.AreEqual(h < 4 ? 1 : 0, s.HeroLv[h]);
+            for (int h = 0; h < Defs.HeroCount; h++)
+                Assert.AreEqual(Meta.Starters.Contains((HeroId)h) ? 1 : 0, s.HeroLv[h]);
+            CollectionAssert.AreEqual(Meta.Starters, Meta.Lineup(s));
+            foreach (var h in Meta.Starters) Assert.AreEqual(2, Defs.Hero(h).Rarity, Defs.Hero(h).Name);
+            Assert.AreEqual(4, Meta.Starters.Select(h => Defs.Hero(h).Kind).Distinct().Count());
             Assert.AreEqual(50, Defs.LevelCount);
             Assert.AreEqual(Meta.StaminaMax, s.Stamina);
+        }
+
+        [Test]
+        public void FirstClearUnlocksRampFromCommonToLegendary()
+        {
+            int last = 2, firstLegend = 0;
+            for (int n = 1; n <= Defs.LevelCount; n++)
+            {
+                var h = Meta.UnlockAt(n);
+                if (!h.HasValue) continue;
+                int r = Defs.Hero(h.Value).Rarity;
+                Assert.GreaterOrEqual(r, last, "第" + n + "关");
+                last = r;
+                if (r == 4 && firstLegend == 0) firstLegend = n;
+            }
+            Assert.GreaterOrEqual(firstLegend, 21);
+
+            var s = Meta.NewSave(0);
+            for (int seed = 1; seed <= 20; seed++)
+                Assert.IsFalse(Meta.Recruit(s, 10, new Rng(seed)).Any(p => Defs.Hero(p.Hero).Rarity == 4));
+            Assert.AreEqual(0, s.Pity);
         }
 
         [Test]
         public void LevelUpSpendsShardsAndCopperAndUnlocksTalent()
         {
             var s = Meta.NewSave(0);
+            var a = Meta.Starters[0];
+            int ai = (int)a, bi = (int)Meta.Starters[1];
+            Assert.IsFalse(Meta.LevelUp(s, a));
             Assert.IsFalse(Meta.LevelUp(s, HeroId.HuaRong));
-            s.Shards[0] = 100;
+            s.Shards[ai] = 100;
             s.Copper = 100000;
-            float before = Meta.BuildLoadout(s).HeroDmg[0];
-            for (int i = 0; i < 4; i++) Assert.IsTrue(Meta.LevelUp(s, HeroId.HuaRong));
-            Assert.AreEqual(5, s.HeroLv[0]);
-            Assert.AreEqual(100 - (3 + 4 + 5 + 6), s.Shards[0]);
+            float before = Meta.BuildLoadout(s).HeroDmg[ai];
+            for (int i = 0; i < 4; i++) Assert.IsTrue(Meta.LevelUp(s, a));
+            Assert.AreEqual(5, s.HeroLv[ai]);
+            Assert.AreEqual(100 - (3 + 4 + 5 + 6), s.Shards[ai]);
             var lo = Meta.BuildLoadout(s);
-            Assert.Greater(lo.HeroDmg[0], before);
-            Assert.IsTrue(lo.Passive[0]);
-            Assert.IsFalse(lo.Passive[1]);
+            Assert.Greater(lo.HeroDmg[ai], before);
+            Assert.IsTrue(lo.Passive[ai]);
+            Assert.IsFalse(lo.Passive[bi]);
             Assert.Greater(lo.CritDmg, Meta.BaseCritDmg);
             Assert.AreEqual(1, s.Task[2]);
         }
@@ -59,18 +87,18 @@ namespace Liangshan.Tests
         public void FirstClearRewardsAndUnlockOnce()
         {
             var s = Meta.NewSave(0);
-            s.Cleared = 3;
-            var st = Defs.Level(4);
+            s.Cleared = 2;
+            var st = Defs.Level(3);
             var r = Meta.BattleRewards(s, st, true, 10, 0.8f, 0, new Rng(1));
             Assert.IsTrue(r.First);
             Assert.AreEqual(3, r.Stars);
-            Assert.AreEqual(HeroId.ZhangQing, r.Unlock);
+            Assert.AreEqual(HeroId.RuanXiaoqi, r.Unlock);
             Assert.Greater(r.Get(Cur.Ingot), 0);
             Meta.Give(s, r);
             Meta.FinishMain(s, st, true, r);
-            Assert.IsTrue(Meta.Owned(s, HeroId.ZhangQing));
-            Assert.AreEqual(4, s.Cleared);
-            Assert.AreEqual(5, s.Selected);
+            Assert.IsTrue(Meta.Owned(s, HeroId.RuanXiaoqi));
+            Assert.AreEqual(3, s.Cleared);
+            Assert.AreEqual(4, s.Selected);
             Assert.AreEqual(1, s.Speed15);
 
             var again = Meta.BattleRewards(s, st, true, 10, 0.2f, 0, new Rng(2));
@@ -78,7 +106,7 @@ namespace Liangshan.Tests
             Assert.IsNull(again.Unlock);
             Assert.AreEqual(0, again.Get(Cur.Ingot));
             Meta.FinishMain(s, st, true, again);
-            Assert.AreEqual(3, s.Stars[3]);
+            Assert.AreEqual(3, s.Stars[2]);
         }
 
         [Test]
@@ -95,6 +123,7 @@ namespace Liangshan.Tests
         public void RecruitPityAndTenPullGuarantee()
         {
             var s = Meta.NewSave(0);
+            s.Cleared = Meta.OrangeOpen;
             bool orange = false;
             for (int i = 0; i < Meta.OrangePity && !orange; i++)
                 orange = Meta.Recruit(s, 1, new Rng(1000 + i)).Any(p => Defs.Hero(p.Hero).Rarity == 4);
@@ -207,8 +236,9 @@ namespace Liangshan.Tests
             {
                 var s = Meta.ExpectedSave(n);
                 var lo = Meta.BuildLoadout(s);
-                int lv = s.HeroLv[0];
-                float actual = Meta.PowerOf(lo, HeroId.HuaRong) * Meta.UnlockFactor(lv);
+                var h = Meta.Starters[0];
+                int lv = s.HeroLv[(int)h];
+                float actual = Meta.PowerOf(lo, h) * Meta.UnlockFactor(lv);
                 Assert.AreEqual(Meta.ExpectedPower(n), actual, Meta.ExpectedPower(n) * 0.05f, "第" + n + "关");
                 float wall = lo.WallMul / (1f - lo.WallResist);
                 Assert.AreEqual(Meta.ExpectedWall(n), wall, wall * 0.02f, "第" + n + "关寨墙");
