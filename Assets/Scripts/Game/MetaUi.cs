@@ -686,7 +686,7 @@ namespace Liangshan
             var scene = Ui.Box(p, new Vector2(860, 380), new Vector2(0, 280), Color.white, Art.Img("forge_scene"));
             scene.type = Image.Type.Simple;
             scene.preserveAspect = false;
-            Ui.Box(p, new Vector2(860, 380), new Vector2(0, 280), new Color(0, 0, 0, 0.25f), Art.White);
+            Ui.Box(p, new Vector2(860, 380), new Vector2(0, 280), new Color(0, 0, 0, 0.1f), Art.White);
             Ui.Box(p, new Vector2(240, 240), new Vector2(0, 280), Pal.Gold.A(0.5f), Art.SoftDot);
             var ic = Ui.Icon(p, e.Icon, 220, new Vector2(0, 290));
             Ui.Outlined(p, $"Lv.{lv}/{max}", 44, Color.white, new Vector2(0, 130), new Vector2(400, 60), Pal.Ink, 3f);

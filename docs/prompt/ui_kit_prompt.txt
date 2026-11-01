@@ -1,17 +1,30 @@
-局外 UI 皮肤（GenerateImage，参考视频帧只取做工与结构，不取配色和文字）。统一要求：纯白底、居中、无文字 NO TEXT。
+局外 UI 皮肤 · 明亮版（GenerateImage，参考视频帧只取明度、做工与结构，不取文字和角色）。统一要求：纯白底、居中、无文字 NO TEXT。
+风格基调：轻松明亮的 Q 版休闲手游；奶油白纸面 + 天青/湖蓝描边，亮黄主按钮，少量朱红点缀保留水浒味；柔和渐变、细高光、无厚重木纹、无暗色金属。
 
-[ui_panel 3:4] A single blank game UI popup panel frame asset for a polished casual mobile game with an ancient Chinese Water Margin theme, centered on a flat pure white background. Portrait rectangle panel. Interior: smooth warm cream parchment, plain and empty. Border: thick rounded frame of dark red-brown lacquered wood with thin gold inner and outer trim; four gold xiangyun cloud corner ornaments. Clean cartoon casual mobile game rendering. NO TEXT.
+[ui_panel 3:4] A single blank popup panel frame for a bright, cheerful casual mobile game with a light ancient Chinese Water Margin flavor, centered on a flat pure white background. Portrait rounded rectangle. Interior: clean soft cream-white paper (#F8F2E4), plain and empty. Border: medium-thin rounded frame in bright sky-teal blue (#5BB8D6) with a lighter top highlight and a slightly deeper teal bottom edge, a thin white inner line; tiny light-gold xiangyun cloud ornaments at the four corners. Soft, clean, airy cartoon rendering, no dark colors, no wood. NO TEXT.
 
-[ui_banner 16:9] A single blank horizontal title banner ribbon: wide straight crimson plaque with glossy highlight and gold trim lines, folded ribbon tails on both ends. Central area long and plain. NO TEXT.
+[ui_banner 16:9] A single blank horizontal title ribbon banner, bright teal-blue (#3FA9D8) glossy face with a soft white highlight band on top, thin light-gold edge lines, short folded ribbon tails on both ends in a slightly deeper blue. Long plain central area. Cheerful cartoon mobile game UI. NO TEXT.
 
-[ui_buttons 1:1] Six blank wide capsule buttons in a 2x3 grid, same design, colors: golden yellow, green, teal blue, crimson red, orange, grey. Thick candy 3D look, glossy top band, darker bottom lip, thin outline. NO TEXT.
+[ui_buttons 1:1] Six blank rounded-rectangle game buttons in a 2x3 grid, same shape, only color differs: row1 bright sunny yellow (#FFD14A), fresh grass green (#5CCB5F); row2 sky teal blue (#3FB2E0), bright cherry red (#F0574A); row3 warm tangerine orange (#FF9D3A), light cool grey (#B9C2CC). Each: soft vertical gradient, glossy white highlight band on the upper third, a slightly darker same-hue bottom lip for raised depth, thin darker same-hue outline, very soft drop shadow. Clean bright casual mobile UI. NO TEXT, no icons.
 
-[ui_cards 16:9] Four blank portrait hero card frames in a row: blue, purple, orange-gold, dark grey locked. Gold bevelled rim, rarity inner border, plain gradient interior, darker strip at the bottom for name. NO TEXT.
+[ui_cards 16:9] Four blank portrait hero card frames in a row: light azure blue, lavender purple, warm orange-gold, light grey (locked). Rounded corners, thin white outer rim and a soft same-hue inner border, bright soft radial gradient interior lighter in the center, a slightly deeper translucent strip at the bottom for a name. Cheerful bright casual game style. NO TEXT.
 
-[ui_slots 16:9] Five blank rounded-square item slots in a row: grey-green, blue, purple, orange-gold, brown wood. Thick bevelled rim, plain radial gradient inside. NO TEXT.
+[ui_slots 16:9] Five blank rounded-square item slots in a row: light cool grey, azure blue, lavender purple, warm orange-gold, light cream beige. Thin white rim, soft same-hue inner border, bright radial gradient inside lighter in the center. NO TEXT.
 
-[ui_widgets 4:3] 3x2 grid: round red close button with white X and gold rim; small red notification dot with white rim; round gold button with white left arrow; round navy level badge with gold rim; small red pennant tag with notched end and gold trim; round carved wood medallion frame with cream inner disk. NO TEXT.
+[ui_widgets 4:3] 3x2 grid of small bright UI widgets: round cherry-red close button with a bold white X and white rim; small round red notification dot with a white rim; round sunny-yellow button with a white left-pointing arrow and white rim; round azure-blue level badge with white rim; small red pennant tag with notched right end and thin gold trim; round medallion frame with white rim and soft sky-blue inner disk. NO TEXT.
 
-[ui_bars 1:1] Stacked horizontal pieces: empty progress track (dark groove, gold rim); green fill; gold fill; light taupe list row strip; dark navy translucent resource pill with gold rim; dark wood nameplate with gold trim and rivets. NO TEXT.
+[ui_bars 1:1] Stacked horizontal pieces, each on its own row: empty progress track (slate blue-grey groove with thin white rim); bright green fill bar; bright gold-yellow fill bar; light pale blue-grey list row strip with thin light blue border and white top highlight; dark slate-navy rounded resource capsule pill with thin white rim; bright azure-blue rounded name plate with thin light-gold rim. NO TEXT.
 
-[ui_nav 1:1] Bottom tab bar strip (dark navy lacquer, gold top trim, cloud texture); active tab slot (cream-gold raised tile); dark teal-navy section panel with gold inner trim; small gold-red header plaque. NO TEXT.
+[ui_nav 1:1] Four pieces: a wide bottom tab bar strip in deep cornflower blue with a light top edge highlight and subtle cloud pattern; an active tab tile in bright cream-white with a soft gold rim; a large rounded section panel in muted sea-teal (#4F8E9C) with a thin light inner border; a small vermilion-red header plaque with thin gold trim. NO TEXT.
+
+---- 局外背景（9:16 竖版，明亮晴天，Q 版卡通）----
+
+[home_bg 9:16] Bright cheerful cartoon mobile game home background, Water Margin Liangshan marsh in sunny daytime. Top: clear light blue sky with soft white clouds, distant green Liangshan mountain with a small red-pillared mountain fortress gate and red flags (plain, no writing). Middle: a wide open light sandy plaza road leading up toward the gate, flanked by green trees, reed grass and a couple of small red-roof pavilions at the far left and right edges. Bottom third: sparkling turquoise lake water with lotus leaves and a wooden pier jutting up to the center, two small fishing boats. Large clean empty areas in the center for UI. Soft cel shading, saturated but light palette, no dark shadows, no vignette. NO TEXT.
+
+[hall_bg 9:16] Bright cartoon mobile game background: sunny courtyard of the Liangshan heroes' hall (Juyi Hall) with red pillars, golden-yellow tiled roof, light stone floor, green trees, red-and-yellow plain banners, blue sky. Upper 40% shows the courtyard stage where characters stand; lower part is plain light stone floor. Light, airy, soft cel shading, no dark shadows. NO TEXT.
+
+[map_fort 9:16] Bright cheerful top-down isometric cartoon map of the Liangshan water fortress on a sunny day, like a casual mobile game territory map: green hills, turquoise lake and canals, wooden bridges, red-pillar main hall at the top center, blacksmith forge left, training ground right, tavern left middle, treasury right middle, water dock with boats lower left, big mountain gate at the bottom center, sandy paths connecting them. Saturated light palette, soft shading, no dark areas. NO TEXT.
+
+[forge_scene 4:3] Bright cartoon blacksmith workshop of Liangshan in daytime, open-air wooden shed with warm sunlight, glowing orange forge fire, anvil, weapon racks with swords and spears, blue sky visible, light wood and stone, cheerful casual game style, no dark corners. NO TEXT.
+
+[recruit_banner 16:9] Bright festive cartoon recruitment banner scene: a big red war drum on a stand in a sunny Liangshan courtyard, red-and-gold plain banners, confetti and light rays, blue sky, cheerful casual mobile game style. NO TEXT.

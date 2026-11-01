@@ -1169,9 +1169,9 @@ namespace Liangshan
             var band = Ui.Rect(c, "band");
             band.sizeDelta = new Vector2(1080, 1060);
             band.anchoredPosition = new Vector2(0, -10);
-            Ui.Box(band, new Vector2(1200, 1060), Vector2.zero, Pal.Hex("3A2A1E").A(0.97f), Art.White);
-            Ui.Box(band, new Vector2(1200, 10), new Vector2(0, 525), win ? Pal.Gold : Pal.Hex("9A8A7A"), Art.White);
-            Ui.Box(band, new Vector2(1200, 10), new Vector2(0, -525), win ? Pal.Gold : Pal.Hex("9A8A7A"), Art.White);
+            Ui.Box(band, new Vector2(1200, 1060), Vector2.zero, (win ? Pal.Hex("2A5F8F") : Pal.Hex("46566A")).A(0.96f), Art.White);
+            Ui.Box(band, new Vector2(1200, 10), new Vector2(0, 525), win ? Pal.Gold : Pal.Hex("A8B4C4"), Art.White);
+            Ui.Box(band, new Vector2(1200, 10), new Vector2(0, -525), win ? Pal.Gold : Pal.Hex("A8B4C4"), Art.White);
             if (win) Ui.Box(c, new Vector2(1000, 700), new Vector2(0, 560), Pal.Gold.A(0.45f), Art.SoftDot).transform.SetSiblingIndex(0);
             var crown = Ui.Icon(c, win ? "ic_crown" : "ic_wall", 250, new Vector2(0, 660));
             if (!win) crown.color = Pal.Hex("B0A6A0");
@@ -1180,7 +1180,7 @@ namespace Liangshan
             Tween.Pop(rib, 0.35f);
             float hpPct = B.WallMax > 0 ? B.Wall / B.WallMax * 100f : 0;
             Ui.Label(band, B.Stage.Title, 40, Pal.Hex("FFD87A"), new Vector2(0, 390), new Vector2(700, 56), TextAnchor.MiddleCenter, Fonts.Heavy);
-            Ui.Label(band, win ? $"剩余血量：{Mathf.RoundToInt(hpPct)}%" : $"坚守到 第{Mathf.Max(1, B.Wave)}/{B.Stage.Waves}波", 34, Pal.Hex("D8C8B0"), new Vector2(0, 336), new Vector2(700, 50));
+            Ui.Label(band, win ? $"剩余血量：{Mathf.RoundToInt(hpPct)}%" : $"坚守到 第{Mathf.Max(1, B.Wave)}/{B.Stage.Waves}波", 34, Pal.Hex("D6E6F6"), new Vector2(0, 336), new Vector2(700, 50));
 
             SectionTitle(band, "输出统计", 260);
             var heroes = new List<HeroId>(B.Lineup);
@@ -1190,7 +1190,7 @@ namespace Liangshan
                 float x = i % 2 == 0 ? -250 : 200;
                 float y = 160 - (i / 2) * 140;
                 var d = Defs.Hero(heroes[i]);
-                Ui.Box(band, new Vector2(124, 124), new Vector2(x - 100, y), Pal.Edge, Art.Rounded);
+                Ui.Box(band, new Vector2(124, 124), new Vector2(x - 100, y), Color.white, Art.Rounded);
                 Ui.Box(band, new Vector2(112, 112), new Vector2(x - 100, y), Pal.Hex("8FB3D6"), Art.Rounded);
                 Ui.Icon(band, d.Art, 108, new Vector2(x - 100, y + 2));
                 if (i == 0)
@@ -1199,7 +1199,7 @@ namespace Liangshan
                     mvp.rectTransform.localRotation = Quaternion.Euler(0, 0, 10);
                 }
                 Ui.Label(band, Ui.Num(B.DamageBy[(int)heroes[i]]), 44, Color.white, new Vector2(x + 70, y + 14), new Vector2(220, 56), TextAnchor.MiddleLeft, Fonts.Heavy);
-                Ui.Label(band, d.Name, 28, Pal.Hex("C8B8A0"), new Vector2(x + 70, y - 30), new Vector2(220, 40), TextAnchor.MiddleLeft);
+                Ui.Label(band, d.Name, 28, Pal.Hex("BFD4EA"), new Vector2(x + 70, y - 30), new Vector2(220, 40), TextAnchor.MiddleLeft);
             }
 
             if (win)
@@ -1208,7 +1208,7 @@ namespace Liangshan
                 for (int i = 0; i < 3 && B.Stage.Mode == StageMode.Main; i++)
                 {
                     var st = Ui.Icon(band, "ic_star", i == 1 ? 96 : 76, new Vector2((i - 1) * 110, 470 + (i == 1 ? 14 : 0)));
-                    if (i >= r.Stars) st.color = new Color(0.25f, 0.2f, 0.18f, 0.9f);
+                    if (i >= r.Stars) st.color = new Color(0.16f, 0.26f, 0.38f, 0.9f);
                     Tween.Pop(st.transform, 0.3f, 0.5f + i * 0.15f);
                 }
                 if (r.First)
@@ -1286,8 +1286,8 @@ namespace Liangshan
         {
             var d = Ui.Box(parent, new Vector2(20, 20), new Vector2(-440, y), Pal.Hex("C8A870"), Art.RoundedSmall);
             d.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
-            Ui.Label(parent, s, 36, Pal.Hex("E8D8B8"), new Vector2(-260, y), new Vector2(320, 50), TextAnchor.MiddleLeft, Fonts.Heavy);
-            Ui.Box(parent, new Vector2(900, 3), new Vector2(0, y - 36), Pal.Hex("5A4636"), Art.White);
+            Ui.Label(parent, s, 36, Pal.Hex("EAF3FC"), new Vector2(-260, y), new Vector2(320, 50), TextAnchor.MiddleLeft, Fonts.Heavy);
+            Ui.Box(parent, new Vector2(900, 3), new Vector2(0, y - 36), Pal.Hex("7FA6CC").A(0.6f), Art.White);
         }
 
         string Tip()

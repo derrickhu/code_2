@@ -339,7 +339,7 @@ namespace Liangshan
 
         public static void SetBtnText(RectTransform btn, string s) => btn.Find("text").GetComponent<Text>().text = s;
 
-        /// <summary>弹窗面板：红木金角框、羊皮纸面。框画在 size 外沿 15 像素。</summary>
+        /// <summary>弹窗面板：天青描边、奶油纸面。框画在 size 外沿 15 像素。</summary>
         public static RectTransform Panel(Transform parent, Vector2 size, Vector2 pos, string name = "panel")
         {
             var holder = Rect(parent, name);
@@ -350,7 +350,7 @@ namespace Liangshan
             return holder;
         }
 
-        /// <summary>红绶带标题；传入灰色调时换灰绶带（失败等场合）。</summary>
+        /// <summary>蓝绶带标题；传入灰色调时换灰绶带（失败等场合）。</summary>
         public static RectTransform Ribbon(Transform parent, string s, Vector2 pos, float width = 560, Color? color = null)
         {
             bool grey = false;
@@ -363,7 +363,7 @@ namespace Liangshan
             holder.anchoredPosition = pos;
             holder.sizeDelta = new Vector2(width, 110);
             Skin(holder, grey ? "banner_grey" : "banner", new Vector2(width + 170, 132), new Vector2(0, -6), -1f, null, "face");
-            Outlined(holder, s, 56, Pal.Hex("FFE9A8"), new Vector2(0, 10), new Vector2(width, 100), Pal.Edge, 3.5f);
+            Outlined(holder, s, 56, Color.white, new Vector2(0, 10), new Vector2(width, 100), grey ? Pal.Hex("4A5260") : Pal.Navy, 3.5f);
             return holder;
         }
 

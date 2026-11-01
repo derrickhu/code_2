@@ -23,6 +23,8 @@ namespace Liangshan
         public static readonly Color Purple = Hex("9C5BE0");
         public static readonly Color Slate = Hex("2F3A48");
         public static readonly Color SlateDeep = Hex("1C242E");
+        /// <summary>局外亮色界面的描边色：蓝底、亮背景上的白字都压这个。</summary>
+        public static readonly Color Navy = Hex("1D3F66");
         public static readonly Color Shadow = new Color(0.08f, 0.05f, 0.03f, 0.35f);
 
         /// <summary>星级色：一星白、二星绿、三星蓝紫、满星金。</summary>
@@ -197,7 +199,7 @@ namespace Liangshan
                 case "dark": return new Vector4(40, 40, 40, 40);
                 case "tab_on": return new Vector4(40, 40, 40, 40);
                 case "tabbar": return new Vector4(40, 20, 40, 30);
-                case "row": return new Vector4(24, 20, 24, 20);
+                case "row": return new Vector4(24, 24, 24, 24);
                 case "pill": return new Vector4(30, 0, 30, 0);
                 case "plate": return new Vector4(50, 0, 50, 0);
                 case "plaque": return new Vector4(50, 0, 50, 0);

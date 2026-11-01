@@ -109,11 +109,13 @@ namespace Liangshan
             return size;
         }
 
+        /// <summary>顶、底各压一层淡蓝渐变，只为托住顶栏和页签上的白字，不把画面压暗。</summary>
         void Shade(float top, float bottom)
         {
+            var tint = Pal.Navy;
             if (top > 0)
             {
-                var t = Ui.Box(_page, new Vector2(1080, 420), Vector2.zero, new Color(0.05f, 0.03f, 0.02f, top), Art.VGrad, "shadeTop");
+                var t = Ui.Box(_page, new Vector2(1080, 420), Vector2.zero, tint.A(top), Art.VGrad, "shadeTop");
                 t.rectTransform.anchorMin = new Vector2(0, 1);
                 t.rectTransform.anchorMax = new Vector2(1, 1);
                 t.rectTransform.sizeDelta = new Vector2(0, 420);
@@ -122,7 +124,7 @@ namespace Liangshan
             }
             if (bottom > 0)
             {
-                var b = Ui.Box(_page, new Vector2(1080, 760), Vector2.zero, new Color(0.05f, 0.03f, 0.02f, bottom), Art.VGrad, "shadeBottom");
+                var b = Ui.Box(_page, new Vector2(1080, 760), Vector2.zero, tint.A(bottom), Art.VGrad, "shadeBottom");
                 b.rectTransform.anchorMin = new Vector2(0, 0);
                 b.rectTransform.anchorMax = new Vector2(1, 0);
                 b.rectTransform.sizeDelta = new Vector2(0, 760);
@@ -137,7 +139,7 @@ namespace Liangshan
             var bar = Ui.Top(_page, 0, 0, new Vector2(1080, 150 + Ui.SafeTop), "topbar");
             bar.pivot = new Vector2(0.5f, 1);
             bar.anchoredPosition = Vector2.zero;
-            var bgi = Ui.Box(bar, new Vector2(1080, 150 + Ui.SafeTop), new Vector2(0, -(150 + Ui.SafeTop) * 0.5f), Pal.Ink.A(0.55f), Art.VGrad);
+            var bgi = Ui.Box(bar, new Vector2(1080, 150 + Ui.SafeTop), new Vector2(0, -(150 + Ui.SafeTop) * 0.5f), Pal.Navy.A(0.32f), Art.VGrad);
             bgi.rectTransform.localScale = new Vector3(1, -1, 1);
             float y = Ui.SafeTop + 72;
 
@@ -196,7 +198,7 @@ namespace Liangshan
                     : Ui.Box(tab, new Vector2(204, 176), new Vector2(0, -2), new Color(0, 0, 0, 0), Art.Rounded);
                 face.raycastTarget = true;
                 Ui.Icon(tab, icons[i], on ? 140 : 112, new Vector2(0, on ? 28 : 20));
-                Ui.Outlined(tab, names[i], on ? 36 : 30, on ? Pal.Hex("FFF2C8") : Pal.Hex("C8C4D8"), new Vector2(0, -62), new Vector2(210, 50), on ? Pal.Hex("7A3A10") : Pal.Ink, 2f);
+                Ui.Outlined(tab, names[i], on ? 36 : 30, on ? Color.white : Pal.Hex("E4EEFF"), new Vector2(0, -62), new Vector2(210, 50), on ? Pal.Hex("C0661A") : Pal.Navy, 2f);
                 if (dots[i]) MetaUi.Dot(tab, new Vector2(62, 64));
                 int ti = i;
                 Ui.Tap(face, () => SetTab(ti), tab);
@@ -233,7 +235,7 @@ namespace Liangshan
         void BuildBattle(bool anim)
         {
             Cover("home_bg", new Vector2(1080, 1920), Color.white, 1f);
-            Shade(0.6f, 0.75f);
+            Shade(0.3f, 0.2f);
             var st = Defs.Level(S.Selected);
             var ch = Defs.Chapters[st.Chapter - 1];
 
@@ -292,14 +294,14 @@ namespace Liangshan
 
             var tag = Top(0, 960, new Vector2(760, 96), "levelTag");
             Ui.Skin(tag, "plate", new Vector2(580, 92), Vector2.zero, -1f, st.IsChapterBoss ? Pal.Hex("FFB4A0") : Color.white);
-            Ui.Outlined(tag, $"第 {st.No} 关 · {st.Name}", 40, Pal.Hex("FFE7B0"), new Vector2(0, 2), new Vector2(540, 70), Pal.Ink, 2.5f);
+            Ui.Outlined(tag, $"第 {st.No} 关 · {st.Name}", 40, Color.white, new Vector2(0, 2), new Vector2(540, 70), Pal.Navy, 2.5f);
             if (S.Selected > 1) ArrowBtn(tag, -330, -1);
             if (S.Selected <= S.Cleared && S.Selected < Defs.LevelCount) ArrowBtn(tag, 330, 1);
             int got3 = S.Stars[st.No - 1];
             for (int i = 0; i < 3; i++)
             {
                 var s = Ui.Icon(tag, "ic_star", 46, new Vector2((i - 1) * 50, -60));
-                if (i >= got3) s.color = new Color(0.2f, 0.18f, 0.16f, 0.85f);
+                if (i >= got3) s.color = new Color(0.3f, 0.36f, 0.46f, 0.8f);
             }
 
             var info = Top(0, 1080, new Vector2(760, 50), "info");
@@ -388,8 +390,8 @@ namespace Liangshan
 
         void BuildHeroes(bool anim)
         {
-            Cover("battle_bg", new Vector2(1080, 1920), new Color(0.7f, 0.66f, 0.66f), 0.3f);
-            Shade(0.5f, 0f);
+            Cover("hall_bg", new Vector2(1080, 1920), Color.white, 0.3f);
+            Shade(0.3f, 0f);
             var hdr = Top(0, 228, new Vector2(700, 110), "hdr");
             Ui.Ribbon(hdr, "梁山好汉", Vector2.zero, 520);
 
@@ -403,10 +405,10 @@ namespace Liangshan
                 var g = Ui.Rect(lu, "lu" + i);
                 g.anchoredPosition = new Vector2((i - 1.5f) * 240, 0);
                 g.sizeDelta = new Vector2(230, 300);
-                Ui.Box(g, new Vector2(210, 64), new Vector2(0, -112), new Color(0, 0, 0, 0.5f), Art.SoftDot);
+                Ui.Box(g, new Vector2(210, 64), new Vector2(0, -112), new Color(0, 0, 0, 0.3f), Art.SoftDot);
                 var art = Ui.Icon(g, d.Art, 250, new Vector2(0, 12));
                 Ui.Skin(g, "plate", new Vector2(220, 58), new Vector2(0, -128), -1f);
-                Ui.Outlined(g, $"{d.Name} Lv.{S.HeroLv[(int)h]}", 26, Pal.Hex("FFE7B0"), new Vector2(0, -126), new Vector2(210, 50), Pal.Ink, 1.5f);
+                Ui.Outlined(g, $"{d.Name} Lv.{S.HeroLv[(int)h]}", 26, Color.white, new Vector2(0, -126), new Vector2(210, 50), Pal.Navy, 1.5f);
                 if (Meta.CanLevel(S, h)) MetaUi.Dot(g, new Vector2(96, -104));
                 Ui.Tap(art, () => MetaUi.HeroDetail(Layer, h), g);
                 if (anim) Tween.Pop(g, 0.3f, 0.05f + i * 0.05f);
@@ -415,7 +417,7 @@ namespace Liangshan
             Ui.Skin(gl, "pill", new Vector2(760, 54), Vector2.zero, -1f);
             Ui.Outlined(gl, $"好汉总等级加成：全军伤害 +{Meta.GlobalDmg(S) * 100:0.#}%", 28, Pal.Hex("C8FFB0"), Vector2.zero, new Vector2(760, 54), Pal.Ink, 1.5f);
 
-            // 下半：深色面板里的好汉卡
+            // 下半：青色面板里的好汉卡
             var panel = Top(0, 730, new Vector2(1040, 10), "roster");
             panel.pivot = new Vector2(0.5f, 1f);
             float ph = Mathf.Max(880f, Ui.Height - Ui.SafeTop - 730f - 186f);
@@ -487,14 +489,14 @@ namespace Liangshan
 
         void BuildForge(bool anim)
         {
-            Cover("forge_scene", new Vector2(1080, 810), new Color(0.55f, 0.48f, 0.42f), 0.5f);
-            Shade(0.55f, 0.7f);
+            Cover("forge_bg", new Vector2(1080, 1920), Color.white, 0.5f);
+            Shade(0.3f, 0.25f);
             var hdr = Top(0, 228, new Vector2(700, 110), "hdr");
             Ui.Ribbon(hdr, "寨主 · 宋江", Vector2.zero, 520);
 
             var sj = Top(0, 1000, new Vector2(640, 640), "songjiang");
             Ui.Box(sj, new Vector2(700, 380), new Vector2(0, -200), Pal.Gold.A(0.35f), Art.SoftDot);
-            Ui.Box(sj, new Vector2(400, 90), new Vector2(0, -290), new Color(0, 0, 0, 0.45f), Art.SoftDot);
+            Ui.Box(sj, new Vector2(400, 90), new Vector2(0, -290), new Color(0, 0, 0, 0.3f), Art.SoftDot);
             var art = Ui.Icon(sj, "prop_songjiang", 640, Vector2.zero);
             Tween.Run(art, 999f, k => art.rectTransform.anchoredPosition = new Vector2(0, 5 * Mathf.Sin(k * 999f * 1.6f)));
             if (anim) Tween.Pop(sj, 0.35f);
@@ -510,7 +512,7 @@ namespace Liangshan
                 Ui.Icon(c, e.Icon, 150, new Vector2(0, 30));
                 var lvb = Ui.Skin(c, "pill", new Vector2(116, 44), new Vector2(46, -50), -1f);
                 Ui.Outlined(lvb.transform, "Lv." + lv, 26, Color.white, new Vector2(0, 1), new Vector2(116, 44), Pal.Ink, 1.5f);
-                Ui.Outlined(c, e.Name, 30, Pal.Hex("FFE7B0"), new Vector2(0, -96), new Vector2(220, 44), Pal.Ink, 2f);
+                Ui.Outlined(c, e.Name, 30, Color.white, new Vector2(0, -96), new Vector2(220, 44), Pal.Navy, 2.5f);
                 if (Meta.CanForge(S, i)) MetaUi.Dot(c, new Vector2(88, 112));
                 int si = i;
                 Ui.Tap(face, () => MetaUi.ForgeSlot(Layer, si), c);
@@ -536,7 +538,7 @@ namespace Liangshan
         void BuildFort(bool anim)
         {
             var size = Cover("map_fort", new Vector2(1080, 1920), Color.white, 0.5f);
-            Shade(0.45f, 0.4f);
+            Shade(0.3f, 0.2f);
             var hdr = Top(0, 228, new Vector2(700, 110), "hdr");
             Ui.Ribbon(hdr, "水泊梁山", Vector2.zero, 520);
             string[] tips = { "每日任务", "强化装备", "好汉升级", "擂鼓招募", "巡山收益", "截取生辰纲", "出征" };
@@ -549,8 +551,8 @@ namespace Liangshan
                 c.sizeDelta = new Vector2(240, 120);
                 var plate = Ui.Skin(c, "plate", new Vector2(250, 68), Vector2.zero, -1f);
                 Ui.Icon(c, b.Icon, 74, new Vector2(-82, 4));
-                Ui.Outlined(c, b.Name, 32, Pal.Hex("FFE7B0"), new Vector2(22, 1), new Vector2(160, 50), Pal.Ink, 2f);
-                Ui.Label(c, tips[i], 22, Color.white, new Vector2(0, -46), new Vector2(240, 30), TextAnchor.MiddleCenter, Fonts.Heavy).gameObject.AddComponent<Outline>().effectColor = Pal.Ink;
+                Ui.Outlined(c, b.Name, 32, Color.white, new Vector2(22, 1), new Vector2(160, 50), Pal.Navy, 2f);
+                Ui.Label(c, tips[i], 22, Color.white, new Vector2(0, -46), new Vector2(240, 30), TextAnchor.MiddleCenter, Fonts.Heavy).gameObject.AddComponent<Outline>().effectColor = Pal.Navy;
                 bool dot = i == 0 ? Meta.TaskBadge(S) > 0 : i == 1 ? ForgeBadge() : i == 2 ? HeroBadge() : i == 3 ? ShopBadge() : i == 4 ? IdleBadge() :
                     i == 5 ? S.Cleared >= MetaUi.EscortUnlock && S.EscortTries < Meta.EscortTriesMax : false;
                 if (dot) MetaUi.Dot(c, new Vector2(100, 28));
@@ -589,13 +591,13 @@ namespace Liangshan
 
         void BuildShop(bool anim)
         {
-            Cover("home_bg", new Vector2(1080, 1920), new Color(0.42f, 0.36f, 0.34f), 0.5f);
-            Shade(0.3f, 0.5f);
+            Cover("hall_bg", new Vector2(1080, 1920), Color.white, 0.3f);
+            Shade(0.3f, 0f);
             var ban = Top(0, 560, new Vector2(1040, 540), "banner");
             Ui.Skin(ban, "panel", new Vector2(1036, 576), Vector2.zero);
             var img = Ui.Box(ban, new Vector2(900, 506), Vector2.zero, Color.white, Art.Img("recruit_banner"));
             img.type = Image.Type.Simple;
-            Ui.Box(ban, new Vector2(900, 116), new Vector2(0, -195), Pal.Ink.A(0.72f), Art.White);
+            Ui.Box(ban, new Vector2(900, 116), new Vector2(0, -195), Pal.Navy.A(0.6f), Art.White);
             var hdr = Top(0, 228, new Vector2(700, 110), "hdr");
             Ui.Ribbon(hdr, "擂鼓招募", Vector2.zero, 520);
             Ui.Outlined(ban, $"传说 {Meta.OrangeRate(S) * 100:0}% · 史诗 {Meta.PurpleRate(S) * 100:0}% · 十连必出史诗", 28, Pal.Hex("FFE7B0"), new Vector2(0, -170), new Vector2(880, 40), Pal.Ink, 1.5f);
@@ -621,6 +623,10 @@ namespace Liangshan
             if (S.Tokens >= 1) MetaUi.Dot(b1, new Vector2(140, 54));
             if (adLeft > 0) MetaUi.Dot(ba, new Vector2(140, 54));
 
+            var market = Top(0, 1040, new Vector2(1040, 10), "market");
+            market.pivot = new Vector2(0.5f, 1f);
+            float mh = Mathf.Max(600f, Ui.Height - Ui.SafeTop - 1040f - 186f);
+            Ui.Skin(market, "dark", new Vector2(1040, mh), new Vector2(0, -mh * 0.5f));
             var shopHdr = Top(0, 1040, new Vector2(900, 60), "shopHdr");
             Ui.Skin(shopHdr, "plaque", new Vector2(380, 72), Vector2.zero, -1f);
             Ui.Outlined(shopHdr, "梁山集市", 34, Pal.Hex("FFE08A"), new Vector2(0, 2), new Vector2(360, 60), Pal.Ink, 2f);

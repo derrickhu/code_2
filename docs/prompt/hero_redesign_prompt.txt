@@ -1,0 +1,17 @@
+好汉美术优化（GenerateImage）
+用法：reference_image_paths 放该人物现有图（Assets/Resources/Art/hero_*.png）或已定稿图 game_assets/code_2/assets/concept/opt/raw/*.jpg；
+描述 = 【通用】+【人物改动】。出动作帧时把姿势换成该帧的动作，其余不变。
+
+【通用】
+Redraw this exact character in the SAME art style as the reference image (same anime chibi proportions about 3 heads tall, same face style, same clean dark outline and soft cel shading), same pose and facing. Optimize for small mobile screens: remove small details (straps, buckles, pouches, small armor plates and scales, embroidery, cloth wrinkles, tiny patterns), merge into a few big clean color shapes, brighter cleaner colors, slightly thicker outline. Full body, plain pure white background, NO TEXT.
+
+【人物改动】
+宋江: robe becomes warm apricot-yellow with a red belt; black official hat with long horizontal wing flaps; slightly worried kind smile; throne simplified to a clean red cushion and wooden frame with a plain yellow canopy.
+花荣: NO headband; small plain silver helmet crown on the hair bun with one tall white feather plume; smooth plain silver armor with no scale pattern; plain emerald-green robe and cape; bright golden bow.
+凌振: bright fire-red short jacket, dark trousers, keep red bandana; black soot smudges on cheeks; small grey smoke puff above head; bigger black bomb with lit fuse.
+公孙胜: one clean bright purple robe with a single yin-yang circle on the chest; tall black Taoist crown with gold band; gold forehead mark; sword with a small yellow lightning glow; white horsetail whisk.
+张清: NO headband; very tall high black ponytail tied with a long sky-blue ribbon; clean sky-blue and white outfit; the stone in his hand glows faintly.
+林冲: NO headband, simple black topknot; smooth plain steel-blue armor with no grid pattern; leopard-head shoulder guards; white fur cloak; short black beard, fierce eyes; long snake-blade spear with red tassel.
+武松: gold pilgrim hoop headband; black sleeveless top; bold orange tiger-skin waist wrap with black stripes; bare strong arms, big fists; staff on back.
+鲁智深: rounder and bigger, bald, bushy black beard; red-brown monk robe with yellow-ochre sash; big brown prayer beads; ONE big pink peony tattoo on bare shoulder; golden crescent monk spade on shoulder.
+吴用: cream-white robe with teal collar and sash; tall black scholar hat; thin goatee; sly half-closed smiling eyes; bigger white feather fan.
