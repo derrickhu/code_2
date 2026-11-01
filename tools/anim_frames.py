@@ -15,7 +15,11 @@ TARGETS = {
     "soldier": "en_soldier", "shield": "en_shield", "cavalry": "en_cavalry", "crossbow": "en_crossbow",
     "elite": "en_elite", "porter": "en_porter", "boss": "en_boss",
     "huarong": "hero_huarong", "lingzhen": "hero_lingzhen", "gongsun": "hero_gongsun", "wusong": "hero_wusong",
+    "linchong": "hero_linchong", "luzhishen": "hero_luzhishen", "zhangqing": "hero_zhangqing", "wuyong": "hero_wuyong",
+    "hawk": "en_hawk", "armored": "en_armored", "firebomb": "en_firebomb", "chainhorse": "en_chainhorse",
+    "luan": "en_luan", "shiwengong": "en_shiwen", "huyan": "en_huyan", "gaoqiu": "en_gaoqiu",
 }
+BIG = {"en_boss", "en_luan", "en_shiwen", "en_huyan", "en_gaoqiu"}
 FRAMES = 4
 ART = os.path.join(os.path.dirname(__file__), "..", "Assets", "Resources", "Art")
 META = os.path.join(os.path.dirname(__file__), "..", "Assets", "Scripts", "Game", "AnimMeta.cs")
@@ -121,7 +125,7 @@ def main(src_dir):
             ok = (ty >= 0) & (ty < side) & (tx >= 0) & (tx < side)
             canvas[ty[ok], tx[ok]] = rgba[ys[ok], xs[ok]]
             img = Image.fromarray(canvas)
-            target = 512 if not name.endswith("boss") else 768
+            target = 768 if name in BIG else 512
             img = img.resize((target, target), Image.LANCZOS)
             img.save(os.path.join(ART, f"{name}_{i}.png"))
             frames.append(img)

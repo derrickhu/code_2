@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -15,7 +14,7 @@ namespace Liangshan
 
     public enum Bgm { None, Menu, Battle, Boss, Victory, Defeat }
 
-    /// <summary>界面音程序合成；兵器、招式读 Resources/Sfx 的录音；配乐从 StreamingAssets/Music 流式读。</summary>
+    /// <summary>界面音程序合成；兵器、招式读 Resources/Sfx 的录音；配乐编辑器和 Mac 包读 StreamingAssets/Music，微信包从 CDN 按需拉。</summary>
     public sealed class Sfx : MonoBehaviour
     {
         const int Rate = 22050;
@@ -23,9 +22,12 @@ namespace Liangshan
         readonly Dictionary<Snd, AudioClip> _clips = new Dictionary<Snd, AudioClip>();
         readonly Dictionary<Snd, float> _last = new Dictionary<Snd, float>();
         readonly Dictionary<Bgm, AudioClip> _music = new Dictionary<Bgm, AudioClip>();
+        readonly HashSet<Bgm> _fetching = new HashSet<Bgm>();
         AudioSource[] _src;
         AudioSource _bgm;
         Bgm _want, _playing;
+        /// <summary>自己记配乐有没有在放。WebGL 上每帧查 isPlaying，FMOD 句柄作废后会刷 INVALID_HANDLE。</summary>
+        bool _bgmOn;
         int _next;
 
         public static bool On = true;
@@ -110,39 +112,62 @@ namespace Liangshan
                     return;
                 }
                 _playing = _want;
-                _bgm.Stop();
+                StopBgm();
                 if (_want == Bgm.None) return;
-                if (_music.TryGetValue(_want, out var clip) && clip != null)
-                {
-                    _bgm.clip = clip;
-                    _bgm.loop = _want != Bgm.Victory && _want != Bgm.Defeat;
-                    _bgm.Play();
-                }
+                if (_music.TryGetValue(_want, out var clip) && clip != null) StartBgm(clip, _want);
                 else StartCoroutine(Fetch(_want));
             }
             float target = _playing == Bgm.Battle || _playing == Bgm.Boss ? 0.32f : 0.45f;
-            if (_bgm.isPlaying) _bgm.volume = Mathf.MoveTowards(_bgm.volume, target, Time.unscaledDeltaTime * 0.6f);
+            if (_bgmOn) _bgm.volume = Mathf.MoveTowards(_bgm.volume, target, Time.unscaledDeltaTime * 0.6f);
         }
 
+        void StartBgm(AudioClip clip, Bgm m)
+        {
+            _bgm.clip = clip;
+            _bgm.loop = m != Bgm.Victory && m != Bgm.Defeat;
+            _bgm.volume = 0;
+            _bgm.Play();
+            _bgmOn = true;
+        }
+
+        void StopBgm()
+        {
+            if (!_bgmOn) return;
+            _bgm.Stop();
+            _bgmOn = false;
+        }
+
+        /// <summary>只拉正在用的这一首。微信包里地址含 StreamingAssets，插件按这个标识做本地缓存，下次不用再下。</summary>
         IEnumerator Fetch(Bgm m)
         {
+            if (!_fetching.Add(m)) yield break;
             string name = m == Bgm.Menu ? "menu" : m == Bgm.Battle ? "battle" : m == Bgm.Boss ? "epic" : m == Bgm.Victory ? "victory" : "defeat";
-            string path = Path.Combine(Application.streamingAssetsPath, "Music", name + ".mp3");
-            if (!path.Contains("://")) path = "file://" + path;
-            using (var req = UnityWebRequestMultimedia.GetAudioClip(path, AudioType.MPEG))
+            using (var req = UnityWebRequestMultimedia.GetAudioClip(TrackUrl(name), AudioType.MPEG))
             {
-                ((DownloadHandlerAudioClip)req.downloadHandler).streamAudio = true;
                 yield return req.SendWebRequest();
-                if (req.result != UnityWebRequest.Result.Success) yield break;
-                _music[m] = DownloadHandlerAudioClip.GetContent(req);
+                _fetching.Remove(m);
+                if (req.result != UnityWebRequest.Result.Success)
+                {
+                    Debug.LogWarning("[曲子] " + name + " 没拉下来：" + req.error);
+                    yield break;
+                }
+                var clip = DownloadHandlerAudioClip.GetContent(req);
+                if (clip == null) yield break;
+                clip.name = name;
+                _music[m] = clip;
             }
-            if (_playing == m)
-            {
-                _bgm.clip = _music[m];
-                _bgm.loop = m != Bgm.Victory && m != Bgm.Defeat;
-                _bgm.volume = 0;
-                _bgm.Play();
-            }
+            if (_playing == m) StartBgm(_music[m], m);
+        }
+
+        static string TrackUrl(string name)
+        {
+#if UNITY_EDITOR || UNITY_STANDALONE
+            string root = Application.streamingAssetsPath;
+            if (!root.Contains("://")) root = "file://" + root;
+            return root.TrimEnd('/') + "/Music/" + name + ".mp3";
+#else
+            return CloudConfig.AssetCdn.TrimEnd('/') + "/StreamingAssets/Music/" + name + ".mp3";
+#endif
         }
 
         // ---------- 合成 ----------

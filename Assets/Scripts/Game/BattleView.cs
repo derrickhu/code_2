@@ -44,10 +44,10 @@ namespace Liangshan
         public float LastMergeTime = -99f;
         public int MergesDone;
 
-        public void Begin(int seed, HeroId[] lineup, bool tutorial)
+        public void Begin(int seed, LevelDef stage, Loadout lo, bool tutorial)
         {
             Tutorial = tutorial;
-            B = new Battle(seed, lineup);
+            B = new Battle(seed, lo.Lineup, stage, lo);
             Bottom = -9.6f;
             _world = new GameObject("World").transform;
             _world.SetParent(transform, false);
@@ -82,6 +82,15 @@ namespace Liangshan
         // 长屏专用图：城门楼画在中间，长屏按高度铺满时两侧被裁掉也看得到整座门楼。
         static readonly BgLayout LongBg = new BgLayout("_long", 0.8307f, 150, 918, 62, 260, 356);
 
+        /// <summary>章节背景是单张 9:16 图，长屏、标准屏共用一套版式。</summary>
+        static readonly System.Collections.Generic.Dictionary<string, BgLayout> ChapterBg = new System.Collections.Generic.Dictionary<string, BgLayout>
+        {
+            ["battle_bg_ch2"] = new BgLayout("", 0.842f, 164, 904, 61, 266, 356),
+            ["battle_bg_ch3"] = new BgLayout("", 0.83f, 157, 910, 56, 270, 352),
+            ["battle_bg_ch4"] = new BgLayout("", 0.825f, 151, 920, 60, 259, 350),
+            ["battle_bg_ch5"] = new BgLayout("", 0.83f, 159, 912, 62, 259, 350),
+        };
+
         readonly GateDoor[] _doors = new GateDoor[2];
         public float GateOpen => _doors[0] == null ? 0f : Mathf.Max(_doors[0].Openness, _doors[1].Openness);
 
@@ -93,7 +102,7 @@ namespace Liangshan
             float camTop = cam.transform.localPosition.y + cam.orthographicSize;
             float camW = cam.orthographicSize * 2f * cam.aspect;
             float HeightFor(BgLayout l) => Mathf.Max(19.2f, camW * 1920f / 1080f, (camTop - BgSeam) / l.Seam);
-            var lay = HeightFor(StdBg) / 19.2f > 1.12f ? LongBg : StdBg;
+            var lay = ChapterBg.TryGetValue(B.Stage.Bg, out var chLay) ? chLay : HeightFor(StdBg) / 19.2f > 1.12f ? LongBg : StdBg;
             float h = HeightFor(lay);
             float w = h * 1080f / 1920f;
             _bg.sprite = Art.Img(B.Stage.Bg + lay.Suffix);
@@ -420,7 +429,7 @@ namespace Liangshan
                     case Ev.Fire:
                         _slots[e.Slot].Kick(p);
                         Muzzle(e);
-                        if (e.Hero == HeroId.HuaRong) Sfx.Play(Snd.Bow, 0.35f);
+                        if (e.Hero == HeroId.HuaRong || e.Hero == HeroId.ZhangQing) Sfx.Play(Snd.Bow, e.Hero == HeroId.HuaRong ? 0.35f : 0.22f, e.Hero == HeroId.HuaRong ? 1f : 1.3f);
                         break;
                     case Ev.Hit:
                         PlayHit(e, p);
@@ -452,13 +461,35 @@ namespace Liangshan
                         foreach (var d in _doors) d?.Open(1.6f);
                         break;
                     case Ev.BossComing:
-                        Hud.Banner("强敌来袭", $"首领 {B.Stage.BossName} 率官军压境", Pal.Red, "en_boss");
+                    {
+                        var bd = Defs.Enemy((EnemyKind)e.Slot);
+                        Hud.Banner("强敌来袭", $"首领 {bd.Name} 率官军压境", Pal.Red, bd.Art);
                         Sfx.Play(Snd.Warn);
                         Sfx.PlayMusic(Bgm.Boss);
                         break;
+                    }
                     case Ev.EliteComing:
-                        Hud.Banner("教头出阵", "禁军教头 血厚攻高", Pal.Purple, "en_elite", true);
+                    {
+                        var ed = Defs.Enemy((EnemyKind)e.Slot);
+                        Hud.Banner(ed.Name + "出阵", ed.Desc, Pal.Purple, ed.Art, true);
                         Sfx.Play(Snd.Warn, 0.6f);
+                        break;
+                    }
+                    case Ev.BossSkill:
+                        OnBossSkill(e, p);
+                        break;
+                    case Ev.Explode:
+                        Explosion(p, e.Radius, 1.3f);
+                        fx.Shake(0.12f, 0.2f);
+                        Sfx.Play(Snd.Bomb, 0.55f);
+                        break;
+                    case Ev.UnitStun:
+                        fx.Number(p + new Vector2(0, 1.0f), "晕眩", Pal.Hex("C8D0DA"), 36, 0.5f, 0.8f, true);
+                        fx.Sparks(Art.Img("fx_star"), p + new Vector2(0, 0.5f), 5, 0.22f, 2f, Color.white, 0.5f, 9450, 3f, true);
+                        break;
+                    case Ev.Coin:
+                        fx.Number(p + new Vector2(0, 1.0f), "+" + e.Value, Pal.Gold, 40, 0.7f, 0.9f, true);
+                        fx.Fly(Art.Coin, p + new Vector2(0, 0.4f), CoinTarget, 0.35f, 0.6f, 1.2f, () => { if (Hud) Hud.PunchCoins(); Sfx.Play(Snd.Coin, 0.3f); });
                         break;
                     case Ev.Rage:
                         Hud.Banner("官军狂暴", "移速、攻击大幅提升", Pal.RedDeep, null);
@@ -513,6 +544,15 @@ namespace Liangshan
                 case HeroId.GongSun:
                     fx.Flash(sp + new Vector2(0, 0.6f), 1.0f, Pal.Hex("7FC4FF").A(0.5f), 0.2f);
                     fx.Burst(Art.Sparkle, sp + new Vector2(0, 0.75f), 1.1f, 0.3f, 9450, Pal.Hex("8FD4FF"), 90f, 0.3f, true);
+                    break;
+                case HeroId.ZhangQing:
+                    fx.Burst(Art.Sparkle, hand, 0.6f, 0.14f, 9450, Pal.Hex("E8E0D0"), 60f, 0.3f, true);
+                    break;
+                case HeroId.LinChong:
+                    fx.Flash(hand + dir * 0.3f, 0.7f, Pal.Hex("CFE8FF").A(0.5f), 0.1f);
+                    break;
+                case HeroId.WuYong:
+                    fx.Flash(sp + new Vector2(0, 0.6f), 0.9f, Pal.Hex("8FF0D0").A(0.45f), 0.2f);
                     break;
             }
         }
@@ -587,6 +627,83 @@ namespace Liangshan
                     }
                     Sfx.Play(Snd.Fist, 0.45f);
                     break;
+                case ShotKind.Slam:
+                    fx.Burst(Art.Img("fx_shock"), p + new Vector2(0, 0.25f), e.Radius * 1.8f, 0.36f, 9500, Pal.Hex("FFE2B0"), 160f);
+                    fx.Decal(Art.Img("fx_crack"), p, e.Radius * (e.Crit ? 2.2f : 1.4f), new Color(0.12f, 0.09f, 0.07f, 0.55f), e.Crit ? 2.5f : 1.2f, 0.5f, 91);
+                    fx.GroundWave(p, e.Radius * 1.2f, Pal.Hex("FFE6B0").A(0.8f), 0.4f);
+                    fx.Dust(p, e.Radius * 2.2f, DustCol.A(0.55f), 0.6f);
+                    fx.Debris(p, e.Crit ? 5 : 2, 0.2f, 2.2f);
+                    if (e.Crit) fx.Shake(0.12f, 0.2f);
+                    Sfx.Play(Snd.Fist, 0.5f, 0.75f);
+                    break;
+                case ShotKind.Spear:
+                    fx.Burst(Art.Img("fx_hit"), p + new Vector2(0, 0.45f), e.Crit ? 1.2f : 0.8f, 0.18f, 9510, e.Crit ? Pal.Hex("FFC54A") : Pal.Hex("D8ECFF"), 0, 0.4f, true);
+                    fx.Burst(Art.Sparkle, p + new Vector2(0, 0.5f), 0.7f, 0.16f, 9520, Color.white, 90f, 0.3f, true);
+                    if (B.Level("lc_frost") > 0) fx.Decal(Art.Img("fx_scorch"), p, 0.9f, Pal.Hex("BFE6FF").A(0.45f), 1.2f, 0.5f, 92);
+                    if (_hitSfxGap <= 0) { Sfx.Play(Snd.ArrowHit, 0.3f, 0.8f); _hitSfxGap = 0.06f; }
+                    break;
+                case ShotKind.Stone:
+                    fx.Burst(Art.Img("fx_hit"), p + new Vector2(0, 0.45f), e.Crit ? 1.1f : 0.65f, 0.16f, 9510, Pal.Hex("EDE4D2"), 0, 0.4f, true);
+                    fx.Sparks(Art.Img("fx_rock2"), p + new Vector2(0, 0.4f), 2, 0.12f, 2.2f, Color.white, 0.4f, 9520, 7f);
+                    if (_hitSfxGap <= 0) { Sfx.Play(Snd.ArrowHit, 0.25f, 1.25f); _hitSfxGap = 0.05f; }
+                    break;
+                case ShotKind.Wind:
+                    fx.Burst(Art.Img("fx_wave"), p + new Vector2(0, 0.3f), e.Radius * 1.8f, 0.4f, 9480, Pal.Hex("9FF5D8").A(0.85f), 300f, 0.4f, true);
+                    fx.GroundWave(p, e.Radius, Pal.Hex("B8FFE6").A(0.6f), 0.35f);
+                    if (e.Crit) fx.Smoke(p + new Vector2(0, 0.3f), 3, 1.0f, Pal.Hex("CFFFF0").A(0.4f), 0.8f, 1.2f, 0.5f);
+                    break;
+                case ShotKind.Frost:
+                    for (int i = 0; i < 9; i++)
+                    {
+                        var ip = p + Random.insideUnitCircle * e.Radius * 0.9f;
+                        fx.Rise(Art.Img("fx_icecrystal"), ip, Random.Range(0.9f, 1.6f), 1.4f, Color.white, WorldFx.Order(ip.y), true, 0.6f);
+                    }
+                    fx.Decal(Art.Img("fx_scorch"), p, e.Radius * 2.2f, Pal.Hex("CFEFFF").A(0.7f), 3f, 0.5f, 92);
+                    fx.LightPool(p, e.Radius * 3f, Pal.Hex("8FD8FF").A(0.8f), 0.8f);
+                    fx.ScreenFlash(Pal.Hex("D8F0FF").A(0.3f), 0.3f);
+                    fx.Shake(0.15f, 0.3f);
+                    Sfx.Play(Snd.UltThunder, 0.6f, 1.3f);
+                    break;
+                case ShotKind.Hammer:
+                    fx.Burst(Art.Img("fx_hit"), p + new Vector2(0, 0.4f), 1.4f, 0.25f, 9510, Pal.Hex("FFD0A0"), 0, 0.4f, true);
+                    fx.Debris(p, 4, 0.2f, 2.4f);
+                    fx.Shake(0.12f, 0.2f);
+                    Sfx.Play(Snd.WallHit, 0.7f, 0.8f);
+                    break;
+            }
+        }
+
+        void OnBossSkill(BattleEvent e, Vector2 p)
+        {
+            var fx = WorldFx.I;
+            var top = p + new Vector2(0, 3.2f);
+            switch ((BossSkill)e.Value)
+            {
+                case BossSkill.Hammer:
+                    fx.Number(top, "流星飞锤", Pal.Hex("FFB070"), 48, 0.7f, 1.0f, true);
+                    Sfx.Play(Snd.Warn, 0.5f);
+                    break;
+                case BossSkill.Charge:
+                    fx.Number(top, "冲锋！", Pal.Hex("FF8A6A"), 52, 0.7f, 0.9f, true);
+                    fx.Dust(p, 3f, DustCol.A(0.7f), 0.8f, 95);
+                    fx.GroundWave(p, 2.2f, Pal.Hex("FFC8A0").A(0.7f), 0.4f);
+                    Sfx.Play(Snd.Warn, 0.5f);
+                    break;
+                case BossSkill.Summon:
+                    fx.Number(top, "连环马来援", Pal.Hex("FFB070"), 46, 0.7f, 1.0f, true);
+                    fx.Dust(p + new Vector2(0, 0.6f), 4f, DustCol.A(0.8f), 0.8f, 95);
+                    Sfx.Play(Snd.Warn, 0.6f);
+                    break;
+                case BossSkill.Ball:
+                    fx.Number(top, "蹴鞠火球", Pal.Hex("FFB070"), 48, 0.7f, 1.0f, true);
+                    Sfx.Play(Snd.Bomb, 0.4f, 1.3f);
+                    break;
+                case BossSkill.Shield:
+                    fx.Number(top, "护体金光", Pal.Gold, 50, 0.7f, 1.0f, true);
+                    fx.Ring(p + new Vector2(0, 1.2f), 2.4f, Pal.Gold, 0.6f);
+                    fx.Flash(p + new Vector2(0, 1.2f), 4f, Pal.Gold.A(0.5f), 0.3f);
+                    Sfx.Play(Snd.Jackpot, 0.4f);
+                    break;
             }
         }
 
@@ -657,6 +774,15 @@ namespace Liangshan
                 case HeroId.LingZhen: Sfx.Play(Snd.Wave, 0.7f); break;
                 case HeroId.GongSun: Sfx.Play(Snd.UltThunder, 0.8f); fx.Shake(0.1f, 0.3f); break;
                 case HeroId.WuSong: Sfx.Play(Snd.UltFist, 0.9f); break;
+                case HeroId.ZhangQing: Sfx.Play(Snd.UltArrow, 0.7f, 1.2f); break;
+                case HeroId.LinChong: Sfx.Play(Snd.Wave, 0.7f, 1.2f); break;
+                case HeroId.LuZhiShen: Sfx.Play(Snd.UltFist, 0.9f, 0.8f); fx.Shake(0.2f, 0.4f); break;
+                case HeroId.WuYong:
+                    Sfx.Play(Snd.Jackpot, 0.6f);
+                    fx.ScreenFlash(Pal.Hex("B8FFE6").A(0.2f), 0.4f);
+                    foreach (var s in _slots) if (s.Slot.Unit != null) fx.Rise(Art.Img("fx_pillar"), s.Slot.Pos.ToV() + new Vector2(0, -0.45f), 1.6f, 0.6f, Pal.Hex("8FF0D0"), 9050, true, 0.3f);
+                    Hud.Banner("全军急攻", "六秒内全军攻速 +60%", Pal.TealDeep, null, true);
+                    break;
             }
         }
 
@@ -699,7 +825,7 @@ namespace Liangshan
 
         Enemy BossEnemy()
         {
-            foreach (var e in B.Enemies) if (e.Def.Kind == EnemyKind.Boss && !e.Dead) return e;
+            foreach (var e in B.Enemies) if (e.Def.IsBoss && !e.Dead) return e;
             return null;
         }
 
@@ -862,7 +988,7 @@ namespace Liangshan
             readonly List<SpriteRenderer> _bodies = new List<SpriteRenderer>();
             readonly List<Vector2> _home = new List<Vector2>();
             readonly List<float> _sizes = new List<float>();
-            SpriteRenderer _crown;
+            SpriteRenderer _crown, _stunStar;
             int _shownId = -1;
             float _kick, _kickPow = 1f, _kickDir, _cheer, _popUntil, _release, _lastFire = -99f;
             Sprite[] _anim;
@@ -1010,6 +1136,19 @@ namespace Liangshan
                 }
                 if (_crown) _crown.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 3f) * 6f);
                 var u = Slot.Unit;
+                bool stunned = u != null && u.Stun > 0;
+                foreach (var b in _bodies) if (b) b.color = stunned ? new Color(0.55f, 0.58f, 0.66f) : Color.white;
+                if (stunned)
+                {
+                    if (_stunStar == null) _stunStar = WorldFx.Spr(Root, Art.Img("fx_star"), new Vector2(0, 0.75f), 0.34f, 9300, null, "stunStar");
+                    _stunStar.transform.localPosition = new Vector2(Mathf.Cos(Time.time * 7f) * 0.25f, 0.78f + Mathf.Sin(Time.time * 7f) * 0.06f);
+                    _stunStar.transform.localRotation = Quaternion.Euler(0, 0, Time.time * 300f);
+                }
+                else if (_stunStar != null)
+                {
+                    Object.Destroy(_stunStar.gameObject);
+                    _stunStar = null;
+                }
                 float glowA = 0;
                 Color glowC = Color.white;
                 if (u != null && u.Burst) { glowA = 0.55f + 0.25f * Mathf.Sin(Time.unscaledTime * 10f); glowC = Pal.Gold; }
@@ -1068,7 +1207,7 @@ namespace Liangshan
             readonly SpriteRenderer _body, _shadow, _aura, _flash;
             readonly SpriteRenderer _barBg, _bar;
             readonly Transform _barRoot;
-            SpriteRenderer _stun, _tag;
+            SpriteRenderer _stun, _tag, _shield;
             readonly float _h, _phase, _jit, _size, _cy;
             readonly Sprite[] _frames;
             readonly SpriteRenderer _barGhost, _barHi;
@@ -1077,6 +1216,8 @@ namespace Liangshan
             float _redT, _step, _lastX, _lastY, _walkW, _ghostFrac = 1f;
 
             const float BarK = 0.22f;
+            /// <summary>飞行单位离地高度：影子留在地上，身体悬空。</summary>
+            const float FlyH = 0.75f;
 
             /// <summary>一只脚相对身体的高度（正 = 往上收）。phase 每走一步加 1，[0,1) 摆动、[1,2) 支撑。</summary>
             static float Foot(float phase, float reach, float raise)
@@ -1108,21 +1249,21 @@ namespace Liangshan
                 _e = e;
                 _phase = Random.Range(0f, 10f);
                 _jit = e.Big ? 0f : Random.Range(0f, 0.75f);
-                _h = e.Def.Size * (e.Def.Kind == EnemyKind.Boss ? 1.05f : 1.02f);
+                _h = e.Def.Size * (e.Def.IsBoss ? 1.05f : 1.02f);
                 _root = new GameObject(e.Def.Name).transform;
                 _root.SetParent(parent, false);
                 _shadow = WorldFx.Spr(_root, Art.SoftDot, Vector2.zero, 1, 0, new Color(0, 0, 0, 0.42f), "shadow");
                 _shadow.transform.localScale = new Vector3(_h * 0.75f, _h * 0.24f, 1);
-                if (e.Def.Kind == EnemyKind.Porter || e.Def.Kind == EnemyKind.Boss || e.Def.Kind == EnemyKind.Elite)
+                if (e.Def.Kind == EnemyKind.Porter || e.Big)
                 {
-                    var c = e.Def.Kind == EnemyKind.Porter ? Pal.Gold : e.Def.Kind == EnemyKind.Boss ? Pal.Red : Pal.Purple;
+                    var c = e.Def.Kind == EnemyKind.Porter ? Pal.Gold : e.Def.IsBoss ? Pal.Red : Pal.Purple;
                     _aura = WorldFx.Spr(_root, Art.SoftDot, Vector2.zero, 1, 0, c.A(0.5f), "aura");
                     _aura.transform.localScale = new Vector3(_h * 1.2f, _h * 0.45f, 1);
                 }
                 _frames = Art.Frames(e.Def.Art);
                 (_size, _cy) = Art.FrameBox(e.Def.Art, _h);
                 _body = WorldFx.Spr(_root, _frames[0], new Vector2(0, _cy), _size, 0, null, "body");
-                _body.flipX = Random.value < 0.5f && e.Def.Kind != EnemyKind.Boss;
+                _body.flipX = Random.value < 0.5f && !e.Def.IsBoss;
                 Bend.Use(_body);
                 _bend = Bend.Meta(e.Def.Art);
                 _flash = Bend.Use(WorldFx.Spr(_body.transform, _body.sprite, Vector2.zero, 1f, 0, new Color(1, 1, 1, 0), "flash"), true);
@@ -1134,7 +1275,7 @@ namespace Liangshan
                 _barRoot.SetParent(_root, false);
                 _bw = e.Big ? 1.2f : e.Def.Kind == EnemyKind.Porter ? 0.86f : 0.6f;
                 _bh = e.Big ? 0.12f : 0.075f;
-                _barRoot.localPosition = new Vector2(0, _h + (e.Def.Kind == EnemyKind.Porter ? 0.62f : 0.12f));
+                _barRoot.localPosition = new Vector2(0, _h + (e.Def.Kind == EnemyKind.Porter ? 0.62f : 0.12f) + (e.Def.Flying ? FlyH : 0f));
                 // 参考：深色细描边 + 暗红槽 + 亮红填充（上半一道高光），掉血时后面拖一截白色残影。
                 _barBg = BarPiece("bg", _bw + 0.05f, _bh + 0.05f, new Color(0.08f, 0.05f, 0.04f, 0.92f));
                 BarPiece("track", _bw, _bh, new Color(0.25f, 0.12f, 0.1f, 1f));
@@ -1143,7 +1284,7 @@ namespace Liangshan
                 _barHi = BarPiece("hi", _bw - 0.02f, _bh * 0.38f, new Color(1f, 1f, 1f, 0.32f));
                 _barHi.transform.localPosition = new Vector2(0, _bh * 0.2f);
                 _barRoot.gameObject.SetActive(false);
-                if (e.Def.Kind == EnemyKind.Boss) _barRoot.localScale = Vector3.zero;
+                if (e.Def.IsBoss) _barRoot.localScale = Vector3.zero;
                 _lastX = e.Pos.X;
                 _lastY = e.Pos.Y;
                 _step = Random.Range(0f, 2f);
@@ -1188,6 +1329,8 @@ namespace Liangshan
                 // 走路只用站立帧，靠形变迈腿（AI 画的走路帧两腿几乎一样，来回切只会一跳一跳）。攻击才切蓄力/出手帧。
                 int frame = 0;
                 float lunge = 0f;
+                bool fly = e.Def.Flying;
+                if (fly) frame = (int)(t * 7f) % 2;
                 if (e.Attacking && e.Stun <= 0)
                 {
                     float period = e.Def.Kind == EnemyKind.Crossbow ? 1.6f : 1f;
@@ -1219,11 +1362,28 @@ namespace Liangshan
                 float sx = 1f + hit * 0.07f + landing * 0.012f + lunge * 0.05f - breathe * 0.4f;
                 float sy = 1f - hit * 0.06f - landing * 0.015f - lunge * 0.07f + breathe;
                 if (e.Attacking) bob = -lunge * 0.04f;
-                _body.transform.localPosition = new Vector2(0, _cy);
+                float lift = fly ? FlyH + Mathf.Sin(t * 4f) * 0.08f : 0f;
+                if (fly) { legL = legR = 0f; bob = 0f; }
+                _body.transform.localPosition = new Vector2(0, _cy + lift);
                 _body.transform.localRotation = Quaternion.identity;
                 _body.transform.localScale = Vector3.one * _size;
+                if (fly) _shadow.transform.localScale = new Vector3(_h * 0.55f, _h * 0.16f, 1);
                 Bend.Set(_body, _bend, bob, shear, sx, sy, legL, legR);
                 Bend.Set(_flash, _bend, bob, shear, sx, sy, legL, legR);
+                if (e.ChargeT > 0 && Random.value < 0.5f) WorldFx.I.Dust(p, _h * 0.8f, DustCol.A(0.5f), 0.5f, 95);
+                if (e.Shield > 0)
+                {
+                    if (_shield == null) _shield = WorldFx.Additive(WorldFx.Spr(_root, Art.Ring, new Vector2(0, _h * 0.5f), _h * 1.25f, 0, Pal.Gold.A(0.6f), "shield"));
+                    _shield.sortingOrder = order + 4;
+                    _shield.color = Pal.Gold.A(0.35f + 0.2f * Mathf.Sin(t * 6f));
+                    _shield.transform.localScale = Vector3.one * _h * (1.25f + 0.04f * Mathf.Sin(t * 4f));
+                }
+                else if (_shield != null)
+                {
+                    WorldFx.I.Ring(p + new Vector2(0, _h * 0.5f), _h * 0.8f, Pal.Gold, 0.4f);
+                    Object.Destroy(_shield.gameObject);
+                    _shield = null;
+                }
                 Color c = Color.white;
                 if (e.SlowT > 0) c = Pal.Hex("A8D8FF");
                 if (rage) c = Color.Lerp(c, Pal.Hex("FF9C8C"), 0.35f);
@@ -1232,7 +1392,7 @@ namespace Liangshan
                 _flash.sortingOrder = order + 1;
                 _flash.color = new Color(1f, 0.32f, 0.26f, 0.85f * hit * _body.color.a);
 
-                bool showBar = e.Def.Kind != EnemyKind.Boss && (e.Big || e.Def.Kind == EnemyKind.Porter || e.Hp < e.MaxHp);
+                bool showBar = !e.Def.IsBoss && (e.Big || e.Def.Kind == EnemyKind.Porter || e.Hp < e.MaxHp);
                 if (_barRoot.gameObject.activeSelf != showBar) _barRoot.gameObject.SetActive(showBar);
                 if (showBar)
                 {
@@ -1271,7 +1431,7 @@ namespace Liangshan
                 fx.Dust(p, _h * 1.3f, DustCol.A(0.7f), 0.6f, WorldFx.Order(p.y) + 20);
                 fx.Sparks(Art.SoftDot, p + new Vector2(0, _h * 0.3f), big ? 10 : 4, big ? 0.4f : 0.22f, big ? 3.5f : 2.2f, Pal.Hex("D6CBB5").A(0.85f), 0.45f, 9300, 5f);
                 if (big) fx.Debris(p, 4, 0.22f, 2.4f);
-                if (_e.Def.Kind == EnemyKind.Boss)
+                if (_e.Def.IsBoss)
                 {
                     for (int i = 0; i < 5; i++)
                     {
@@ -1368,7 +1528,32 @@ namespace Liangshan
                         _sr = WorldFx.Spr(_root, Art.Img("ic_fist"), Vector2.zero, s.Ult ? 0.75f : 0.45f, 9200);
                         if (!s.Ult) _trail = AddTrail(0.14f, 0.3f, Pal.Hex("FF8060"));
                         break;
+                    case ShotKind.Stone:
+                        _shadow = WorldFx.Spr(_root, Art.SoftDot, Vector2.zero, 1, 125, new Color(0, 0, 0, 0.22f), "shadow");
+                        _sr = WorldFx.Spr(_root, Art.Img("fx_rock" + Random.Range(0, 3)), Vector2.zero, s.Ult ? 0.45f : 0.3f, 9200);
+                        _trail = AddTrail(0.08f, s.Ult ? 0.16f : 0.1f, Pal.Hex("E8E0D0"), false);
+                        break;
+                    case ShotKind.Spear:
+                        _sr = WorldFx.Spr(_root, Art.Img("ic_sword"), Vector2.zero, 0.8f, 9200, Pal.Hex("E8F2FF"));
+                        _trail = AddTrail(0.1f, 0.18f, Pal.Hex("CFE8FF"));
+                        break;
+                    case ShotKind.Wind:
+                        _sr = WorldFx.Additive(WorldFx.Spr(_root, Art.Img("fx_wave"), Vector2.zero, s.Ult ? 1.4f : 0.6f, 9200, Pal.Hex("9FF5D8").A(0.85f)));
+                        _trail = AddTrail(0.15f, s.Ult ? 0.5f : 0.22f, Pal.Hex("B8FFE6"));
+                        break;
+                    case ShotKind.Hammer:
+                        _shadow = WorldFx.Spr(_root, Art.SoftDot, Vector2.zero, 1, 125, new Color(0, 0, 0, 0.3f), "shadow");
+                        _sr = WorldFx.Spr(_root, Art.Img("fx_rock1"), Vector2.zero, 0.6f, 9200, Pal.Hex("8C8C96"));
+                        _trail = AddTrail(0.2f, 0.25f, Pal.Hex("FFB070"));
+                        break;
+                    case ShotKind.Ball:
+                        _shadow = WorldFx.Spr(_root, Art.SoftDot, Vector2.zero, 1, 125, new Color(0, 0, 0, 0.3f), "shadow");
+                        _sr = WorldFx.Additive(WorldFx.Spr(_root, Art.Img("fx_fireball"), Vector2.zero, 0.9f, 9200));
+                        _trail = AddTrail(0.3f, 0.5f, Fire);
+                        break;
                     case ShotKind.Lightning:
+                    case ShotKind.Slam:
+                    case ShotKind.Frost:
                         break;
                 }
                 Tick();
@@ -1491,7 +1676,48 @@ namespace Liangshan
                         }
                         break;
                     }
+                    case ShotKind.Stone:
+                    case ShotKind.Hammer:
+                    case ShotKind.Ball:
+                    {
+                        float h = s.Kind == ShotKind.Stone ? 0.5f + (b - a).magnitude * 0.06f : 2.4f;
+                        a += new Vector2(0, s.Kind == ShotKind.Stone ? 0.5f : 1.6f);
+                        b += new Vector2(0, s.Kind == ShotKind.Stone ? 0.4f : 0.2f);
+                        _root.localPosition = Vector2.zero;
+                        var g = Vector2.Lerp(a, b, k);
+                        float z = h * 4f * k * (1 - k);
+                        _sr.transform.localPosition = g + new Vector2(0, z);
+                        _sr.transform.localRotation = Quaternion.Euler(0, 0, -Time.time * 720f);
+                        if (_shadow)
+                        {
+                            _shadow.transform.localPosition = g - new Vector2(0, 0.3f);
+                            _shadow.transform.localScale = new Vector3(0.4f, 0.1f, 1f) * (s.Kind == ShotKind.Stone ? 0.8f : 2f);
+                        }
+                        if (_trail && !_trail.emitting && k > 0.05f) _trail.emitting = true;
+                        break;
+                    }
+                    case ShotKind.Spear:
+                    {
+                        a += new Vector2(0, 0.45f);
+                        b += new Vector2(0, 0.45f);
+                        var d = b - a;
+                        _root.localPosition = Vector2.Lerp(a, b, Tween.OutCubic(k));
+                        _sr.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg - 45f);
+                        if (_trail && !_trail.emitting) _trail.emitting = true;
+                        break;
+                    }
+                    case ShotKind.Wind:
+                    {
+                        a += new Vector2(0, 0.5f);
+                        b += new Vector2(0, 0.35f);
+                        _root.localPosition = Vector2.Lerp(a, b, k) + new Vector2(Mathf.Sin(k * 9f) * 0.15f, 0);
+                        _sr.transform.localRotation = Quaternion.Euler(0, 0, Time.time * 900f);
+                        if (_trail && !_trail.emitting) _trail.emitting = true;
+                        break;
+                    }
                     case ShotKind.Lightning:
+                    case ShotKind.Slam:
+                    case ShotKind.Frost:
                         _root.localPosition = b;
                         break;
                 }

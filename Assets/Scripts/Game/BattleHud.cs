@@ -85,7 +85,7 @@ namespace Liangshan
             _announceGroup = _announce.gameObject.AddComponent<CanvasGroup>();
             _announceGroup.blocksRaycasts = false;
             _shownCoins = B.Coins;
-            Banner("守住梁山", B.Stage.Intro, Pal.TealDeep, null);
+            Banner(CloudConfig.GameName, B.Stage.Intro, Pal.TealDeep, null);
         }
 
         RectTransform TopRt(float x, float y, Vector2 size, string name) => Ui.Top(_root, x, y + _st, size, name);
@@ -97,6 +97,12 @@ namespace Liangshan
             _wavePill = TopRt(0, 128, new Vector2(270, 56), "wave");
             Ui.Box(_wavePill, new Vector2(270, 56), Vector2.zero, Pal.SlateDeep.A(0.75f), Art.Pill);
             _wave = Ui.Label(_wavePill, $"波次：1/{B.Stage.Waves}", 34, Pal.Cream, new Vector2(0, 1), new Vector2(270, 56));
+            if (B.Stage.BuffRole.HasValue)
+            {
+                var buff = TopRt(-272, 128, new Vector2(226, 50), "buff");
+                Ui.Box(buff, new Vector2(226, 46), Vector2.zero, Pal.Hex("2E5A2A").A(0.85f), Art.Pill);
+                Ui.Outlined(buff, B.Stage.BuffText, 24, Pal.Hex("C8FFB0"), new Vector2(0, 1), new Vector2(222, 46), Pal.Ink, 1.5f);
+            }
 
             // 狂暴后挂在波次下面的红色提示条
             _rageTag = TopRt(0, 186, new Vector2(300, 52), "rageTag");
@@ -134,7 +140,7 @@ namespace Liangshan
             _threat = TopRt(462, 90, new Vector2(120, 160), "threat");
             Ui.Box(_threat, new Vector2(108, 108), new Vector2(0, 14), Pal.Edge, Art.Rounded);
             Ui.Box(_threat, new Vector2(96, 96), new Vector2(0, 14), Pal.Hex("4E7BA6"), Art.Rounded);
-            _threatIcon = Ui.Icon(_threat, "en_boss", 92, new Vector2(0, 16));
+            _threatIcon = Ui.Icon(_threat, Defs.Enemy(B.Stage.BossKind).Art, 92, new Vector2(0, 16));
             _threatText = Ui.Outlined(_threat, "第4波", 28, Color.white, new Vector2(0, -62), new Vector2(160, 40), Pal.Ink, 2f);
 
             // 首领血条
@@ -146,7 +152,7 @@ namespace Liangshan
             _bossFill.rectTransform.anchoredPosition = new Vector2(40 - 294, -6);
             Ui.Box(_bossBar, new Vector2(104, 104), new Vector2(-292, 0), Pal.Edge, Art.Circle);
             Ui.Box(_bossBar, new Vector2(92, 92), new Vector2(-292, 0), Pal.RedDeep, Art.Circle);
-            Ui.Icon(_bossBar, "en_boss", 92, new Vector2(-292, 4));
+            Ui.Icon(_bossBar, Defs.Enemy(B.Stage.BossKind).Art, 92, new Vector2(-292, 4));
             Ui.Outlined(_bossBar, "首领 " + B.Stage.BossName, 30, Pal.Hex("FFE2A0"), new Vector2(-120, 30), new Vector2(300, 40), Pal.Ink, 2.5f, TextAnchor.MiddleLeft);
             _bossHp = Ui.Outlined(_bossBar, "", 26, Color.white, new Vector2(40, -6), new Vector2(580, 40), Pal.Ink, 2f);
             _bossBar.gameObject.SetActive(false);
@@ -303,9 +309,13 @@ namespace Liangshan
 
         void ToggleSpeed()
         {
+            if (Profile.S.Speed15 == 0 && _v.Auto == null)
+            {
+                Ui.Toast("首次通关后解锁 1.5 倍速", 200);
+                return;
+            }
             _v.Speed = _v.Speed > 1.01f ? 1f : 1.5f;
-            if (_v.Speed > 1.01f) PlayerPrefs.SetInt("speed15", 1);
-            else PlayerPrefs.SetInt("speed15", 0);
+            PlayerPrefs.SetInt("speed15", _v.Speed > 1.01f ? 1 : 0);
         }
 
         // ---------------- 每帧 ----------------
@@ -373,8 +383,8 @@ namespace Liangshan
             for (int x = Mathf.Max(1, w); x <= B.Stage.Waves && icon == null; x++)
             {
                 bool now = x == w;
-                if (x == B.Stage.BossWave && (!now || B.Time - (w - 1) * Defs.WaveTime < 2.5f)) { icon = "en_boss"; at = x; }
-                else if (Array.IndexOf(B.Stage.EliteWaves, x) >= 0 && (!now || B.Time - (w - 1) * Defs.WaveTime < 6f)) { icon = "en_elite"; at = x; }
+                if (x == B.Stage.BossWave && (!now || B.Time - (w - 1) * Defs.WaveTime < 2.5f)) { icon = Defs.Enemy(B.Stage.BossKind).Art; at = x; }
+                else if (Array.IndexOf(B.Stage.EliteWaves, x) >= 0 && (!now || B.Time - (w - 1) * Defs.WaveTime < 6f)) { icon = Defs.Enemy(B.EliteKind(x)).Art; at = x; }
                 else if (Array.IndexOf(B.Stage.PorterWaves, x) >= 0 && (!now || B.Time - (w - 1) * Defs.WaveTime < 3f)) { icon = "en_porter"; at = x; }
             }
             if (icon == null)
@@ -648,11 +658,28 @@ namespace Liangshan
                         if (B.Level("gs_ice") > 0) t.Desc += $"，冰冻减速{O("45%")}";
                         break;
                     }
-                    default:
+                    case HeroId.WuSong:
                         t.Desc = $"只打墙前近身的敌人，一拳造成{O("100%")}物理伤害并击退";
                         if (B.Level("ws_tiger") > 0) t.Desc += $"；对精英、首领伤害{O("×2.5")}";
                         break;
+                    case HeroId.ZhangQing:
+                        t.Desc = $"掷出飞石造成{O("100%")}物理伤害，再弹射{O(1 + 2 * B.Level("zq_bounce"))}次（每次{O("80%")}）";
+                        if (B.Level("zq_stun") > 0) t.Desc += $"；{O("30%")}几率击晕{O("1秒")}";
+                        break;
+                    case HeroId.LinChong:
+                        t.Desc = $"长枪贯穿目标和身后一列敌人，造成{O("100%")}物理伤害，攻击距离{O(B.HeroRange(h).ToString("0.#"))}";
+                        if (B.Level("lc_crit") > 0) t.Desc += $"；{O("30%")}几率暴击{O("×2.5")}";
+                        if (B.Level("lc_frost") > 0) t.Desc += "，命中减速";
+                        break;
+                    case HeroId.LuZhiShen:
+                        t.Desc = $"禅杖砸地，对周围敌人造成{O("100%")}物理伤害并震退";
+                        if (B.Level("lzs_boss") > 0) t.Desc += $"；对精英、首领伤害{O("×2.5")}";
+                        break;
+                    default:
+                        t.Desc = $"羽扇风刃造成{O("100%")}风系伤害并减速；在场每星为全军加{O("4%")}攻速（当前{O("+" + Mathf.RoundToInt(B.Aura * 100) + "%")}）";
+                        break;
                 }
+                t.Desc += "\n<color=#8E9BAC>" + (d.Kind == Role.Fighter ? "近战：打不到飞行敌人" : d.Physical ? "物理：被重甲减半" : "法术：克制重甲") + "</color>";
             }
             else if (tab == 1)
             {
@@ -666,7 +693,11 @@ namespace Liangshan
                     case HeroId.HuaRong: t.Desc = $"火箭齐射{O(10 + 6 * B.Level("hr_rain"))}支，覆盖敌群最密处，每支造成{O("220%")}火系伤害"; break;
                     case HeroId.LingZhen: t.Desc = $"砸下一枚巨型火炮，对大范围敌人造成{O("700%")}火系伤害并震退"; break;
                     case HeroId.GongSun: t.Desc = $"五道天雷劈向敌群，每道造成{O("400%")}雷系伤害并麻痹{O("1秒")}"; break;
-                    default: t.Desc = $"三秒连环醉拳{O(18)}击，每击造成{O("160%")}物理伤害并击退"; break;
+                    case HeroId.WuSong: t.Desc = $"三秒连环醉拳{O(18)}击，每击造成{O("160%")}物理伤害并击退"; break;
+                    case HeroId.ZhangQing: t.Desc = $"十二枚飞石连打前排敌人，每枚造成{O("250%")}物理伤害并击晕{O("1秒")}"; break;
+                    case HeroId.LinChong: t.Desc = $"风雪冰封一片敌人，造成{O("500%")}物理伤害，冻住{O("2.5秒")}"; break;
+                    case HeroId.LuZhiShen: t.Desc = $"横扫墙前一整排，五段各造成{O("400%")}物理伤害并击飞"; break;
+                    default: t.Desc = $"全军攻速{O("+60%")}持续{O("6秒")}，并获得{O(10 + 10 * u.Star)}银两"; break;
                 }
                 if (t.Locked) t.Desc += $"\n<color=#8E9BAC>强化三选一抽到「{d.UltName}」后解锁</color>";
             }
@@ -1071,7 +1102,7 @@ namespace Liangshan
                 Sfx.PlayMusic(Sfx.On ? Bgm.Battle : Bgm.None);
                 Ui.SetBtnText(snd, Sfx.On ? "音效：开" : "音效：关");
             }, 42);
-            Ui.Btn(panel, "重新开始", new Vector2(460, 112), new Vector2(0, -140), Pal.Orange, () => { CloseModal(); Game.I.StartBattle(); }, 42);
+            Ui.Btn(panel, "重新开始", new Vector2(460, 112), new Vector2(0, -140), Pal.Orange, () => { CloseModal(); Game.I.Restart(); }, 42);
             Ui.Btn(panel, "返回主页", new Vector2(460, 112), new Vector2(0, -270), Pal.Red, () => { CloseModal(); Game.I.ShowHome(); }, 42);
             Tween.Pop(panel, 0.25f);
         }
@@ -1121,7 +1152,7 @@ namespace Liangshan
             }
         }
 
-        static Color RoleColor(HeroId h) => h == HeroId.HuaRong ? Pal.Green : h == HeroId.LingZhen ? Pal.Orange : h == HeroId.GongSun ? Pal.Blue : Pal.Red;
+        static Color RoleColor(HeroId h) => MetaUi.RoleColor(Defs.Hero(h).Kind);
 
         // ---------------- 结算 ----------------
 
@@ -1173,34 +1204,69 @@ namespace Liangshan
 
             if (win)
             {
-                SectionTitle(band, "通关奖励", -110);
-                var rewards = new[] { ("ic_ingot", 120, "元宝"), ("ic_coins", 1500, "铜钱"), ("ic_chest", 1, "宝箱"), ("hero_wusong", 10, "武松碎片") };
-                for (int i = 0; i < rewards.Length; i++)
+                var r = Game.I.Settle(B, true);
+                for (int i = 0; i < 3 && B.Stage.Mode == StageMode.Main; i++)
                 {
-                    float x = -330 + i * 220;
-                    var tile = Ui.Rect(band, "reward" + i);
-                    tile.anchoredPosition = new Vector2(x, -230);
-                    tile.sizeDelta = new Vector2(170, 170);
-                    Ui.Box(tile, new Vector2(170, 170), Vector2.zero, Pal.Edge, Art.Rounded);
-                    Ui.Box(tile, new Vector2(156, 156), Vector2.zero, i == 3 ? Pal.Purple : Pal.Hex("4F86B8"), Art.Rounded);
-                    Ui.Icon(tile, rewards[i].Item1, 120, new Vector2(0, 10));
-                    Ui.Outlined(tile, "×" + rewards[i].Item2, 32, Color.white, new Vector2(30, -55), new Vector2(150, 44), Pal.Ink, 2.5f, TextAnchor.MiddleRight);
-                    Ui.Label(tile, rewards[i].Item3, 26, Pal.Hex("D8C8B0"), new Vector2(0, -112), new Vector2(200, 40));
-                    Tween.Pop(tile, 0.3f, 0.3f + i * 0.1f);
+                    var st = Ui.Icon(band, "ic_star", i == 1 ? 96 : 76, new Vector2((i - 1) * 110, 470 + (i == 1 ? 14 : 0)));
+                    if (i >= r.Stars) st.color = new Color(0.25f, 0.2f, 0.18f, 0.9f);
+                    Tween.Pop(st.transform, 0.3f, 0.5f + i * 0.15f);
                 }
-                Profile.AddRewards(120, 1500);
+                if (r.First)
+                {
+                    var tag = Ui.Box(band, new Vector2(130, 48), new Vector2(300, 390), Pal.Red, Art.Pill);
+                    Ui.Outlined(tag.transform, "首通", 28, Color.white, Vector2.zero, new Vector2(130, 48), Pal.RedDeep, 2f);
+                }
+                SectionTitle(band, B.Stage.Mode == StageMode.Escort ? $"截获生辰纲 {B.PortersKilled} 担" : "通关奖励", -110);
+                MetaUi.ItemRow(band, r.Items, new Vector2(0, -230), 170);
+                if (r.Unlock.HasValue)
+                {
+                    var ud = Defs.Hero(r.Unlock.Value);
+                    var ub = Ui.Box(c, new Vector2(760, 150), new Vector2(0, -470), Pal.Hex("5A2A8A").A(0.95f), Art.Rounded);
+                    Ui.Icon(ub.transform, ud.Art, 150, new Vector2(-280, 12));
+                    Ui.Outlined(ub.transform, $"新好汉入伙：{ud.Name}", 42, Pal.Hex("FFE08A"), new Vector2(60, 24), new Vector2(560, 60), Pal.Ink, 3f);
+                    Ui.Label(ub.transform, $"「{ud.Nick}」{ud.Role} · 可在好汉页上阵", 28, Pal.Cream, new Vector2(60, -30), new Vector2(560, 44));
+                    Tween.Pop(ub.transform, 0.4f, 0.8f);
+                }
                 Confetti(c, 60);
                 Sfx.Play(Snd.Jackpot, 0.6f);
-                Ui.Btn(c, "返回", new Vector2(340, 120), new Vector2(0, -640), Pal.Hex("F2B632"), () => { CloseModal(); Game.I.ShowHome(); }, 52);
+                bool doubled = false;
+                RectTransform dbl = null;
+                dbl = Ui.Btn(c, "双倍领取", new Vector2(320, 124), new Vector2(-350, -640), Pal.Teal, () =>
+                {
+                    if (doubled) return;
+                    FakeAd(() =>
+                    {
+                        doubled = true;
+                        Game.I.GiveAgain(r);
+                        Ui.SetBtnText(dbl, "已双倍");
+                        Ui.Toast("奖励已翻倍", 200);
+                        Sfx.Play(Snd.Jackpot, 0.6f);
+                    });
+                }, 40, "ic_ad");
+                bool hasNext = B.Stage.Mode == StageMode.Main && B.Stage.No < Defs.LevelCount;
+                Ui.Btn(c, "返回", new Vector2(260, 124), new Vector2(hasNext ? 0 : 300, -640), Pal.Hex("A08A70"), () => { CloseModal(); Game.I.ShowHome(); }, 46);
+                if (hasNext)
+                    Ui.Btn(c, "下一关", new Vector2(300, 124), new Vector2(330, -640), Pal.Hex("F2B632"), () => { CloseModal(); Game.I.StartLevel(B.Stage.No + 1); }, 46);
                 if (_v.Auto != null) Tween.Run(c, 3f, k => { }, () => Game.I.OnAutoDone(true));
             }
             else
             {
                 SectionTitle(band, "败因提示", -110);
-                Ui.Label(band, Tip(), 34, Pal.Cream, new Vector2(0, -230), new Vector2(880, 170));
-                if (!B.RevivedOnce)
+                Ui.Label(band, Tip(), 34, Pal.Cream, new Vector2(0, -210), new Vector2(880, 120));
+                var pre = Game.I.Preview(B, false);
+                if (pre.Items.Count > 0)
                 {
-                    Ui.Btn(c, "复活再战", new Vector2(400, 124), new Vector2(-200, -640), Pal.Teal, () =>
+                    Ui.Label(band, "离开可得", 28, Pal.Hex("C8B8A0"), new Vector2(-340, -330), new Vector2(200, 40));
+                    MetaUi.ItemRow(band, pre.Items, new Vector2(60, -330), 110);
+                }
+                void Leave(int tab)
+                {
+                    Game.I.Settle(B, false);
+                    CloseModal();
+                    Game.I.ShowHome(tab);
+                }
+                if (!B.RevivedOnce)
+                    Ui.Btn(c, "复活再战", new Vector2(340, 124), new Vector2(-340, -640), Pal.Teal, () =>
                     {
                         FakeAd(() =>
                         {
@@ -1208,11 +1274,10 @@ namespace Liangshan
                             B.Revive();
                             Sfx.PlayMusic(Bgm.Battle);
                         });
-                    }, 46, "ic_ad");
-                    Ui.Btn(c, "返回", new Vector2(300, 124), new Vector2(210, -640), Pal.Hex("A08A70"), () => { CloseModal(); Game.I.ShowHome(); }, 48);
-                }
-                else Ui.Btn(c, "返回", new Vector2(340, 124), new Vector2(0, -640), Pal.Hex("A08A70"), () => { CloseModal(); Game.I.ShowHome(); }, 48);
-                if (_v.Auto != null) Tween.Run(c, 3f, k => { }, () => Game.I.OnAutoDone(false));
+                    }, 44, "ic_ad");
+                Ui.Btn(c, "去养成", new Vector2(280, 124), new Vector2(B.RevivedOnce ? -170 : 0, -640), Pal.Hex("F2B632"), () => Leave(1), 44);
+                Ui.Btn(c, "返回", new Vector2(260, 124), new Vector2(B.RevivedOnce ? 170 : 330, -640), Pal.Hex("A08A70"), () => Leave(2), 44);
+                if (_v.Auto != null) Tween.Run(c, 3f, k => { }, () => { Game.I.Settle(B, false); Game.I.OnAutoDone(false); });
             }
             Tween.Pop(band, 0.3f);
         }
@@ -1238,21 +1303,7 @@ namespace Liangshan
 
         // ---------------- 模拟广告 ----------------
 
-        void FakeAd(Action done)
-        {
-            var layer = Ui.Rect(_root, "ad");
-            layer.anchorMin = Vector2.zero;
-            layer.anchorMax = Vector2.one;
-            layer.offsetMin = layer.offsetMax = Vector2.zero;
-            Ui.Fill(layer, new Color(0, 0, 0, 0.9f), true);
-            var t = Ui.Label(layer, "", 44, Color.white, Vector2.zero, new Vector2(900, 200), TextAnchor.MiddleCenter, Fonts.Heavy);
-            float dur = _v.Auto != null ? 0.6f : 2f;
-            Tween.Run(layer, dur, k => t.text = $"（演示）激励视频播放中…\n{Mathf.CeilToInt(dur * (1 - k))}", () =>
-            {
-                Destroy(layer.gameObject);
-                done();
-            });
-        }
+        void FakeAd(Action done) => Ads.Show(done);
 
         // ---------------- 新手引导 ----------------
 
@@ -1284,7 +1335,8 @@ namespace Liangshan
             if (_guideStep > 2)
             {
                 _v.Tutorial = false;
-                PlayerPrefs.SetInt("tutorial_done", 1);
+                Profile.S.TutorialDone = 1;
+                Profile.Save();
                 return;
             }
             if (_guideStep == 1 && _v.FindMergePair(out _, out _)) ShowGuide();

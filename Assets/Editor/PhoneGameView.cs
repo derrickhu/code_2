@@ -18,11 +18,11 @@ namespace Liangshan.EditorTools
             EditorApplication.delayCall += () =>
             {
                 try { Select(); }
-                catch (Exception e) { Debug.LogWarning("[守住梁山] 未能切换 Game 视图：" + e.Message); }
+                catch (Exception e) { Debug.LogWarning("[宋江别慌张] 未能切换 Game 视图：" + e.Message); }
             };
         }
 
-        [MenuItem("守住梁山/Game视图改为手机竖屏")]
+        [MenuItem("宋江别慌张/Game视图改为手机竖屏")]
         public static void Select()
         {
             var asm = typeof(Editor).Assembly;

@@ -1,0 +1,17 @@
+局外 UI 皮肤（GenerateImage，参考视频帧只取做工与结构，不取配色和文字）。统一要求：纯白底、居中、无文字 NO TEXT。
+
+[ui_panel 3:4] A single blank game UI popup panel frame asset for a polished casual mobile game with an ancient Chinese Water Margin theme, centered on a flat pure white background. Portrait rectangle panel. Interior: smooth warm cream parchment, plain and empty. Border: thick rounded frame of dark red-brown lacquered wood with thin gold inner and outer trim; four gold xiangyun cloud corner ornaments. Clean cartoon casual mobile game rendering. NO TEXT.
+
+[ui_banner 16:9] A single blank horizontal title banner ribbon: wide straight crimson plaque with glossy highlight and gold trim lines, folded ribbon tails on both ends. Central area long and plain. NO TEXT.
+
+[ui_buttons 1:1] Six blank wide capsule buttons in a 2x3 grid, same design, colors: golden yellow, green, teal blue, crimson red, orange, grey. Thick candy 3D look, glossy top band, darker bottom lip, thin outline. NO TEXT.
+
+[ui_cards 16:9] Four blank portrait hero card frames in a row: blue, purple, orange-gold, dark grey locked. Gold bevelled rim, rarity inner border, plain gradient interior, darker strip at the bottom for name. NO TEXT.
+
+[ui_slots 16:9] Five blank rounded-square item slots in a row: grey-green, blue, purple, orange-gold, brown wood. Thick bevelled rim, plain radial gradient inside. NO TEXT.
+
+[ui_widgets 4:3] 3x2 grid: round red close button with white X and gold rim; small red notification dot with white rim; round gold button with white left arrow; round navy level badge with gold rim; small red pennant tag with notched end and gold trim; round carved wood medallion frame with cream inner disk. NO TEXT.
+
+[ui_bars 1:1] Stacked horizontal pieces: empty progress track (dark groove, gold rim); green fill; gold fill; light taupe list row strip; dark navy translucent resource pill with gold rim; dark wood nameplate with gold trim and rivets. NO TEXT.
+
+[ui_nav 1:1] Bottom tab bar strip (dark navy lacquer, gold top trim, cloud texture); active tab slot (cream-gold raised tile); dark teal-navy section panel with gold inner trim; small gold-red header plaque. NO TEXT.

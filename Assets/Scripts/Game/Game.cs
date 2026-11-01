@@ -6,22 +6,6 @@ using UnityEngine;
 
 namespace Liangshan
 {
-    /// <summary>玩家存档：垂直切片只存货币和引导进度。</summary>
-    public static class Profile
-    {
-        public static int Ingots => PlayerPrefs.GetInt("ingots", 0);
-        public static int Copper => PlayerPrefs.GetInt("copper", 0);
-        public static int Clears => PlayerPrefs.GetInt("clears", 0);
-
-        public static void AddRewards(int ingots, int copper)
-        {
-            PlayerPrefs.SetInt("ingots", Ingots + ingots);
-            PlayerPrefs.SetInt("copper", Copper + copper);
-            PlayerPrefs.SetInt("clears", Clears + 1);
-            PlayerPrefs.Save();
-        }
-    }
-
     /// <summary>
     /// 入口：空场景启动后自动挂上。负责镜头、主界面 ↔ 战斗切换。
     /// 命令行带 -shots &lt;目录&gt; 时进入自检模式：机器人自动打一局，在关键节点截图后退出。
@@ -29,7 +13,6 @@ namespace Liangshan
     public sealed class Game : MonoBehaviour
     {
         public static Game I { get; private set; }
-        public static readonly HeroId[] Lineup = { HeroId.HuaRong, HeroId.LingZhen, HeroId.GongSun, HeroId.WuSong };
 
         /// <summary>游戏自己的镜头。编辑器里打开的场景可能自带 Main Camera，不能用 Camera.main。</summary>
         public static Camera Cam { get; private set; }
@@ -40,6 +23,8 @@ namespace Liangshan
         HomeScreen _home;
         Vector2Int _screen;
         string _shots;
+        /// <summary>只截局外界面（调界面布局时用，几十秒跑完）。</summary>
+        bool _metaOnly;
         int _autoSkill = -1;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -80,8 +65,47 @@ namespace Liangshan
             WorldFx.Create(transform, _floatLayer, _cam.transform);
 
             ParseArgs();
+            Profile.Load();
+            Sfx.On = Profile.S.Sound == 1;
+            Sfx.Music = Profile.S.Music == 1;
             if (_shots != null) StartCoroutine(SelfCheck());
-            else ShowHome();
+            else if (Application.isBatchMode) ShowHome();
+            else
+            {
+                CloudSync.Imported += OnCloudImported;
+                var boot = BootCover();
+                CloudSync.Startup(() =>
+                {
+                    Destroy(boot.gameObject);
+                    ShowHome();
+                });
+            }
+        }
+
+        /// <summary>等云存档（最多几秒）时盖住画面：先拉云再进首页，免得本地改动和云端打架。</summary>
+        RectTransform BootCover()
+        {
+            var layer = Ui.Rect(Ui.Root, "boot");
+            layer.anchorMin = Vector2.zero;
+            layer.anchorMax = Vector2.one;
+            layer.offsetMin = layer.offsetMax = Vector2.zero;
+            var bg = Ui.Box(layer, new Vector2(1080, 1920), Vector2.zero, Color.white, Art.Img("home_bg"), "bg");
+            bg.type = UnityEngine.UI.Image.Type.Simple;
+            float scale = Mathf.Max(Ui.W / 1080f, Ui.Height / 1920f);
+            bg.rectTransform.sizeDelta = new Vector2(1080, 1920) * scale;
+            Ui.Fill(layer, new Color(0, 0, 0, 0.35f), true);
+            Ui.Label(layer, "读取存档…", 46, Color.white, new Vector2(0, -Ui.Height * 0.5f + 260), new Vector2(900, 90), TextAnchor.MiddleCenter, Fonts.Heavy);
+            return layer;
+        }
+
+        void OnDestroy() => CloudSync.Imported -= OnCloudImported;
+
+        /// <summary>局中被云端覆盖不打断，回首页时自然用新档。</summary>
+        void OnCloudImported()
+        {
+            Sfx.On = Profile.S.Sound == 1;
+            Sfx.Music = Profile.S.Music == 1;
+            if (_home) ShowHome(_home.Tab);
         }
 
         void ParseArgs()
@@ -91,10 +115,13 @@ namespace Liangshan
             {
                 if (args[i] == "-shots") _shots = args[i + 1];
             }
+            _metaOnly = Array.IndexOf(args, "-quickmeta") >= 0;
             if (_shots != null)
             {
                 Directory.CreateDirectory(_shots);
                 PlayerPrefs.DeleteAll();
+                Profile.Volatile = true;
+                Ads.Fast = true;
             }
         }
 
@@ -106,12 +133,17 @@ namespace Liangshan
                 if (l.gameObject != _cam.gameObject) l.enabled = false;
         }
 
+        /// <summary>界面根节点让出底部横条后，战场跟着抬：世界 y = -9.6 对齐到横条上沿，横条里照常画战场。</summary>
         void FitCamera()
         {
             _screen = new Vector2Int(Screen.width, Screen.height);
-            float aspect = Screen.height / Mathf.Max(1f, Screen.width);
-            _cam.orthographicSize = aspect > 16f / 9f ? 5.4f * aspect : 9.6f;
-            var p = new Vector3(0, -9.6f + _cam.orthographicSize, -10);
+            float lift = Ui.SafeBottomPixels;
+            float area = Mathf.Max(1f, Screen.height - lift);
+            float aspect = area / Mathf.Max(1f, Screen.width);
+            float half = aspect > 16f / 9f ? 5.4f * aspect : 9.6f;
+            float unitsPerPixel = 2f * half / area;
+            _cam.orthographicSize = Screen.height * unitsPerPixel * 0.5f;
+            var p = new Vector3(0, -9.6f - lift * unitsPerPixel + _cam.orthographicSize, -10);
             _cam.transform.localPosition = p;
             if (WorldFx.I) WorldFx.I.SetCamBase(p);
         }
@@ -122,8 +154,19 @@ namespace Liangshan
             {
                 FitCamera();
                 Ui.Fit();
+                // 首页按 SafeTop 排版，屏幕一变（微信启动头几帧常见）就整页重搭。
+                if (_home) ShowHome(_home.Tab);
+            }
+            if ((_tick -= Time.unscaledDeltaTime) <= 0)
+            {
+                _tick = 1f;
+                int st = Profile.S.Stamina, day = Profile.S.Day;
+                Profile.Tick();
+                if (st != Profile.S.Stamina || day != Profile.S.Day) Profile.Save();
             }
         }
+
+        float _tick;
 
         // ---------------- 流程 ----------------
 
@@ -137,30 +180,99 @@ namespace Liangshan
             Time.timeScale = 1f;
         }
 
-        public void ShowHome()
+        public HomeScreen Home => _home;
+
+        public void ShowHome(int tab = 2)
         {
             Clear();
-            _home = HomeScreen.Create();
+            _home = HomeScreen.Create(tab);
             Sfx.PlayMusic(Bgm.Menu);
         }
 
-        public void StartBattle()
+        public void StartLevel(int no) => Play(Defs.Level(Mathf.Min(no, Profile.S.Cleared + 1)));
+
+        public void StartDaily() => Play(Defs.DailyStage(Profile.S.Cleared, Profile.Today));
+
+        public void StartEscort() => Play(Defs.EscortStage(Profile.S.Cleared));
+
+        /// <summary>出征检查体力和次数；不够时弹补给窗或提示，返回 false。</summary>
+        public bool Play(LevelDef st)
+        {
+            var s = Profile.S;
+            bool auto = _autoSkill >= 0;
+            if (st.Mode == StageMode.Daily && s.DailyTries >= Meta.DailyTriesMax && !auto) { Ui.Toast("今日挑战次数已用完", 200); return false; }
+            if (st.Mode == StageMode.Escort && s.EscortTries >= Meta.EscortTriesMax && !auto) { Ui.Toast("今日截纲次数已用完", 200); return false; }
+            if (!auto && !Meta.Spend(s, Cur.Stamina, Meta.BattleStamina))
+            {
+                if (_home) MetaUi.StaminaShop(_home.Layer);
+                else
+                {
+                    Ui.Toast("体力不足", 200);
+                    ShowHome();
+                }
+                return false;
+            }
+            if (st.Mode == StageMode.Daily) s.DailyTries++;
+            if (st.Mode == StageMode.Escort) s.EscortTries++;
+            if (st.Mode == StageMode.Main) s.Selected = st.No;
+            Profile.Save();
+            Launch(st);
+            return true;
+        }
+
+        /// <summary>重开本关：已经扣过体力，不再扣。</summary>
+        public void Restart() => Launch(_stage);
+
+        LevelDef _stage;
+        int _seed;
+        bool _settled;
+        Rewards _last;
+
+        void Launch(LevelDef st)
         {
             Clear();
+            _stage = st;
+            _settled = false;
             var go = new GameObject("Battle");
             go.transform.SetParent(transform, false);
             _battle = go.AddComponent<BattleView>();
-            bool tutorial = _autoSkill < 0 && PlayerPrefs.GetInt("tutorial_done", 0) == 0;
-            int seed = _autoSkill >= 0 ? 20261031 + _autoSkill : Environment.TickCount;
-            _battle.Begin(seed, Lineup, tutorial);
+            bool tutorial = _autoSkill < 0 && Profile.S.TutorialDone == 0 && st.Mode == StageMode.Main && st.No == 1;
+            _seed = _autoSkill >= 0 ? 20261031 + _autoSkill : Environment.TickCount;
+            _battle.Begin(_seed, st, Meta.BuildLoadout(Profile.S), tutorial);
             if (_autoSkill >= 0)
             {
                 _battle.Auto = new Bot(_autoSkill);
                 _battle.Speed = 2f;
             }
-            else _battle.Speed = PlayerPrefs.GetInt("speed15", 0) == 1 ? 1.5f : 1f;
+            else _battle.Speed = Profile.S.Speed15 == 1 && PlayerPrefs.GetInt("speed15", 0) == 1 ? 1.5f : 1f;
             _floatLayer.SetAsFirstSibling();
-            Sfx.PlayMusic(Bgm.Battle);
+            Sfx.PlayMusic(st.Mode == StageMode.Main && st.IsChapterBoss ? Bgm.Boss : Bgm.Battle);
+        }
+
+        Rewards Compute(Battle b, bool win) =>
+            Meta.BattleRewards(Profile.S, b.Stage, win, b.Wave, b.WallMax > 0 ? b.Wall / b.WallMax : 0, b.PortersKilled, new Rng(_seed ^ 0x5A5A));
+
+        public Rewards Preview(Battle b, bool win) => Compute(b, win);
+
+        /// <summary>结算发奖：每局只发一次（失败后复活再赢，按赢算）。</summary>
+        public Rewards Settle(Battle b, bool win)
+        {
+            if (_settled) return _last;
+            _settled = true;
+            var s = Profile.S;
+            var r = Compute(b, win);
+            Meta.Give(s, r);
+            Meta.FinishMain(s, b.Stage, win, r);
+            Meta.MarkSeen(s, b.Seen);
+            Profile.Save();
+            _last = r;
+            return r;
+        }
+
+        public void GiveAgain(Rewards r)
+        {
+            foreach (var it in r.Items) Meta.Give(Profile.S, it);
+            Profile.Save();
         }
 
         // ---------------- 自检截图 ----------------
@@ -306,8 +418,147 @@ namespace Liangshan
             yield return WaitReal(0.3f);
         }
 
+        void CloseModals()
+        {
+            if (_home == null) return;
+            for (int i = _home.Layer.childCount - 1; i >= 0; i--) DestroyImmediate(_home.Layer.GetChild(i).gameObject);
+        }
+
+        /// <summary>截图在帧末才落盘：截完等一下再动界面，免得拍到下一步的半成品。</summary>
+        IEnumerator Snap(string name)
+        {
+            Shot(name);
+            yield return WaitReal(0.15f);
+        }
+
+        IEnumerator ModalShot(Action open, string name)
+        {
+            CloseModals();
+            open();
+            yield return WaitReal(0.9f);
+            yield return Snap(name);
+        }
+
+        /// <summary>局外各界面截图：先把存档推到“玩了一阵子”的样子。</summary>
+        IEnumerator MetaShots()
+        {
+            _autoSkill = -1;
+            var s = Meta.ExpectedSave(12);
+            s.Cleared = 11;
+            s.Selected = 12;
+            for (int i = 0; i < 11; i++) s.Stars[i] = i % 4 == 0 ? 2 : 3;
+            s.HeroLv[(int)HeroId.ZhangQing] = 3;
+            s.HeroLv[(int)HeroId.WuYong] = 2;
+            s.Shards[0] = 30;
+            s.Shards[2] = 5;
+            s.Tokens = 14;
+            s.Ingots = 860;
+            s.Copper = 26000;
+            s.Iron = 120;
+            s.Stamina = 37;
+            s.StaminaAt = Profile.Now - 100;
+            s.IdleAt = Profile.Now - 3 * 3600 - 1200;
+            s.Seen[(int)EnemyKind.Soldier] = 2;
+            s.Seen[(int)EnemyKind.Shield] = 1;
+            s.Seen[(int)EnemyKind.Cavalry] = 1;
+            s.Seen[(int)EnemyKind.Porter] = 2;
+            s.Seen[(int)EnemyKind.Hawk] = 1;
+            s.Task[0] = 3;
+            s.Task[1] = 2;
+            s.Task[4] = 1;
+            s.SignDays = 2;
+            s.SignDay = Profile.Today - 1;
+            s.Day = Profile.Today;
+            Profile.Use(s);
+            ShowHome(HomeScreen.TabBattle);
+            yield return WaitReal(1.5f);
+            yield return Snap("13_home_ch2");
+            yield return ModalShot(() => MetaUi.SignIn(_home.Layer), "14_sign");
+            yield return ModalShot(() => MetaUi.Tasks(_home.Layer), "15_tasks");
+            yield return ModalShot(() => MetaUi.Idle(_home.Layer), "16_idle");
+            yield return ModalShot(() => MetaUi.Codex(_home.Layer), "17_codex");
+            yield return ModalShot(() => MetaUi.Daily(_home.Layer), "18_daily");
+            yield return ModalShot(() => MetaUi.Escort(_home.Layer), "18b_escort");
+            yield return ModalShot(() => MetaUi.StaminaShop(_home.Layer), "18c_stamina");
+            yield return ModalShot(() => MetaUi.Chest(_home.Layer, 1, 2), "18d_chest");
+            CloseModals();
+            _home.SetTab(HomeScreen.TabHero);
+            yield return WaitReal(1.0f);
+            yield return Snap("19_heroes");
+            yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, HeroId.HuaRong), "20_hero_detail");
+            yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, HeroId.LinChong), "20b_hero_locked");
+            CloseModals();
+            _home.SetTab(HomeScreen.TabForge);
+            yield return WaitReal(1.0f);
+            yield return Snap("21_forge");
+            yield return ModalShot(() => MetaUi.ForgeSlot(_home.Layer, 0), "22_forge_slot");
+            CloseModals();
+            _home.SetTab(HomeScreen.TabFort);
+            yield return WaitReal(1.0f);
+            yield return Snap("23_fort");
+            _home.SetTab(HomeScreen.TabShop);
+            yield return WaitReal(1.0f);
+            yield return Snap("24_shop");
+            _home.DoRecruit(10, false);
+            yield return WaitReal(2.2f);
+            yield return Snap("24b_recruit10");
+            CloseModals();
+        }
+
+        /// <summary>后期关卡：按标准养成让机器人打一局，看新敌人、新首领和章节战场。</summary>
+        IEnumerator AutoBattle(int level, string prefix)
+        {
+            var s = Meta.ExpectedSave(level);
+            s.HeroLv[(int)HeroId.ZhangQing] = Mathf.Max(1, s.HeroLv[(int)HeroId.ZhangQing]);
+            s.Lineup = level >= 40 ? new[] { 2, 6, 5, 7 } : new[] { 0, 2, 4, 1 };
+            for (int h = 0; h < Defs.HeroCount; h++) if (Array.IndexOf(s.Lineup, h) >= 0) s.HeroLv[h] = Mathf.Max(s.HeroLv[h], s.HeroLv[0]);
+            Profile.Use(s);
+            _autoSkill = 2;
+            Play(Defs.Level(level));
+            _battle.Speed = 3f;
+            bool boss = false, elite = false;
+            float last = 0;
+            int n = 0;
+            while (true)
+            {
+                var b = _battle.B;
+                var hud = _battle.Hud;
+                if (!elite && hud.ModalKind == null)
+                    foreach (var e in b.Enemies)
+                        if (e.Def.Rank == EnemyRank.Elite && e.Pos.Y < 4f) { elite = true; Shot(prefix + "_elite"); break; }
+                if (!boss && b.Wave == b.Stage.BossWave && b.Time > (b.Stage.BossWave - 1) * Defs.WaveTime + 10f && hud.ModalKind == null) { boss = true; Shot(prefix + "_boss"); }
+                if (b.Time - last > 40f && hud.ModalKind == null)
+                {
+                    last = b.Time;
+                    Shot($"{prefix}_p{n++}");
+                }
+                if (b.Phase == Phase.Victory || b.Phase == Phase.Defeat)
+                {
+                    while (hud.ModalKind != "victory" && hud.ModalKind != "defeat") yield return null;
+                    yield return WaitReal(1.4f);
+                    Shot(prefix + "_" + (b.Phase == Phase.Victory ? "win" : "lose"));
+                    Debug.Log($"[自检] 第{level}关 {b.Phase}，墙 {b.Wall:0}/{b.WallMax:0}，用时 {b.Time:0}s");
+                    break;
+                }
+                yield return null;
+            }
+            _autoDone = false;
+            yield return WaitReal(0.3f);
+        }
+
         IEnumerator SelfCheck()
         {
+            if (_metaOnly)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                _autoSkill = 0;
+                Play(Defs.Level(1));
+                yield return WaitReal(2f);
+                yield return MetaShots();
+                Application.Quit(0);
+                yield break;
+            }
             Sfx.On = false;
             Sfx.Music = false;
             // 模拟编辑器场景里自带的 Main Camera，确认不会抢走画面。
@@ -321,14 +572,14 @@ namespace Liangshan
             yield return WaitReal(0.5f);
 
             // 新手引导截一张：真人模式开局。
-            StartBattle();
+            StartLevel(1);
             yield return WaitReal(2.5f);
             Shot("02_tutorial");
             yield return WaitReal(0.4f);
             yield return ManualPlay();
 
             _autoSkill = 2;
-            StartBattle();
+            Play(Defs.Level(1));
             bool cards = false, reels = false, boss = false, rage = false, mid = false, early = false, late = false, gate = false, walkBig = false;
             float lastPeriodic = 0;
             int periodic = 0;
@@ -396,7 +647,7 @@ namespace Liangshan
 
             // 失败结算：只会召唤的机器人。
             _autoSkill = 0;
-            StartBattle();
+            Play(Defs.Level(1));
             _battle.Speed = 3f;
             while (true)
             {
@@ -411,6 +662,9 @@ namespace Liangshan
                 yield return null;
             }
             yield return WaitReal(0.5f);
+            yield return MetaShots();
+            yield return AutoBattle(35, "25_L35");
+            yield return AutoBattle(50, "26_L50");
             Debug.Log("[自检] 完成");
             Application.Quit(0);
         }

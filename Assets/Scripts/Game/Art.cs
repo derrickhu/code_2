@@ -176,6 +176,35 @@ namespace Liangshan
             return s ? s : Rounded;
         });
 
+        /// <summary>界面皮肤 Art/ui/*：按 100 像素/单位重建并带九宫格边，图上 1 像素 = 1 设计像素。</summary>
+        public static Sprite Skin(string name) => Get("skin_" + name, () =>
+        {
+            var s = Img("ui/" + name);
+            return Sprite.Create(s.texture, s.rect, new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, SkinBorder(name));
+        });
+
+        /// <summary>左、下、右、上。横条类上下为 0，配合按高度缩放使用。</summary>
+        static Vector4 SkinBorder(string n)
+        {
+            if (n.StartsWith("btn_")) return new Vector4(40, 44, 40, 36);
+            if (n.StartsWith("bar_")) return new Vector4(30, 0, 30, 0);
+            if (n.StartsWith("card_")) return new Vector4(40, 90, 40, 40);
+            if (n.StartsWith("slot_")) return new Vector4(44, 44, 44, 44);
+            if (n.StartsWith("banner")) return new Vector4(120, 0, 120, 0);
+            switch (n)
+            {
+                case "panel": return new Vector4(96, 96, 96, 96);
+                case "dark": return new Vector4(40, 40, 40, 40);
+                case "tab_on": return new Vector4(40, 40, 40, 40);
+                case "tabbar": return new Vector4(40, 20, 40, 30);
+                case "row": return new Vector4(24, 20, 24, 20);
+                case "pill": return new Vector4(30, 0, 30, 0);
+                case "plate": return new Vector4(50, 0, 50, 0);
+                case "plaque": return new Vector4(50, 0, 50, 0);
+                default: return Vector4.zero;
+            }
+        }
+
         static Sprite Get(string key, System.Func<Sprite> make)
         {
             if (!Cache.TryGetValue(key, out var s) || s == null) Cache[key] = s = make();

@@ -10,7 +10,7 @@ namespace Liangshan.EditorTools
     {
         const string ScenePath = "Assets/Scenes/Main.scene";
 
-        [MenuItem("守住梁山/初始化场景")]
+        [MenuItem("宋江别慌张/初始化场景")]
         public static void EnsureScene()
         {
             if (!File.Exists(ScenePath))
@@ -23,7 +23,7 @@ namespace Liangshan.EditorTools
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         }
 
-        [MenuItem("守住梁山/打包 Mac 演示版")]
+        [MenuItem("宋江别慌张/打包 Mac 演示版")]
         public static void BuildMac()
         {
             EnsureScene();
