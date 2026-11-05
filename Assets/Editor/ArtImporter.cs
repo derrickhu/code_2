@@ -2,14 +2,17 @@ using UnityEditor;
 
 namespace Liangshan.EditorTools
 {
-    /// <summary>Resources/Art 下的图一律按 Sprite 导入：不缩放到 2 的幂，1 个世界单位 = 图片长边。</summary>
+    /// <summary>
+    /// Resources/Art（首包）和 ArtCdn（按需图包）下的图一律按 Sprite 导入：
+    /// 不缩放到 2 的幂，1 个世界单位 = 图片长边。
+    /// </summary>
     public sealed class ArtImporter : AssetPostprocessor
     {
-        public override uint GetVersion() => 2;
+        public override uint GetVersion() => 6;
 
         void OnPreprocessTexture()
         {
-            if (!assetPath.Contains("/Resources/Art/")) return;
+            if (!assetPath.Contains("/Resources/Art/") && !assetPath.StartsWith(ArtPacks.Src + "/")) return;
             var ti = (TextureImporter)assetImporter;
             ti.textureType = TextureImporterType.Sprite;
             ti.spriteImportMode = SpriteImportMode.Single;
@@ -25,36 +28,21 @@ namespace Liangshan.EditorTools
             ti.SetTextureSettings(s);
             ti.GetSourceTextureWidthAndHeight(out int w, out int h);
             if (w > 0) ti.spritePixelsPerUnit = System.Math.Max(w, h);
-            ti.SetPlatformTextureSettings(MiniGame(w, h, assetPath.Contains("/Resources/Art/ui/")));
+            ti.SetPlatformTextureSettings(MiniGame());
         }
 
         /// <summary>
-        /// 不压缩时整套图 200MB，微信总包上限 30MB，手机内存也撑不住。
-        /// 整屏背景用 8x8（画面平滑看不出块），角色小图用 6x6 并限到 512。
-        /// 界面皮肤按原尺寸、4x4：九宫格边按图片像素算，缩图会让边框错位。
+        /// 微信：全部 ASTC 4x4（每像素 8 bit，ASTC 里最清楚的一档）、按原尺寸、编码器最高质量。
+        /// 不为包体或显存降分辨率、加大块：大图走 CDN 图包按需加载，一局只装这一局要用的角色。
         /// </summary>
-        static TextureImporterPlatformSettings MiniGame(int w, int h, bool skin)
+        static TextureImporterPlatformSettings MiniGame() => new TextureImporterPlatformSettings
         {
-            if (skin)
-                return new TextureImporterPlatformSettings
-                {
-                    name = "WeixinMiniGame",
-                    overridden = true,
-                    maxTextureSize = 1024,
-                    format = TextureImporterFormat.ASTC_4x4,
-                    textureCompression = TextureImporterCompression.Compressed,
-                    compressionQuality = 50,
-                };
-            bool backdrop = (long)w * h >= 1000L * 1000L;
-            return new TextureImporterPlatformSettings
-            {
-                name = "WeixinMiniGame",
-                overridden = true,
-                maxTextureSize = backdrop ? 2048 : 512,
-                format = backdrop ? TextureImporterFormat.ASTC_8x8 : TextureImporterFormat.ASTC_6x6,
-                textureCompression = TextureImporterCompression.Compressed,
-                compressionQuality = 50,
-            };
-        }
+            name = "WeixinMiniGame",
+            overridden = true,
+            maxTextureSize = 2048,
+            format = TextureImporterFormat.ASTC_4x4,
+            textureCompression = TextureImporterCompression.CompressedHQ,
+            compressionQuality = 100,
+        };
     }
 }

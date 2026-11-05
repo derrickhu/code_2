@@ -5,8 +5,8 @@ namespace Liangshan
 {
     public static class Pal
     {
-        public static readonly Color Ink = Hex("2B1D14");
-        public static readonly Color Edge = Hex("3A2416");
+        public static readonly Color Ink = Hex("4A2E1A");
+        public static readonly Color Edge = Hex("5A3820");
         public static readonly Color Cream = Hex("FFF6E2");
         public static readonly Color Parchment = Hex("F3E6C8");
         public static readonly Color ParchmentDeep = Hex("E2CFA6");
@@ -21,14 +21,28 @@ namespace Liangshan
         public static readonly Color TealDeep = Hex("1F7E6C");
         public static readonly Color Blue = Hex("4C8EE8");
         public static readonly Color Purple = Hex("9C5BE0");
-        public static readonly Color Slate = Hex("2F3A48");
-        public static readonly Color SlateDeep = Hex("1C242E");
-        /// <summary>局外亮色界面的描边色：蓝底、亮背景上的白字都压这个。</summary>
-        public static readonly Color Navy = Hex("1D3F66");
+        /// <summary>禁用按钮等暖灰。饱和度要低于 0.35，Ui.BtnSkin 才会选灰色皮肤。</summary>
+        public static readonly Color Slate = Hex("7A6E66");
+        public static readonly Color SlateDeep = Hex("4A3A30");
+        /// <summary>局外亮色界面的描边色：亮背景、彩色底上的白字都压这个暖可可色。</summary>
+        public static readonly Color Navy = Hex("7A4A2A");
         public static readonly Color Shadow = new Color(0.08f, 0.05f, 0.03f, 0.35f);
 
         /// <summary>星级色：一星白、二星绿、三星蓝紫、满星金。</summary>
         public static readonly Color[] Star = { Hex("F4F1EA"), Hex("7BE36A"), Hex("8FA8FF"), Hex("FFD24A") };
+        /// <summary>多层血条：每掉一层换一种颜色，背后露出下一层的颜色。</summary>
+        public static readonly Color[] HpLayer = { Hex("E8412F"), Hex("F08A2A"), Hex("F2C431"), Hex("7BC74A"), Hex("3FA9E0"), Hex("9A6BE0") };
+
+        /// <summary>多层血条：(剩余层数, 当前层比例, 当前层颜色, 下一层颜色)。最后一层背后是暗底。</summary>
+        public static (int layer, float frac, Color cur, Color next) Layers(float hp, float max, int n)
+        {
+            float per = max / n;
+            int layer = Mathf.Clamp(Mathf.CeilToInt(hp / per - 1e-4f), 1, n);
+            float frac = Mathf.Clamp01((hp - (layer - 1) * per) / per);
+            var cur = HpLayer[(layer - 1) % HpLayer.Length];
+            var next = layer > 1 ? HpLayer[(layer - 2) % HpLayer.Length] : Hex("3A1F1A");
+            return (layer, frac, cur, next);
+        }
 
         public static Color Hex(string h)
         {
@@ -79,14 +93,49 @@ namespace Liangshan
         public static Sprite Coin => Img("ic_silver");
         public static Sprite Hole => Get("hole", HoleTex);
         public static Sprite RangeDisc => Get("range", RangeTex);
+        /// <summary>同上一种暖黄填充，只要朝上的半圆。轴心在直径中点，缩放 1 时半径 1。</summary>
+        public static Sprite RangeFan => Get("rangefan", RangeFanTex);
 
         public static Sprite Sparkle => Get("sparkle", SparkleTex);
+        /// <summary>剑气：上拱的月牙，外沿锐利、往里渐隐，两头收尖。宽:高 = 4:1。</summary>
+        public static Sprite Crescent => Get("crescent", CrescentTex);
+        /// <summary>法术射线：横向长条，中间一道白热芯、两侧柔光，两头略收。宽:高 = 4:1。</summary>
+        public static Sprite Beam => Get("beam", BeamTex);
+
+        static Sprite BeamTex()
+        {
+            const int w = 256, h = 64;
+            var t = NewTex(w, h);
+            var px = new Color[w * h];
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    float u = (x + 0.5f) / w, v = Mathf.Abs((y + 0.5f) / h * 2 - 1);
+                    float ends = Mathf.Clamp01(u / 0.06f) * Mathf.Clamp01((1 - u) / 0.04f);
+                    float glow = Mathf.Exp(-v * v * 5f);
+                    float core = Mathf.Exp(-v * v * 60f);
+                    float a = Mathf.Clamp01(glow * 0.75f + core) * ends;
+                    px[y * w + x] = new Color(1, 1, Mathf.Lerp(0.85f, 1f, core), a);
+                }
+            t.SetPixels(px);
+            return Make(t);
+        }
 
         static readonly Dictionary<string, Sprite[]> _frames = new Dictionary<string, Sprite[]>();
 
-        /// <summary>角色动画帧 name_0..3（同一方形画布，脚底贴底边）。没有帧图时退回单张立绘。</summary>
+        /// <summary>
+        /// 角色动画帧 name_0..3（同一方形画布，脚底贴底边）。没有帧图时退回单张立绘。
+        /// 帧在图包里：包还没装上时先给立绘并开始下载，装上后再取就是帧。
+        /// </summary>
         public static Sprite[] Frames(string name)
         {
+            if (ArtPack.Has(name))
+            {
+                var c = ArtPack.Clip(name, name);
+                if (c != null && c.Length > 0) return c;
+                if (c == null) ArtPack.Ensure(name);
+                return new[] { Img(name) };
+            }
             if (_frames.TryGetValue(name, out var f)) return f;
             var list = new List<Sprite>();
             for (int i = 0; i < AnimMeta.Frames; i++)
@@ -98,18 +147,56 @@ namespace Liangshan
             return _frames[name] = list.ToArray();
         }
 
+        /// <summary>一段循环帧 name_动作_0..N（画布与 name_0 相同）。没有就返回空数组。</summary>
+        public static Sprite[] Clip(string name, string act)
+        {
+            string key = name + "_" + act;
+            if (ArtPack.Has(name))
+            {
+                var c = ArtPack.Clip(name, key);
+                if (c == null) ArtPack.Ensure(name);
+                return c ?? new Sprite[0];
+            }
+            if (_frames.TryGetValue(key, out var f)) return f;
+            var list = new List<Sprite>();
+            for (int i = 0; i < 16; i++)
+            {
+                var s = Resources.Load<Sprite>("Art/" + key + "_" + i);
+                if (s == null) break;
+                list.Add(s);
+            }
+            return _frames[key] = list.ToArray();
+        }
+
+        /// <summary>走路循环帧。一个循环 = 左右各迈一步。</summary>
+        public static Sprite[] WalkFrames(string name) => Clip(name, "walk");
+
+        /// <summary>飞行循环帧。一个循环 = 扇翅一次。</summary>
+        public static Sprite[] FlyFrames(string name) => Clip(name, "fly");
+
         /// <summary>
         /// 把“身体高度”换算成帧画布的世界边长，以及画布中心相对脚底的高度。
         /// 没有帧图时画布就是立绘本身（身体占满、脚底在底边）。
         /// </summary>
         public static (float Size, float CenterY) FrameBox(string name, float bodyHeight)
         {
-            if (Frames(name).Length > 1 && AnimMeta.Info.TryGetValue(name, out var m))
+            if (Animated(name) && AnimMeta.Info.TryGetValue(name, out var m))
             {
                 float s = bodyHeight / m.Body;
                 return (s, s * (0.5f - m.Foot));
             }
             return (bodyHeight, bodyHeight * 0.5f);
+        }
+
+        /// <summary>有帧画布（不管图包装没装上）。排版按这个算，帧晚到也不跳位置。</summary>
+        public static bool Animated(string name) =>
+            AnimMeta.Info.ContainsKey(name) && (ArtPack.Has(name) || Frames(name).Length > 1);
+
+        /// <summary>图包装上后执行一次 apply（已装上就当场执行）；owner 先被销毁就不执行。</summary>
+        public static void Late(Object owner, string pack, System.Action apply)
+        {
+            if (ArtPack.Ready(pack)) { apply(); return; }
+            ArtPack.Ensure(pack, () => { if (owner) apply(); });
         }
 
         /// <summary>四角星闪：出手、命中的白色星光。</summary>
@@ -131,6 +218,28 @@ namespace Liangshan
             return Make(t);
         }
 
+        static Sprite CrescentTex()
+        {
+            const int w = 512, h = 128;
+            var t = NewTex(w, h);
+            var px = new Color[w * h];
+            const float cy = -9.6f, r = 10.4f;
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    float u = (x + 0.5f) / w * 2 - 1, v = (y + 0.5f) / h;
+                    float d = Mathf.Sqrt(u * 4f * u * 4f + (v - cy) * (v - cy));
+                    float e = d - r;
+                    float th = 0.05f + 0.28f * (1 - u * u);
+                    float a = e > 0 ? Mathf.Clamp01(1 - e / 0.03f) : Mathf.Exp(e / th);
+                    a *= Mathf.Sqrt(Mathf.Clamp01(1 - Mathf.Abs(u)));
+                    float hot = e > 0 ? 1 : Mathf.Exp(e / (th * 0.25f));
+                    px[y * w + x] = new Color(1, 1, Mathf.Lerp(0.75f, 1f, hot), Mathf.Clamp01(a));
+                }
+            t.SetPixels(px);
+            return Make(t);
+        }
+
         /// <summary>攻击范围填充：均匀暖黄，靠边一圈内发光；描边由 LineRenderer 画，保证任意尺寸都清晰。</summary>
         static Sprite RangeTex()
         {
@@ -138,18 +247,41 @@ namespace Liangshan
             var t = NewTex(n, n);
             var px = new Color[n * n];
             float r = n * 0.5f;
-            var warm = new Color(1f, 0.78f, 0.32f);
             for (int y = 0; y < n; y++)
                 for (int x = 0; x < n; x++)
                 {
                     float dx = x + 0.5f - r, dy = y + 0.5f - r;
-                    float d = Mathf.Sqrt(dx * dx + dy * dy) / r;
-                    float edge = Mathf.Clamp01((d - 0.9f) / 0.1f);
-                    float a = d > 1f ? 0 : 0.3f + 0.2f * edge * edge;
-                    px[y * n + x] = new Color(warm.r, warm.g, warm.b, a * Mathf.Clamp01((1f - d) * r));
+                    px[y * n + x] = RangeFill(Mathf.Sqrt(dx * dx + dy * dy) / r, r);
                 }
             t.SetPixels(px);
             return Make(t);
+        }
+
+        static Color RangeFill(float d, float radiusPx)
+        {
+            if (d >= 1f) return Color.clear;
+            var warm = new Color(1f, 0.78f, 0.32f);
+            float edge = Mathf.Clamp01((d - 0.9f) / 0.1f);
+            float a = (0.3f + 0.2f * edge * edge) * Mathf.Clamp01((1f - d) * radiusPx);
+            return new Color(warm.r, warm.g, warm.b, a);
+        }
+
+        /// <summary>和 RangeDisc 同一套填充，裁成朝上的半圆。</summary>
+        static Sprite RangeFanTex()
+        {
+            const int w = 512, h = 256;
+            var t = NewTex(w, h);
+            var px = new Color[w * h];
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    float dx = (x + 0.5f) / w * 2f - 1f;
+                    float dy = (y + 0.5f) / h;
+                    px[y * w + x] = RangeFill(Mathf.Sqrt(dx * dx + dy * dy), h);
+                }
+            t.SetPixels(px);
+            t.Apply(false, true);
+            return Sprite.Create(t, new Rect(0, 0, w, h), new Vector2(0.5f, 0f), h, 0, SpriteMeshType.FullRect);
         }
 
         /// <summary>引导聚光：中间透明圆洞，边缘柔和过渡到全黑。四角之外由调用方补黑块。</summary>
@@ -170,12 +302,32 @@ namespace Liangshan
             return Make(t);
         }
 
-        /// <summary>长边 = 1 个世界单位。</summary>
-        public static Sprite Img(string name) => Get("img_" + name, () =>
+        /// <summary>长边 = 1 个世界单位。图包里的图不进缓存，卸包后才能真正释放。</summary>
+        public static Sprite Img(string name)
         {
-            var s = Resources.Load<Sprite>("Art/" + name);
-            if (s == null) Debug.LogError("缺图 Art/" + name);
-            return s ? s : Rounded;
+            var p = ArtPack.Find(name);
+            if (p) return p;
+            if (Cache.TryGetValue("img_" + name, out var s) && s) return s;
+            s = Resources.Load<Sprite>("Art/" + name);
+            if (s == null)
+            {
+                if (ArtPack.Owns(name))
+                {
+                    ArtPack.Ensure(ArtPack.PackOf(name));
+                    return Clear;
+                }
+                Debug.LogError("缺图 Art/" + name);
+                s = Rounded;
+            }
+            return Cache["img_" + name] = s;
+        }
+
+        /// <summary>全透明占位：图包还没到时的背景。</summary>
+        public static Sprite Clear => Get("clear", () =>
+        {
+            var t = NewTex(4, 4);
+            t.SetPixels32(new Color32[16]);
+            return Make(t);
         });
 
         /// <summary>界面皮肤 Art/ui/*：按 100 像素/单位重建并带九宫格边，图上 1 像素 = 1 设计像素。</summary>
@@ -192,18 +344,25 @@ namespace Liangshan
             if (n.StartsWith("bar_")) return new Vector4(30, 0, 30, 0);
             if (n.StartsWith("card_")) return new Vector4(40, 90, 40, 40);
             if (n.StartsWith("slot_")) return new Vector4(44, 44, 44, 44);
+            if (n == "banner") return new Vector4(262, 0, 262, 0);
             if (n.StartsWith("banner")) return new Vector4(120, 0, 120, 0);
             switch (n)
             {
-                case "panel": return new Vector4(96, 96, 96, 96);
-                case "dark": return new Vector4(40, 40, 40, 40);
+                case "panel": return new Vector4(142, 142, 142, 142);
+                case "dark": return new Vector4(30, 30, 30, 30);
                 case "tab_on": return new Vector4(40, 40, 40, 40);
                 case "tabbar": return new Vector4(40, 20, 40, 30);
-                case "row": return new Vector4(24, 24, 24, 24);
+                case "row": return new Vector4(42, 42, 42, 42);
                 case "pill": return new Vector4(30, 0, 30, 0);
                 case "plate": return new Vector4(50, 0, 50, 0);
-                case "plaque": return new Vector4(50, 0, 50, 0);
+                case "plaque": return new Vector4(176, 0, 176, 0);
                 case "flame_bar": return new Vector4(60, 60, 230, 130);
+                case "h_start": return new Vector4(80, 70, 80, 60);
+                case "h_tabbar": return new Vector4(30, 14, 30, 44);
+                case "h_tile": return new Vector4(60, 60, 60, 60);
+                case "h_capsule": return new Vector4(58, 0, 58, 0);
+                case "h_plaque": return new Vector4(54, 0, 54, 0);
+                case "h_ribbon": return new Vector4(96, 0, 96, 0);
                 default: return Vector4.zero;
             }
         }

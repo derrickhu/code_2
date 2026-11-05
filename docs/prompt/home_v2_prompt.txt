@@ -1,0 +1,28 @@
+首页美术 v2「水浒国潮卡通」
+生图：Cursor GenerateImage。原图：game_assets/code_2/assets/raw/home_v2/，切图/抠图/成品：split|nobg|final/home_v2/。
+风格锚点：home_concept_v1.jpg（整页效果图），后面每张都把它或上一张图当参考图传进去。
+
+== 共同风格 ==
+chunky cute 3D-cartoon, thick dark-brown outline, saturated vermilion red lacquer, rich polished gold, jade teal accents, warm cream, glossy bevel highlights, soft top-left light. NOT dull brown, NOT gloomy, NOT navy-gray. NO TEXT anywhere.
+
+== 1. home_concept_v1（9:16，参考：参考视频截图 + 旧首页截图）==
+Premium mobile game HOME SCREEN UI mockup for a Water Margin chibi tower-defense game. Same content as our current screen (boss at top of a road, level watermark, four chibi heroes on a fortress wall, three chests, START with arrows, five bottom tabs), clearly more premium and brighter than the reference game. Bright Liangshan fortress road, red gate with golden roof, reed marsh and blue water, peach-blossom trees. Gold-framed avatar, cream resource capsules with green plus, round gold-rim mini buttons, red-lacquer gold-rim side tiles, purple ribbon under boss, jade pedestals under heroes, glossy orange-gold START with carved gold rim, carved dark-red lacquer tab bar with raised gold medallion for the active tab; tab icons: market stall, hero bust with Chinese red-tassel helmet (NOT Roman), crossed swords + war banner, golden throne, fortress gate tower.
+
+== 2. home_bg_v2 → Art/home_road.jpg（9:16）==
+Background only, no UI/characters/wall. Red-pillared gate with golden roof at top center, wide pale stone road straight down the center, plain center for watermark, lake water + reeds + rocks + peach trees + small red flags on both sides, calmer edges, plain bottom 25%.
+
+== 3. home_tab_icons（4:3，3x2，白底）==
+shop stall / hero bust with red-tassel Chinese helmet / crossed swords over red war banner / golden throne / red fortress gate tower / red gift box with jade tag
+→ tab_shop, tab_hero, tab_battle, tab_forge, tab_fort, tab_gift
+
+== 4. home_side_icons（1:1，3x3，白底，参考 3）==
+gold medal jade star / cart with treasure chest + ingots / green mountain with red flag + coins / scroll with green check + red seal / open red book with monster silhouettes / meat stew bowl + drumstick + wine jar / treasure map with red dotted path / gold gear jade center / gold lightning + red straw broom
+→ ic_medal, ic_cart, tab_idle, tab_task, tab_codex, ic_feast, ic_map, ic_gear, ic_sweep
+
+== 5. home_ui_kit（1:1，3x3，浅灰底，全部空心）==
+red-lacquer gold-rim square tile with cloud corners / gold ring red round button / gold round arrow button (生成朝右，入库时水平翻转成朝左) / raised gold-rim arch tab badge / jade 3/4-view pedestal / gold avatar frame teal inner / cream capsule red outline / purple ribbon with folded tails / dark red-brown plaque gold rim
+→ ui/h_tile, h_round, h_arrow, h_tab_on, h_pedestal, h_avatar, h_capsule, h_ribbon, h_plaque
+
+== 6. home_wide_kit（16:9，浅灰底）==
+empty glossy orange-gold START button with carved gold rim and cloud corners / long dark vermilion lacquer tab-bar plank with gold top trim, stretchable middle
+→ ui/h_start, ui/h_tabbar（这两张面积大，rembg 会抠坏，改用四边泛洪去灰底）

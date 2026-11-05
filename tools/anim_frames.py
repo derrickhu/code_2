@@ -27,9 +27,14 @@ SMALL = [
 ]
 for _k in SMALL:
     TARGETS[_k] = "hero_" + _k
-BIG = {"en_boss", "en_luan", "en_shiwen", "en_huyan", "en_gaoqiu"}
+for _k in ("diver", "farmer", "hound", "rattan", "taoist", "berserker", "catapult", "lantern", "scout", "brute",
+           "hetao", "zhucf", "zengkui", "hantao", "liuml"):
+    TARGETS[_k] = "en_" + _k
+BIG = {"en_boss", "en_luan", "en_shiwen", "en_huyan", "en_gaoqiu", "en_hetao", "en_zhucf", "en_zengkui", "en_hantao", "en_liuml"}
 FRAMES = 4
 ART = os.path.join(os.path.dirname(__file__), "..", "Assets", "Resources", "Art")
+# 逐帧图走 CDN 图包（ArtPack），立绘留在首包 ART。
+CDN_ART = os.path.join(os.path.dirname(__file__), "..", "Assets", "ArtCdn")
 META = os.path.join(os.path.dirname(__file__), "..", "Assets", "Scripts", "Game", "AnimMeta.cs")
 
 
@@ -135,7 +140,7 @@ def main(src_dir):
             img = Image.fromarray(canvas)
             target = 768 if name in BIG else 384 if key in SMALL else 512
             img = img.resize((target, target), Image.LANCZOS)
-            img.save(os.path.join(ART, f"{name}_{i}.png"))
+            img.save(os.path.join(CDN_ART, f"{name}_{i}.png"))
             frames.append(img)
         frames[0].crop(frames[0].getbbox()).save(os.path.join(ART, f"{name}.png"))
         leg_cx, leg_top = legs(np.asarray(frames[0])[..., 3], down / side, body_h / side)
@@ -173,7 +178,20 @@ def main(src_dir):
         meta = old + meta
     for name, body, foot, leg_cx, leg_top in meta:
         lines.append(f'            ["{name}"] = ({body:.4f}f, {foot:.4f}f, {leg_cx:.4f}f, {leg_top:.4f}f),')
-    lines += ["        };", "", f"        public const int Frames = {FRAMES};", "    }", "}", ""]
+    lines += [
+        "        };",
+        "",
+        f"        public const int Frames = {FRAMES};",
+        "",
+        "        /// <summary>走路序列帧的基准帧率，和展示台 code_2 的 fps 相同。实际播放按移动速度对步；比它慢的（首领、精英）取对步帧率和它的几何平均。</summary>",
+        "        public const float WalkFps = 6f;",
+        "",
+        "        /// <summary>再快 8 张图就糊了。当前最快的火药兵按步幅大约 20 帧/秒，上限留在这之上。</summary>",
+        "        public const float WalkFpsMax = 24f;",
+        "    }",
+        "}",
+        "",
+    ]
     with open(META, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 

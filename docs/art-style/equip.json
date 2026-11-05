@@ -1,0 +1,21 @@
+{
+ "benchmarks": [
+  "eq_helmet",
+  "eq_armor",
+  "eq_weapon"
+ ],
+ "prompt": "Ancient Chinese equipment item: {subject}, single game icon, glossy cartoon mobile game style, bold dark brown outline, soft cel shading with a bright highlight from the top left, saturated warm colors with gold accents, slight 3/4 view, centered, plain pure white background, no shadow, NO TEXT. Steel grey metal, brown leather, red tassels and gold trim. Fills about 75% of the square.",
+ "spec": {
+  "canvas": "256×256",
+  "transparent": true,
+  "notes": "古代中国款式，不要西式盔甲"
+ },
+ "palette": [
+  "#231d1c",
+  "#524f50",
+  "#6b2316",
+  "#997d59",
+  "#83572d",
+  "#ceba93"
+ ]
+}

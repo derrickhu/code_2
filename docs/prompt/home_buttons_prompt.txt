@@ -1,0 +1,3 @@
+Home buttons for a casual Chinese cartoon mobile game. Use the reference frame only for the button's craft: a chunky gold plaque with a dark bronze rim, a soft top inner highlight, and a heavier bottom lip. Match the warm yellow of a polished game button, not a plastic jelly shine. NO TEXT, no letters, no numbers, no icons, no logos.
+
+Button: one wide rounded-rectangle plaque, centered, lots of transparent padding. The face is a flat even buttery yellow so game text can sit on it. Detail stays in the rim: thick gold bevel, darker outer edge, thin lighter line along the inner top, soft shadow along the inner bottom. No gloss streak across the middle. Isolated on a plain solid magenta background for cutout.

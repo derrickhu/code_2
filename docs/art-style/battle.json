@@ -1,0 +1,21 @@
+{
+ "benchmarks": [
+  "battle_bg",
+  "battle_bg_ch2",
+  "battle_bg_ch3"
+ ],
+ "prompt": "Vertical top-down cartoon battlefield for a tower defense mobile game, chapter theme: {subject}. A wide stone-paved arena down the middle, a fortress gate wall across the top, themed scenery only along the left and right edges, muted mid-tone colors so the units stand out, soft lighting, NO TEXT.",
+ "spec": {
+  "canvas": "1080×1920",
+  "transparent": false,
+  "notes": "中间留空给兵走；每章换季节、时间和两侧景物，色调压一档"
+ },
+ "palette": [
+  "#392e1e",
+  "#ad8b65",
+  "#ceab80",
+  "#8f6b42",
+  "#774829",
+  "#c79866"
+ ]
+}

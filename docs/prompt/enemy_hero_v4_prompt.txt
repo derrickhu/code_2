@@ -1,0 +1,39 @@
+敌人 / 首领 / 好汉 v4（GenerateImage + GenerateVideo）
+原图：game_assets/code_2/assets/raw/enemy_v4/anim_*.jpg、raw/hero_v4/anim_*.jpg
+切帧：python3 code_2/tools/anim_frames.py <raw 目录>（1x4 横条 -> <name>_0..3.png）
+走路：game_art_pipeline/pipeline/walk_batch.py prep/extract；车、船、轿子等非人走路的，用最新一版视频重抽：
+  python3 pipeline/video_cycle.py <walk_vN.mp4> out <name> --match Art/<name>_0.png --frames 8 --region full --period 24
+
+【参考图】
+只放新画风图 raw/anim_kongliang.jpg、raw/anim_maling.jpg。
+重画旧好汉时不要放旧图，放了模型会照抄旧的写实画风；人物特征全部用文字写。
+
+【通用（4 帧待机横条）】
+A 1x4 horizontal sprite strip of the SAME character in 4 idle animation frames (subtle breathing, weapon and cloth sway), in the SAME art style as the reference images: anime chibi about 3 heads tall, clean dark outline, soft cel shading, a few big clean color shapes, no tiny details. The character faces down-left toward the viewer, full body, evenly spaced, same size and ground line in every frame, plain pure white background, NO TEXT.
+
+【首领：外形要和小兵拉开，靠坐骑、载具、体型区分】
+何涛（第 1 章中段）: officer riding a paddle-wheel war boat
+黄安（第 1 章章末）: general standing on a wheeled war-drum chariot, beating the drum
+祝朝奉（第 2 章中段）: rich old lord sitting in a palanquin carried by four bearers
+栾廷玉（第 2 章章末）: bald muscular giant holding a meteor hammer on a chain
+曾魁（第 3 章中段）: warrior riding a big tiger
+史文恭（第 3 章章末）: gold-armored giant general with long pheasant feathers on the helmet, holding a crescent halberd
+韩滔（第 4 章中段）: single general pushing an iron-headed battering ram cart, no other people
+呼延灼（第 4 章章末）: black-armored general riding a black war horse, an iron whip in each hand
+刘梦龙（第 5 章中段）: tall wooden siege tower on wheels with an archer on top
+
+【新小兵】
+水鬼: bare-chested water ghost diver with a short knife, dripping wet
+庄客: farmer in a straw hat carrying a rake
+恶犬: fierce brown guard dog with a spiked collar
+藤牌手: soldier with a big round rattan shield in front and a short sabre
+妖道: evil taoist priest in a purple robe with a horsetail whisk
+敢死刀手: bare-armed berserker with a red headband and twin broad sabres
+投石车: soldiers pushing a wooden catapult cart loaded with a stone
+孔明灯: floating paper sky lantern with a small fire bomb hanging below (flying, no walk frames)
+斥候: hooded masked black-clad scout with a dagger, long scarf
+力士: huge fat strongman carrying a big bamboo basket with tiny soldiers peeking out
+
+【走路视频】
+提示词模板见 walk_batch.py 的 PROMPT，人物描述和动作补充见同文件 WHO。
+韩滔这类单人载具要写 "single general, no other people"，不写的话视频会自己加小兵。

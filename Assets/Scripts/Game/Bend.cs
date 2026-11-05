@@ -63,7 +63,7 @@ namespace Liangshan
         /// <summary>该角色图在画布里的脚底、身体、两腿分界和胯高；没有逐帧图的按整张图算。</summary>
         public static Info Meta(string art)
         {
-            if (Art.Frames(art).Length > 1 && AnimMeta.Info.TryGetValue(art, out var m)) return new Info(m.Foot, m.Body, m.LegCx, m.LegTop);
+            if (Art.Animated(art) && AnimMeta.Info.TryGetValue(art, out var m)) return new Info(m.Foot, m.Body, m.LegCx, m.LegTop);
             return new Info(0f, 1f, 0.5f, 0.22f);
         }
     }

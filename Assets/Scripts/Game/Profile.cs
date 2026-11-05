@@ -95,8 +95,10 @@ namespace Liangshan
         /// <summary>自检时缩短播放时间。</summary>
         public static bool Fast;
 
-        public static void Show(Action done)
+        public static void Show(string scene, Action done)
         {
+            Analytics.AdRequest(scene);
+            Analytics.AdShow(scene);
             var layer = Ui.Rect(Ui.Root, "ad");
             layer.anchorMin = Vector2.zero;
             layer.anchorMax = Vector2.one;
@@ -108,10 +110,11 @@ namespace Liangshan
             float dur = Fast ? 0.5f : 2f;
             Tween.Run(layer, dur, k => t.text = $"（演示）激励视频播放中…\n{Mathf.CeilToInt(dur * (1 - k))}", () =>
             {
+                Analytics.AdClose(scene, true);
                 UnityEngine.Object.Destroy(layer.gameObject);
                 if (Profile.S != null)
                 {
-                    Meta.Progress(Profile.S, 4);
+                    Meta.Progress(Profile.S, Act.Ad);
                     Profile.Save();
                 }
                 done?.Invoke();

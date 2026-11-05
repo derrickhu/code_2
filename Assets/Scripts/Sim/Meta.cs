@@ -9,11 +9,21 @@ namespace Liangshan.Sim
         public HeroId[] Lineup;
         /// <summary>寨主攻击力：所有好汉伤害 = 攻击力 × 好汉系数。</summary>
         public float Atk = Meta.BaseAtk, Crit = Meta.BaseCrit, CritDmg = Meta.BaseCritDmg;
-        public float[] HeroDmg, HeroSpeed, HeroUltCd, UltPow;
-        public bool[] Ult, Passive;
+        /// <summary>好汉等级带来的：伤害、攻速、技能冷却倍率、技能伤害倍率。</summary>
+        public float[] HeroDmg, HeroSpeed, SkillCd, SkillPow;
+        public bool[] Passive;
+        /// <summary>好汉等级：决定局内卡池里有没有这位好汉的「爆发」「最强」选项。</summary>
+        public int[] Lv;
         /// <summary>按职业的伤害加成（装备突破）。</summary>
         public float[] RoleDmg;
         public float AllSpeed = 1, WallMul = 1, WallResist, UltCd = 1;
+        /// <summary>寨主技能：伤害倍率（× 攻击力）、冷却秒数、上阵好汉平均等级带来的威力倍率。</summary>
+        public float LordPct = Defs.LordPctBase, LordCd = Defs.LordCdBase, LordMul = 1;
+        /// <summary>天书下卷：剑气连斩次数、命中眩晕秒数、对精英首领倍率。</summary>
+        public int LordHits = 1;
+        public float LordStun, LordBig = 1;
+        /// <summary>杏黄旗词条：全军伤害、对精英、对首领倍率；旗技震慑秒数（0 为未打造）。</summary>
+        public float DmgMul = 1, EliteDmg = 1, BossDmg = 1, FlagStun;
         public int StartCoins;
         public readonly List<string> StartPerks = new List<string>();
 
@@ -23,15 +33,12 @@ namespace Liangshan.Sim
             int n = Defs.HeroCount;
             lo.HeroDmg = new float[n];
             lo.HeroSpeed = new float[n];
-            lo.HeroUltCd = new float[n];
-            lo.UltPow = new float[n];
-            lo.Ult = new bool[n];
+            lo.SkillCd = new float[n];
+            lo.SkillPow = new float[n];
             lo.Passive = new bool[n];
+            lo.Lv = new int[n];
             for (int i = 0; i < n; i++)
-            {
-                lo.HeroDmg[i] = lo.HeroSpeed[i] = lo.HeroUltCd[i] = lo.UltPow[i] = 1f;
-                lo.Ult[i] = true;
-            }
+                lo.HeroDmg[i] = lo.HeroSpeed[i] = lo.SkillCd[i] = lo.SkillPow[i] = 1f;
             lo.RoleDmg = new float[Defs.RoleCount];
             for (int i = 0; i < lo.RoleDmg.Length; i++) lo.RoleDmg[i] = 1f;
             return lo;
@@ -67,9 +74,35 @@ namespace Liangshan.Sim
         public long IdleAt;
         public int Speed15, TutorialDone, Wins, Battles;
         public int Sound = 1, Music = 1;
+        /// <summary>每关三个宝箱（通关 / 半血通关 / 满血通关）的领取位。</summary>
+        public int[] LevelChest = new int[0];
+        public int Pages, Tomes, Silk, Meteor, GearBoxes;
+        /// <summary>天书上卷等级、下卷已参悟的节点数。</summary>
+        public int PageLv, TomeNodes;
+        /// <summary>杏黄旗：等级、五条词条（kind*4+品质+1，0 为未开）、锁定位。</summary>
+        public int FlagLv, FlagLock;
+        public int[] FlagAffix = new int[0];
+        /// <summary>六件装备的品质 0 普通 … 3 传说。</summary>
+        public int[] EquipQ = new int[0];
+        /// <summary>今日已领的聚义宴（按时段的位）。</summary>
+        public int Meals;
+        /// <summary>开档那天的日期序号 + 1（0 为老存档还没记）。七日目标、招募冲刺都从这天算。</summary>
+        public int Born;
+        /// <summary>各项行为的累计次数（按 Act），七日目标用。</summary>
+        public int[] Life = new int[0];
+        /// <summary>今日已开的活跃宝箱位。</summary>
+        public int ActBox;
+        /// <summary>七日目标：已领的目标位、已开的积分宝箱位。</summary>
+        public long SevenGot;
+        public int SevenBox;
+        /// <summary>招募冲刺：当前轮次 + 1、本轮各项行为次数、已领的档位和任务位。</summary>
+        public int SprintRound, SprintTier, SprintTask;
+        public int[] SprintAct = new int[0];
+        /// <summary>上次领每日福利的日期序号 + 1。</summary>
+        public int WelfareDay;
     }
 
-    public enum Cur { Ingot, Copper, Iron, Token, Stamina, Shard }
+    public enum Cur { Ingot, Copper, Iron, Token, Stamina, Shard, Page, Tome, Silk, Meteor, GearBox, AnyShard }
 
     public struct Item
     {
@@ -85,6 +118,9 @@ namespace Liangshan.Sim
         public HeroId? Unlock;
         public int Stars;
         public bool First;
+        /// <summary>关卡宝箱改在主界面另开，结算不再往这里塞东西。</summary>
+        public int ChestBits;
+        public readonly List<Item> ChestItems = new List<Item>();
 
         public void Add(Cur c, int n, HeroId h = HeroId.HuaRong)
         {
@@ -118,14 +154,18 @@ namespace Liangshan.Sim
         public Role Role;
     }
 
+    /// <summary>任务计数的行为。前 6 个的顺序和老存档的每日任务进度一致，别插队。</summary>
+    public enum Act { Battle, Win, HeroUp, Forge, Ad, Recruit, Stamina, Sweep, Login, Talent }
+
     public sealed class TaskDef
     {
         public string Name;
-        public int Need;
+        public Act Kind;
+        public int Need, Points;
         public Item Reward;
     }
 
-    public static class Meta
+    public static partial class Meta
     {
         public const int MaxHeroLv = 30;
         public const int StaminaMax = 60;
@@ -175,7 +215,12 @@ namespace Liangshan.Sim
             s.EquipLv = Fit(s.EquipLv, Equips.Length);
             s.Seen = Fit(s.Seen, Defs.Enemies.Length);
             s.ChestClaimed = Fit(s.ChestClaimed, Defs.Chapters.Length);
-            s.Task = Fit(s.Task, Tasks.Length);
+            s.Task = Fit(s.Task, ActCount);
+            s.Life = Fit(s.Life, ActCount);
+            s.SprintAct = Fit(s.SprintAct, ActCount);
+            s.LevelChest = Fit(s.LevelChest, Defs.LevelCount);
+            s.FlagAffix = Fit(s.FlagAffix, FlagSlotsMax);
+            s.EquipQ = Fit(s.EquipQ, Equips.Length);
             if (s.Lineup == null || s.Lineup.Length != 4) s.Lineup = StarterLineup();
             if (s.Presets == null || s.Presets.Length != PresetCount * 4)
             {
@@ -189,11 +234,15 @@ namespace Liangshan.Sim
 
         public static void RollDay(SaveData s, int day)
         {
+            if (s.Born == 0) s.Born = day + 1;
+            RollSprint(s, day);
             if (s.Day == day) return;
             s.Day = day;
             for (int i = 0; i < s.Task.Length; i++) s.Task[i] = 0;
             s.TaskClaimed = 0;
-            s.AdIngots = s.AdStamina = s.AdRecruit = s.AdIdle = s.DailyTries = s.EscortTries = s.ShopStamina = 0;
+            s.ActBox = 0;
+            s.AdIngots = s.AdStamina = s.AdRecruit = s.AdIdle = s.DailyTries = s.EscortTries = s.ShopStamina = s.Meals = 0;
+            Progress(s, Act.Login);
         }
 
         public static void RegenStamina(SaveData s, long now)
@@ -207,7 +256,23 @@ namespace Liangshan.Sim
 
         public static int StaminaWait(SaveData s, long now) => s.Stamina >= StaminaMax ? 0 : (int)(StaminaSec - (now - s.StaminaAt) % StaminaSec);
 
-        public static int Have(SaveData s, Cur c) => c == Cur.Ingot ? s.Ingots : c == Cur.Copper ? s.Copper : c == Cur.Iron ? s.Iron : c == Cur.Token ? s.Tokens : c == Cur.Stamina ? s.Stamina : 0;
+        public static int Have(SaveData s, Cur c)
+        {
+            switch (c)
+            {
+                case Cur.Ingot: return s.Ingots;
+                case Cur.Copper: return s.Copper;
+                case Cur.Iron: return s.Iron;
+                case Cur.Token: return s.Tokens;
+                case Cur.Stamina: return s.Stamina;
+                case Cur.Page: return s.Pages;
+                case Cur.Tome: return s.Tomes;
+                case Cur.Silk: return s.Silk;
+                case Cur.Meteor: return s.Meteor;
+                case Cur.GearBox: return s.GearBoxes;
+                default: return 0;
+            }
+        }
 
         public static void Give(SaveData s, Item it)
         {
@@ -219,6 +284,12 @@ namespace Liangshan.Sim
                 case Cur.Token: s.Tokens += it.N; break;
                 case Cur.Stamina: s.Stamina += it.N; break;
                 case Cur.Shard: s.Shards[(int)it.Hero] += it.N; break;
+                case Cur.Page: s.Pages += it.N; break;
+                case Cur.Tome: s.Tomes += it.N; break;
+                case Cur.Silk: s.Silk += it.N; break;
+                case Cur.Meteor: s.Meteor += it.N; break;
+                case Cur.GearBox: s.GearBoxes += it.N; break;
+                case Cur.AnyShard: s.Shards[s.Lineup[(s.Battles + s.Pulls + it.N) % s.Lineup.Length]] += it.N; break;
             }
         }
 
@@ -232,6 +303,7 @@ namespace Liangshan.Sim
         {
             if (Have(s, c) < n) return false;
             Give(s, new Item(c, -n));
+            if (c == Cur.Stamina) Progress(s, Act.Stamina, n);
             return true;
         }
 
@@ -294,7 +366,7 @@ namespace Liangshan.Sim
             s.Shards[(int)h] -= ShardCost(lv);
             s.Copper -= CopperCost(lv);
             s.HeroLv[(int)h] = lv + 1;
-            Progress(s, 2);
+            Progress(s, Act.HeroUp);
             return true;
         }
 
@@ -314,36 +386,48 @@ namespace Liangshan.Sim
         public static string FirstPerk(HeroId h)
         {
             foreach (var p in Defs.Perks)
-                if (p.Hero == h && !p.Star) return p.Id;
+                if (p.Hero == h && !p.Star && !p.Ult) return p.Id;
             return null;
         }
 
-        /// <summary>好汉等级解锁表：1 级普攻和大招，之后每 5 级一档。</summary>
+        /// <summary>
+        /// 好汉等级解锁表（参考视频的火焰法师）：1 级技能（传说另有大招），5 级局内卡池多一张「爆发」，10 级被动，
+        /// 15 级「爆发」必定暴击，20 级卡池再多一张「最强」，25、30 级数值。
+        /// </summary>
         public static readonly int[] UnlockLv = { 1, 5, 10, 15, 20, 25, 30 };
+        public const int SurgeLv = 5, PassiveLv = 10, SurgePlusLv = 15, TopLv = 20;
+
+        public static PerkDef OptPerk(HeroId h, int opt)
+        {
+            foreach (var p in Defs.Perks) if (p.Hero == h && p.Opt == opt) return p;
+            return null;
+        }
 
         public static string Talent(HeroId h, int i)
         {
             var d = Defs.Hero(h);
             switch (i)
             {
-                case 0: return $"解锁普攻「{d.AtkName}」与大招「{d.UltName}」";
-                case 1: return $"解锁被动「{d.PassiveName}」";
-                case 2: return "普攻伤害 +20%";
-                case 3: return "大招冷却 -15%";
-                case 4: return $"开局自带强化「{Defs.Perk(FirstPerk(h)).Name}」";
-                case 5: return "大招威力 +50%";
+                case 0: return d.HasUlt ? $"解锁技能「{d.AtkName}」与大招「{d.UltName}」（局内抽到大招卡释放）" : $"解锁技能「{d.AtkName}」";
+                case 1: return $"解锁「{OptPerk(h, 1).Name}」选项（局内强化可抽到）";
+                case 2: return $"获得被动「{d.PassiveName}」，伤害 +20%";
+                case 3: return d.Buff.HasValue ? $"「{OptPerk(h, 1).Name}」效果翻倍，技能冷却 -10%" : $"「{OptPerk(h, 1).Name}」必定暴击、几率 +10%，技能冷却 -10%";
+                case 4: return $"解锁「{OptPerk(h, 2).Name}」选项（局内强化可抽到）";
+                case 5: return d.Buff.HasValue ? "技能效果 +15%" : "技能伤害 +15%";
                 default: return "攻击速度 +20%";
             }
         }
 
         public static int HeroPower(SaveData s, HeroId h) => HeroPowerAt(h, s.HeroLv[(int)h]);
 
+        /// <summary>战力里的单位输出：辅助按固定值折算，带光环的再加一点。</summary>
+        static float PowerDps(HeroDef d) => (d.Buff.HasValue ? 0.6f : d.Dps) + (d.Aura == AuraKind.None ? 0 : 0.3f);
+
         public static int HeroPowerAt(HeroId h, int lv)
         {
             var d = Defs.Hero(h);
             lv = Math.Max(1, lv);
-            float aura = d.Aura == AuraKind.None ? 0 : 0.6f;
-            return (int)((d.Coef + aura) * BaseAtk / d.Interval * HeroDmg(lv) * (lv >= 30 ? 1.2f : 1f) * (lv >= 5 ? 1.08f : 1f) * 10);
+            return (int)(PowerDps(d) * BaseAtk * HeroDmg(lv) * (lv >= 30 ? 1.2f : 1f) * (lv >= PassiveLv ? 1.08f : 1f) * (lv >= SurgeLv ? 1.06f : 1f) * (lv >= TopLv ? 1.06f : 1f) * 10);
         }
 
         public static int TeamPower(SaveData s)
@@ -353,11 +437,12 @@ namespace Liangshan.Sim
             foreach (var h in lo.Lineup)
             {
                 var d = Defs.Hero(h);
-                float aura = d.Aura == AuraKind.None ? 0 : 0.6f;
-                p += (d.Coef + aura) / d.Interval * lo.HeroDmg[(int)h] * lo.HeroSpeed[(int)h] * lo.RoleDmg[(int)d.Kind];
+                p += PowerDps(d) * lo.HeroDmg[(int)h] * lo.HeroSpeed[(int)h] * lo.RoleDmg[(int)d.Kind];
             }
             float crit = 1f + lo.Crit * (lo.CritDmg - 1f);
-            return (int)(p * lo.Atk * lo.AllSpeed * crit * 10 + lo.WallMul * 300 / (1f - lo.WallResist));
+            float extra = lo.DmgMul * (1f + (lo.EliteDmg - 1f) * 0.25f + (lo.BossDmg - 1f) * 0.25f);
+            float lord = (lo.LordHits - 1) * 0.04f + (lo.LordStun > 0 ? 0.03f : 0) + (lo.LordBig - 1f) * 0.05f + (lo.FlagStun > 0 ? 0.03f : 0);
+            return (int)(p * lo.Atk * lo.AllSpeed * crit * 10 * extra * (1f + lord) + lo.WallMul * 300 / (1f - lo.WallResist));
         }
 
         // ---------------- 寨主天赋 ----------------
@@ -381,23 +466,34 @@ namespace Liangshan.Sim
 
         public static string TalentText(int i)
         {
+            if (i % 10 == 0) return $"攻击力 +{TalentAtk(i)}，{Defs.LordSkillName}伤害 +{LordPctStep * 100:0}%";
             var k = TalentKind(i);
             float v = TalentValue(k);
             string sub = k == TalentStat.Coins ? $"{TalentStatName(k)} +{v:0}" : $"{TalentStatName(k)} +{v * 100:0.#}%";
             return $"攻击力 +{TalentAtk(i)}，{sub}";
         }
 
-        /// <summary>前 n 个节点的总加成。</summary>
+        /// <summary>前 n 个节点的总加成。逢 10 的节点副属性换成寨主技能伤害。</summary>
         public static void TalentSum(int n, out float atk, out float crit, out float critDmg, out float wall, out float coins, out float speed)
         {
             atk = n + n / 10 * 5;
             int Count(int r) => n / 5 + (r != 0 && n % 5 >= r ? 1 : 0);
-            critDmg = Count(0) * TalentValue(TalentStat.CritDmg);
+            critDmg = (Count(0) - n / 10) * TalentValue(TalentStat.CritDmg);
             crit = Count(1) * TalentValue(TalentStat.Crit);
             wall = Count(2) * TalentValue(TalentStat.Wall);
             coins = Count(3) * TalentValue(TalentStat.Coins);
             speed = Count(4) * TalentValue(TalentStat.Speed);
         }
+
+        // ---------------- 寨主技能 ----------------
+
+        public const float LordPctStep = 0.5f;
+
+        /// <summary>寨主技能伤害倍率（× 攻击力）：基础 200%，天赋每 10 个节点 +50%。</summary>
+        public static float LordPct(int talent) => Defs.LordPctBase + LordPctStep * (talent / 10);
+
+        /// <summary>寨主技能冷却：基础 40 秒，号角的大招冷却同样生效。</summary>
+        public static float LordCd(float ultCdMul) => Defs.LordCdBase * ultCdMul;
 
         public static bool CanTalent(SaveData s) => s.Talent < TalentCap(s) && s.Copper >= TalentCost(s.Talent + 1);
 
@@ -406,6 +502,7 @@ namespace Liangshan.Sim
             if (!CanTalent(s)) return false;
             s.Copper -= TalentCost(s.Talent + 1);
             s.Talent++;
+            Progress(s, Act.Talent);
             return true;
         }
 
@@ -430,18 +527,18 @@ namespace Liangshan.Sim
         public static int EquipCopper(int lv) => 150 + lv * 80 + lv * lv * 10;
 
         /// <summary>每 10 级一次突破，突破后每级加成提高一成。</summary>
-        public static float EquipValue(int slot, int lv)
+        public static float EquipValue(int slot, int lv, int quality = 0)
         {
             var d = Equips[slot];
             float v = 0;
             for (int i = 1; i <= lv; i++) v += d.Per * (1f + 0.1f * ((i - 1) / 10));
-            return Math.Min(d.Cap, v);
+            return Math.Min(d.Cap, v * (1f + QualityBonus[Math.Max(0, Math.Min(3, quality))]));
         }
 
-        public static string EquipText(int slot, int lv)
+        public static string EquipText(int slot, int lv, int quality = 0)
         {
             var d = Equips[slot];
-            float v = EquipValue(slot, lv);
+            float v = EquipValue(slot, lv, quality);
             string sign = slot == 2 || slot == 5 ? "-" : "+";
             return d.Pct ? $"{d.Stat} {sign}{v * 100:0.#}%" : $"{d.Stat} +{v:0}";
         }
@@ -465,7 +562,7 @@ namespace Liangshan.Sim
             s.Iron -= IronCost(lv);
             s.Copper -= EquipCopper(lv);
             s.EquipLv[slot] = lv + 1;
-            Progress(s, 3);
+            Progress(s, Act.Forge);
             return true;
         }
 
@@ -477,29 +574,41 @@ namespace Liangshan.Sim
                 int lv = Math.Max(1, s.HeroLv[h]);
                 lo.HeroDmg[h] = HeroDmg(lv);
                 lo.HeroSpeed[h] = lv >= 30 ? 1.2f : 1f;
-                lo.HeroUltCd[h] = lv >= 15 ? 0.85f : 1f;
-                lo.UltPow[h] = lv >= 25 ? 1.5f : 1f;
-                lo.Passive[h] = lv >= 5;
+                lo.SkillCd[h] = lv >= 15 ? 0.9f : 1f;
+                lo.SkillPow[h] = lv >= 25 ? 1.15f : 1f;
+                lo.Passive[h] = lv >= PassiveLv;
+                lo.Lv[h] = lv;
             }
             TalentSum(s.Talent, out var tAtk, out var tCrit, out var tCritDmg, out var tWall, out var tCoins, out var tSpeed);
-            lo.Atk = BaseAtk + tAtk + EquipValue(0, s.EquipLv[0]);
-            lo.Crit = BaseCrit + tCrit + EquipValue(4, s.EquipLv[4]);
+            float Eq(int i) => EquipValue(i, s.EquipLv[i], s.EquipQ[i]);
+            lo.Atk = BaseAtk + tAtk + Eq(0);
+            lo.Crit = BaseCrit + tCrit + Eq(4);
             lo.CritDmg = BaseCritDmg + tCritDmg + LevelCritDmg(s);
-            lo.WallMul = 1f + EquipValue(1, s.EquipLv[1]) + tWall;
-            lo.WallResist = EquipValue(2, s.EquipLv[2]);
-            lo.AllSpeed = 1f + EquipValue(3, s.EquipLv[3]) + tSpeed;
+            lo.WallMul = 1f + Eq(1) + tWall;
+            lo.WallResist = Eq(2);
+            lo.AllSpeed = 1f + Eq(3) + tSpeed;
             lo.StartCoins = (int)tCoins;
-            lo.UltCd = 1f - EquipValue(5, s.EquipLv[5]);
+            lo.UltCd = 1f - Eq(5);
+            lo.LordPct = LordPct(s.Talent);
+            lo.LordCd = LordCd(lo.UltCd);
+            float sumLv = 0;
+            foreach (var h in lo.Lineup) sumLv += lo.HeroDmg[(int)h] * lo.HeroSpeed[(int)h] * lo.RoleDmg[(int)Defs.Hero(h).Kind];
+            lo.LordMul = sumLv / lo.Lineup.Length * lo.AllSpeed;
             for (int i = 0; i < Equips.Length; i++)
                 lo.RoleDmg[(int)Equips[i].Role] += Breaks(s.EquipLv[i]) * BreakDmg;
-            foreach (var h in lo.Lineup)
-                if (s.HeroLv[(int)h] >= 20) lo.StartPerks.Add(FirstPerk(h));
+            ApplyExtras(s, lo);
             return lo;
         }
 
         // ---------------- 关卡 ----------------
 
-        public static int StarsFor(float wallPct) => wallPct >= 0.7f ? 3 : wallPct >= 0.35f ? 2 : 1;
+        /// <summary>星级和关卡三宝箱同一套条件：通关 1 星，半血 2 星，满血 3 星。</summary>
+        public static int StarsFor(float wallPct)
+        {
+            int n = 0;
+            for (int k = 0; k < LevelChestWall.Length; k++) if (wallPct >= LevelChestWall[k]) n++;
+            return Math.Max(1, n);
+        }
 
         /// <summary>首通送好汉：第一章先补齐稀有的控制、辅助，之后一章两位史诗，第三章往后才有传说。</summary>
         static readonly (int lv, HeroId h)[] Unlocks =
@@ -564,10 +673,10 @@ namespace Liangshan.Sim
         public static void FinishMain(SaveData s, LevelDef st, bool win, Rewards r)
         {
             s.Battles++;
-            Progress(s, 0);
+            Progress(s, Act.Battle);
             if (!win) return;
             s.Wins++;
-            Progress(s, 1);
+            Progress(s, Act.Win);
             if (st.Mode != StageMode.Main) return;
             int i = st.No - 1;
             s.Stars[i] = Math.Max(s.Stars[i], r.Stars);
@@ -663,31 +772,57 @@ namespace Liangshan.Sim
                     s.RecruitLv++;
                 }
             }
-            Progress(s, 5, n);
+            Progress(s, Act.Recruit, n);
             return res;
         }
 
         // ---------------- 每日任务、签到、巡山 ----------------
 
+        /// <summary>
+        /// 出征、体力分好几档：玩得越多领得越多。每条另给活跃度，攒够开活跃宝箱。
+        /// </summary>
         public static readonly TaskDef[] Tasks =
         {
-            new TaskDef { Name = "出征 3 次", Need = 3, Reward = new Item(Cur.Ingot, 50) },
-            new TaskDef { Name = "获胜 2 次", Need = 2, Reward = new Item(Cur.Token, 2) },
-            new TaskDef { Name = "升级好汉 1 次", Need = 1, Reward = new Item(Cur.Copper, 1500) },
-            new TaskDef { Name = "强化装备 2 次", Need = 2, Reward = new Item(Cur.Iron, 15) },
-            new TaskDef { Name = "观看广告 3 次", Need = 3, Reward = new Item(Cur.Ingot, 80) },
-            new TaskDef { Name = "擂鼓招募 3 次", Need = 3, Reward = new Item(Cur.Token, 1) },
+            new TaskDef { Name = "登录游戏", Kind = Act.Login, Need = 1, Points = 10, Reward = new Item(Cur.Copper, 1000) },
+            new TaskDef { Name = "出征 3 次", Kind = Act.Battle, Need = 3, Points = 10, Reward = new Item(Cur.Ingot, 30) },
+            new TaskDef { Name = "出征 6 次", Kind = Act.Battle, Need = 6, Points = 10, Reward = new Item(Cur.Token, 1) },
+            new TaskDef { Name = "出征 10 次", Kind = Act.Battle, Need = 10, Points = 15, Reward = new Item(Cur.Token, 1) },
+            new TaskDef { Name = "获胜 3 次", Kind = Act.Win, Need = 3, Points = 10, Reward = new Item(Cur.Iron, 15) },
+            new TaskDef { Name = "消耗体力 30 点", Kind = Act.Stamina, Need = 30, Points = 10, Reward = new Item(Cur.Stamina, 15) },
+            new TaskDef { Name = "消耗体力 60 点", Kind = Act.Stamina, Need = 60, Points = 15, Reward = new Item(Cur.Token, 1) },
+            new TaskDef { Name = "升级好汉 1 次", Kind = Act.HeroUp, Need = 1, Points = 5, Reward = new Item(Cur.Copper, 1500) },
+            new TaskDef { Name = "强化装备 2 次", Kind = Act.Forge, Need = 2, Points = 5, Reward = new Item(Cur.Iron, 15) },
+            new TaskDef { Name = "擂鼓招募 3 次", Kind = Act.Recruit, Need = 3, Points = 10, Reward = new Item(Cur.Ingot, 50) },
+            new TaskDef { Name = "观看广告 2 次", Kind = Act.Ad, Need = 2, Points = 10, Reward = new Item(Cur.Ingot, 60) },
         };
 
-        public static readonly Item[] TaskBonus = { new Item(Cur.Ingot, 120), new Item(Cur.Token, 2) };
+        public static readonly int[] ActBoxNeed = { 20, 40, 60, 80, 100 };
 
-        public static void Progress(SaveData s, int task, int n = 1)
+        public static Item[] ActBoxReward(int k)
         {
-            if (s.Task == null || task >= s.Task.Length) return;
-            s.Task[task] = Math.Min(Tasks[task].Need, s.Task[task] + n);
+            switch (k)
+            {
+                case 0: return new[] { new Item(Cur.Copper, 2000), new Item(Cur.Iron, 10) };
+                case 1: return new[] { new Item(Cur.Token, 1), new Item(Cur.Ingot, 30) };
+                case 2: return new[] { new Item(Cur.Token, 2), new Item(Cur.Ingot, 50) };
+                case 3: return new[] { new Item(Cur.AnyShard, 10), new Item(Cur.Silk, 200) };
+                default: return new[] { new Item(Cur.Token, 2), new Item(Cur.Stamina, 30), new Item(Cur.GearBox, 1) };
+            }
         }
 
-        public static bool TaskDone(SaveData s, int i) => s.Task[i] >= Tasks[i].Need;
+        public static readonly int ActCount = Enum.GetValues(typeof(Act)).Length;
+
+        public static void Progress(SaveData s, Act a, int n = 1)
+        {
+            int i = (int)a;
+            if (s.Task == null || i >= s.Task.Length) return;
+            s.Task[i] += n;
+            if (i < s.Life.Length) s.Life[i] += n;
+            if (i < s.SprintAct.Length) s.SprintAct[i] += n;
+        }
+
+        public static int TaskCount(SaveData s, int i) => Math.Min(Tasks[i].Need, s.Task[(int)Tasks[i].Kind]);
+        public static bool TaskDone(SaveData s, int i) => s.Task[(int)Tasks[i].Kind] >= Tasks[i].Need;
         public static bool TaskTaken(SaveData s, int i) => (s.TaskClaimed & (1 << i)) != 0;
 
         public static bool ClaimTask(SaveData s, int i)
@@ -698,27 +833,30 @@ namespace Liangshan.Sim
             return true;
         }
 
-        public static bool AllTasksTaken(SaveData s)
+        /// <summary>今日活跃度：已领任务的积分之和。</summary>
+        public static int ActPoints(SaveData s)
         {
-            for (int i = 0; i < Tasks.Length; i++) if (!TaskTaken(s, i)) return false;
-            return true;
+            int n = 0;
+            for (int i = 0; i < Tasks.Length; i++) if (TaskTaken(s, i)) n += Tasks[i].Points;
+            return n;
         }
 
-        public const int BonusBit = 1 << 20;
+        public static bool CanActBox(SaveData s, int k) => (s.ActBox & (1 << k)) == 0 && ActPoints(s) >= ActBoxNeed[k];
 
-        public static bool ClaimBonus(SaveData s)
+        public static Item[] OpenActBox(SaveData s, int k)
         {
-            if (!AllTasksTaken(s) || (s.TaskClaimed & BonusBit) != 0) return false;
-            s.TaskClaimed |= BonusBit;
-            foreach (var it in TaskBonus) Give(s, it);
-            return true;
+            if (!CanActBox(s, k)) return null;
+            s.ActBox |= 1 << k;
+            var r = ActBoxReward(k);
+            foreach (var it in r) Give(s, it);
+            return r;
         }
 
         public static int TaskBadge(SaveData s)
         {
             int n = 0;
             for (int i = 0; i < Tasks.Length; i++) if (TaskDone(s, i) && !TaskTaken(s, i)) n++;
-            if (AllTasksTaken(s) && (s.TaskClaimed & BonusBit) == 0) n++;
+            for (int k = 0; k < ActBoxNeed.Length; k++) if (CanActBox(s, k)) n++;
             return n;
         }
 
@@ -754,6 +892,7 @@ namespace Liangshan.Sim
             var r = new Rewards();
             r.Add(Cur.Copper, (int)(IdleCopperPerHour(s) * hours));
             r.Add(Cur.Iron, (int)(IdleIronPerHour(s) * hours));
+            r.Add(Cur.Silk, (int)(IdleSilkPerHour(s) * hours));
             r.Add(Cur.Token, (int)(hours / 4));
             return r;
         }
@@ -813,6 +952,7 @@ namespace Liangshan.Sim
             new ShopDef { Name = "一袋铜钱", Icon = "ic_coins", Get = new Item(Cur.Copper, 3000 + 300 * s.Cleared), Price = 100 },
             new ShopDef { Name = "一箱精铁", Icon = "ic_iron", Get = new Item(Cur.Iron, 30 + s.Cleared), Price = 120 },
             new ShopDef { Name = "酒坛体力", Icon = "ic_wine", Get = new Item(Cur.Stamina, 60), Price = 80 },
+            new ShopDef { Name = "一匹锦缎", Icon = "ic_silk", Get = new Item(Cur.Silk, 400 + 20 * s.Cleared), Price = 100 },
         };
 
         // ---------------- 数值参考 ----------------
@@ -863,8 +1003,8 @@ namespace Liangshan.Sim
             return lo.Atk / BaseAtk * lo.HeroDmg[(int)h] * lo.HeroSpeed[(int)h] * lo.AllSpeed * lo.RoleDmg[(int)d.Kind] * crit / PlainCrit;
         }
 
-        /// <summary>被动、大招冷却、开局强化、大招威力这几档解锁的大致收益。</summary>
-        public static float UnlockFactor(int lv) => (lv >= 5 ? 1.08f : 1f) * (lv >= 15 ? 1.05f : 1f) * (lv >= 20 ? 1.06f : 1f) * (lv >= 25 ? 1.1f : 1f);
+        /// <summary>被动、技能冷却、开局强化、技能伤害这几档解锁的大致收益。</summary>
+        public static float UnlockFactor(int lv) => (lv >= 5 ? 1.08f : 1f) * (lv >= 15 ? 1.11f : 1f) * (lv >= 20 ? 1.06f : 1f) * (lv >= 25 ? 1.15f : 1f);
 
         /// <summary>ExpectedSave(n) 的单个好汉输出倍率，不依赖关卡表，关卡表初始化时可以调。和 PowerOf(BuildLoadout(ExpectedSave(n))) 保持一致。</summary>
         public static float ExpectedPower(int n)

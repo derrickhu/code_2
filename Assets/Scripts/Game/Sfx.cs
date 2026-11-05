@@ -11,6 +11,8 @@ namespace Liangshan
         Summon, Merge, Bow, ArrowHit, Bomb, Thunder, Fist, WallHit, Kill, Wave,
         UltArrow, UltBomb, UltThunder, UltFist,
         Tab, Open, Close, LevelUp, Unlock, Talent, Forge, Reward, Reveal, Flip, Drum, Swap, Tick,
+        Dart, Staff, Dao, Sword, Whip, SpearHit, Hammer, Axe, Lasso, Water, Whirl, Poison, Magic, Heal, Horse,
+        Crit, UltWind, UltWater,
     }
 
     public enum Bgm { None, Menu, Battle, Boss, Victory, Defeat }
@@ -77,6 +79,24 @@ namespace Liangshan
             Load(Snd.UltBomb, "ult_cannon", Snd.Warn);
             Load(Snd.UltThunder, "ult_thunder", Snd.Warn);
             Load(Snd.UltFist, "ult_smash", Snd.Warn);
+            Load(Snd.Dart, "dart", Snd.Bow);
+            Load(Snd.Staff, "staff", Snd.Fist);
+            Load(Snd.Dao, "dao", Snd.ArrowHit);
+            Load(Snd.Sword, "sword", Snd.Bow);
+            Load(Snd.Whip, "whip", Snd.Bow);
+            Load(Snd.SpearHit, "spear", Snd.ArrowHit);
+            Load(Snd.Hammer, "hammer", Snd.WallHit);
+            Load(Snd.Axe, "axe", Snd.Fist);
+            Load(Snd.Lasso, "lasso", Snd.ArrowHit);
+            Load(Snd.Water, "water", Snd.Kill);
+            Load(Snd.Whirl, "ult_whirl", Snd.Kill);
+            Load(Snd.Poison, "poison", Snd.Kill);
+            Load(Snd.Magic, "ult_magic", Snd.SlotAdd);
+            Load(Snd.Heal, "ult_heal", Snd.SlotAdd);
+            Load(Snd.Horse, "horse", Snd.Tap);
+            Load(Snd.Crit, "crit", Snd.ArrowHit);
+            Load(Snd.UltWind, "ult_wind", Snd.Wave);
+            Load(Snd.UltWater, "ult_water", Snd.Wave);
 
             Load(Snd.Tap, "ui_tap", Snd.Tap);
             Load(Snd.Deny, "ui_deny", Snd.Deny);
@@ -105,7 +125,10 @@ namespace Liangshan
         public static void Play(Snd s, float vol = 1f, float pitch = 1f)
         {
             if (_i == null || !On) return;
-            float gap = s == Snd.Kill || s == Snd.ArrowHit || s == Snd.Bow || s == Snd.Fist || s == Snd.Bomb || s == Snd.Thunder || s == Snd.WallHit ? 0.07f : 0.03f;
+            float gap = s == Snd.Kill || s == Snd.ArrowHit || s == Snd.Bow || s == Snd.Fist || s == Snd.Bomb || s == Snd.Thunder || s == Snd.WallHit ? 0.07f
+                : s == Snd.Whirl || s == Snd.Magic || s == Snd.Heal || s == Snd.Water || s == Snd.Poison ? 0.25f
+                : s == Snd.Crit ? 0.12f
+                : s >= Snd.Dart ? 0.06f : 0.03f;
             if (_i._last.TryGetValue(s, out var t) && Time.unscaledTime - t < gap) return;
             _i._last[s] = Time.unscaledTime;
             var src = _i._src[_i._next];

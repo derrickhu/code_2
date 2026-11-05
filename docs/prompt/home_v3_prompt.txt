@@ -1,0 +1,86 @@
+主页 v3 原型：浅色 / Q版 / 清爽（布局沿用 v2，只换风格）
+工具：Cursor GenerateImage，9:16，参考图为 v2 微信实机截图
+原图：game_assets/code_2/assets/raw/home_v3/
+
+【A 天空薄荷】home_proto_A_sky.jpg
+Mobile game HOME SCREEN UI prototype, portrait 9:16. Keep EXACTLY the same layout, elements and positions as the reference screenshot. Only change the visual style.
+New style: LIGHT, FRESH, airy, cute Q-version (kawaii chibi) casual style. Palette: sky blue, mint green, soft white, cream, a little sunny yellow and soft coral pink. Background: sunny pastel Liangshan scene, mint grass, light blue lake, pale stone road, puffy clouds, cute red-and-cream gate, peach blossoms.
+UI: rounded bubbly shapes, thin blue-grey outlines, white glossy highlights. Buttons white with sky-blue rims; capsules white; ribbon soft lilac; pedestals mint jelly discs; START sunny yellow-orange candy button; tab bar white frosted with sky-blue edge, active tab raised light-yellow bubble.
+No heavy dark red, no dark brown wood, no heavy gold. NO TEXT.
+
+【B 桃杏春绿】home_proto_B_peach.jpg
+Same layout instruction.
+New style: LIGHT, fresh, warm, cute Q-version chibi, cozy spring picture book. Palette: cream white, light peach, soft apricot, fresh leaf green, light jade, small cherry-red accents. Background: spring Liangshan, light green hills, pale sandy road, turquoise water, peach blossoms, gate with soft orange roof.
+UI: cream rounded panels with apricot rims, thin light warm-brown outlines, leaf decorations. Ribbon peach-pink; pedestals jade jelly discs; START leaf-green to lime chubby button; tab bar cream with apricot edge, active tab raised peach bubble with leaf crest.
+No dark red lacquer, no dark brown wood, no heavy gold. NO TEXT.
+
+【B2 桃杏春绿·修订】home_proto_B2_peach.jpg（参考图：B 版实机预览截图）
+Revise: keep all UI unchanged. 1) Move boss DOWN to the middle of the road, slightly bigger, shadow + faint red-purple danger aura, ribbon label moves with him; add small flags, stone lanterns, rocks, grass tufts along the road edges. 2) Background a bit deeper: more saturation/contrast, deeper green trees, deeper teal water, warmer sand road, tree shadows, gentle vignette; still light and fresh.
+
+【B3 Q版Boss·下移】home_proto_B3_peach.jpg（参考图：B2）
+Keep background/UI/text unchanged. 1) Redraw boss in the same chibi Q style as the heroes: big round head, chubby body, short legs, big angry cartoon eyes, black-gold armor, red plume, red cape, guandao, beard, ~1.4x hero size. 2) Move boss down: feet at ~52% screen height, just above heroes; ribbon label moves with him.
+
+== 落地素材（B3 方向）==
+处理：纯色蓝灰底（#5F7A92）四边泛洪去底，偏蓝暗像素当投影一起去掉，按连通块切图。
+成品：game_assets/code_2/assets/final/home_v3/，同时覆盖 Assets/Resources/Art/ui/h_*.png 与 Art/home_road.jpg。
+
+home_bg_v3（9:16，参考 B3）→ Art/home_road.jpg（放大到 1080×1920）
+Background only, all UI/characters removed. Small gate with soft orange roof at top center, wide warm sand-tan road straight down, stone lanterns + red flags at mid height, rocks, grass, turquoise ponds, peach blossom trees, clear road center, calm bottom 20%, slightly saturated spring light, soft vignette.
+
+home_ui_kit_v3（1:1，3x3，纯色蓝灰底，参考 B3）
+cream tile apricot rim / cream circle apricot rim / green arrow button (生成朝右，入库翻转) / peach bubble tab badge with gold leaf / jade jelly pedestal 3/4 view / apricot avatar frame teal inside / cream capsule / peach-pink ribbon / cream plaque
+→ ui/h_tile, h_round, h_arrow, h_tab_on, h_pedestal, h_avatar, h_capsule, h_ribbon, h_plaque
+
+home_wide_kit_v3（16:9，纯色蓝灰底）
+leaf-green to lime chubby START button with cream rim / long cream tab-bar panel with apricot top rim
+→ ui/h_start, ui/h_tabbar
+
+== Q 版 Boss（1×4 动作条，16:9，白底）==
+原图：game_assets/code_2/assets/raw/boss_q/anim_<key>.jpg，参考：boss_q/ref/<资源名>_old.jpg（旧 4 帧）+ ref/style_q.jpg（B3 里的 Q 版 Boss 和英雄）
+切帧：python3 tools/anim_frames.py game_assets/code_2/assets/raw/boss_q
+共同：ONE row of 4 frames, same character, front view, same ground line; CHIBI Q-version, big round head ~1/2.5 body, chubby body, short legs, big cartoon eyes, bold outlines, soft cel shading; plain white bg, no text.
+帧顺序：1 站立 / 2 待机变化 / 3 蓄力 / 4 出手
+- anim_boss（黄安）：black-gold armor, red plume, red cape, guandao
+- anim_luan（栾廷玉）：dark iron armor, purple cape, beard, spiked hammer on chain
+- anim_shiwengong（史文恭）：CRIMSON RED armor everywhere, red cape, guandao
+- anim_huyan（呼延灼）：black-gold armor, two rigid segmented iron bar maces (no blade)
+- anim_gaoqiu（高俅）：plump official, purple robe, black winged hat, red kick-ball, last frame kicks fireball
+走路帧：game_art_pipeline walk_batch.py prep/extract，720p 4 秒 1:1；高俅提示词要写"球全程不动"，否则球滚动会让周期只抽到 8 帧。
+
+== 全局 UI 皮肤 v3（替换 Art/ui 下同名旧皮肤，画布尺寸与旧图一致，九宫格边距不变）==
+原图：game_assets/code_2/assets/raw/ui_v3/，成品：final/ui_v3/。纯色蓝灰底去底；入库时先等比对齐目标高，再裁/拉中段到目标宽，端头不变形。
+共同：soft cute casual, chubby rounded, thick cream rim, glossy top highlight, thin light warm-brown outline, soft pastel-but-clear colors; SOLID FLAT #5F7A92 background; no text.
+- ui_v3_buttons（1:1 3x3）：leaf-green / sunny gold / apricot / coral / sky-mint teal / warm grey rounded-rect buttons + coral close X + green back arrow（生成朝右，入库翻转）+ sky-blue level badge
+  → btn_green, btn_gold, btn_orange, btn_red, btn_teal, btn_grey, close, arrow, lv
+- ui_v3_rarity（1:1 3x3）：sky / apricot / lavender / grey portrait cards with darker bottom band + sky / apricot / lavender / grey / honey-wood square slots
+  → card_blue, card_orange, card_purple, card_lock, slot_blue, slot_orange, slot_purple, slot_grey, slot_wood
+- ui_v3_panels（1:1）：cream popup panel apricot rim with corner leaves / cocoa-brown info panel cream rim / cream tab tile / cream medal sky inner / sky hexagon honey rim / coral pennant flag / honey chevron '<'
+  → panel, dark, tab_on, medal, hex, tag, btn_arrow
+- ui_v3_banners（16:9）：peach ribbon / honey-gold ribbon with leaf crest / grey ribbon / coral notched plaque
+  → banner, banner_gold, banner_grey, plaque
+- ui_v3_bars（16:9，8 行细条）：cocoa track / honey fill / leaf fill / cream fill / cocoa pill / sky pill / cream row apricot rim / cream bar apricot top
+  → bar_bg, bar_gold, bar_green, bar_white, pill, plate, row, tabbar
+
+== 战斗背景 v3（Q 版清新，9:16，raw/battle_v3，final/battle_v3）==
+通用：top-down 3/4 view mobile tower-defense battlefield, cute Q-version fresh casual cartoon, bright soft colors;
+  顶部一道木栅城墙，左右两座红瓦门楼（门洞在门楼底部，留暗色门口），中间大块浅色铺石场地，底部约 1/5 是素地/草地条（墙脚接缝），两侧留装饰；不要人物、不要文字。
+- ch1 金沙滩：春日河岸，粉樱绿树，两侧溪水卵石 → battle_bg
+- ch2 祝家庄：秋日枫林，两侧绿篱迷宫、草垛，门楼挂灯笼 → battle_bg_ch2
+- ch3 曾头市：夕阳集市，中间木望楼，两侧彩棚摊位、火盆 → battle_bg_ch3
+- ch4 连环马：晴天雪地，雪顶门楼，两侧雪松雪堆、铁链 → battle_bg_ch4
+- ch5 高太尉：明亮月夜，紫色军旗、火盆火把 → battle_bg_ch5
+- gate_leaf_v3（9:16）：single door leaf, reddish-orange lacquered planks, honey-gold bands with round studs, gold ring handle at right edge,
+  on solid #5F7A92 → 裁边缩放到 182×354 → gate_leaf
+门洞/接缝按 1080×1920 自动量取（暗色门口连通域 + 场地/素地色阶跳变），写进 BattleView.ChapterBg。
+
+== 物件图标 v3（raw/icons_v3，final/icons_v3）==
+通用：4x4 grid sprite sheet，每格居中留白，无文字无格线；参考 1 = 旧图标同位置排布（ref/old_bN.jpg），参考 2 = 新画风样板（ref/style_ref.jpg：h_ 按钮皮肤 + Q 版好汉）；
+  cute Q-version fresh casual, chunky rounded soft shapes, warm soft palette (peach/cream/honey gold/coral/leaf green/sky blue),
+  soft cel shading + gentle glossy highlights, thin warm cocoa-brown outline (NOT thick black), not realistic；背景 solid #5F7A92。
+- b1：宝箱 ×6（chest/gold/open/silver/wood/gearbox）、coins、ingot、silver、crown、medal、token、star、heart、shard、anyshard
+- b2：book、tome、page、scroll、map、silk、flag、feast、wine、iron、gear、cart、hourglass、lock、sweep、meteor
+- b3：ad、arrow、bomb、fast、fist、hand、rage、refresh、sword、thumb、wall、eq_amulet/armor/boots/helmet/horn
+- b4（4:3，4x3）：eq_weapon、tab_battle/codex/forge/fort/gift/hero/idle/shop/task、prop_book、prop_drum
+  带旧图参考时会照抄旧画风，b4 改为只给 b1/b3 新样张做风格参考、全文字描述。
+- prop_songjiang_v3（3:4）：同一个宋江坐宝座黄华盖，底座改奶油桃色石台 + 珊瑚红地毯 + 蜂蜜金边。
+切图：每格从边缘泛洪去背（容差 60，2px 软边去蓝），按旧图原画布尺寸和可见区域等比放回，代码无需改动。

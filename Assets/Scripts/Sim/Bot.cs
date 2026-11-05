@@ -18,7 +18,7 @@ namespace Liangshan.Sim
                     int best = -1;
                     for (int i = 0; i < b.Choices.Length; i++)
                     {
-                        int star = BestStar(b, b.Choices[i].Hero);
+                        int star = BestStar(b, b.Choices[i].Hero) + (b.Choices[i].Ult ? 10 : 0);
                         if (star > best) { best = star; pick = i; }
                     }
                 }
@@ -36,7 +36,6 @@ namespace Liangshan.Sim
             _think = 0.35f;
 
             if (_skill >= 1 && TryMerge(b)) return;
-            if (_skill >= 2 && b.FreeEnhances > 0 && b.Enhance()) return;
             if (_skill >= 2 && b.Coins >= b.EnhanceCost && b.EnhanceCost < b.SummonCost * 1.6f && b.Enhance()) return;
             if (b.CanSummon) { b.Summon(); return; }
             if (_skill >= 2 && !b.HasEmptySlot() && b.Coins >= b.EnhanceCost) b.Enhance();

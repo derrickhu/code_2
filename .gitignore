@@ -19,3 +19,11 @@
 .idea/
 node_modules/
 /Packages/com.qq.weixin.minigame/
+
+# 打包时生成的图包和清单（按平台不同，每次构建重打）
+/Assets/StreamingAssets/art/
+/Assets/StreamingAssets/art.meta
+/Assets/Resources/ArtPacks.txt
+/Assets/Resources/ArtPacks.txt.meta
+# CDN 上传密钥
+/tools/.cdn_secret

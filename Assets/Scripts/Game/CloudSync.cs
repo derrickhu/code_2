@@ -88,6 +88,7 @@ namespace Liangshan
 
         IEnumerator RunStartup(Action ready)
         {
+            Analytics.Begin();
             HookHide();
             bool done = false;
             StartCoroutine(Initialize(() => done = true));
@@ -113,6 +114,7 @@ namespace Liangshan
             _initDone = true;
             if (_early && !_imported) Touch();
             _early = false;
+            Analytics.BindUser(_ready ? Backend.UserId : "");
             done();
             if (_pending && _ready)
             {
@@ -288,12 +290,20 @@ namespace Liangshan
         void HookHide()
         {
             if (_hideHooked) return;
-            _hideHooked = Backend.HookHide(() => FlushNow("hide"));
+            _hideHooked = Backend.HookHide(() =>
+            {
+                Analytics.OnHide("hide");
+                FlushNow("hide");
+            });
         }
 
         void OnApplicationPause(bool paused)
         {
-            if (paused && !_hideHooked) FlushNow("pause");
+            if (paused && !_hideHooked)
+            {
+                Analytics.OnHide("pause");
+                FlushNow("pause");
+            }
         }
 
         void LoadMeta()

@@ -1,0 +1,20 @@
+A 3x3 grid sprite sheet of 9 separate game projectile weapons for a cute cartoon Chinese Water Margin (水浒) tower-defense mobile game. Same style as polished mobile game item icons: bold clean dark-brown outline, smooth cel shading with soft highlight, saturated colors, crisp edges, high detail. Each object is centered in its own cell with generous empty margin, on a perfectly flat plain light gray (#D8D8D8) background, no shadows on the background, no frames, no grid lines.
+
+Orientation: every long weapon stands perfectly VERTICAL with the tip / blade pointing straight UP.
+
+Row 1:
+1. Serpent spear (丈八蛇矛): long dark wooden shaft, a wavy snake-shaped steel blade at the top, a small black tassel under the blade.
+2. Qilin spear (麒麟枪): long red-lacquer shaft, shining silver leaf-shaped spear head on top, fluffy red tassel under the head, gold ring fittings.
+3. Hook-sickle spear (钩镰枪): long shaft, golden spear point on top with a curved golden sickle hook branching off one side.
+
+Row 2:
+4. Broad battle axe (板斧): short thick wooden handle, huge heavy steel axe blade at the top with a bright sharp edge.
+5. Sword energy slash (刀气): a single glowing white-silver crescent moon shaped blade slash arc, convex side pointing UP, thick in the middle tapering to sharp points at both ends, light motion streaks, no weapon, just the energy arc.
+6. Steel trident fork (钢叉): long wooden shaft, three-pronged shiny steel fork head pointing up.
+
+Row 3:
+7. Gold brick (金砖): a single shiny thick gold bar brick, seen at a 3/4 angle, bright sparkle highlights.
+8. Fishing net (渔网): a round spread-open rope fishing net seen from above, brown rope mesh with small round floats around the rim.
+9. Red silk lasso (红锦套索): a coiled loop of bright red silk rope forming a lasso ring with a flowing tail.
+
+NO TEXT, no labels, no captions, no writing, no numbers anywhere in the image.

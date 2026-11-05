@@ -1,0 +1,22 @@
+{
+ "benchmarks": [
+  "tab_fort",
+  "tab_shop",
+  "tab_gift",
+  "tab_forge"
+ ],
+ "prompt": "Home screen entry icon showing {subject} in ancient Chinese style, single game icon, glossy cartoon mobile game style, bold dark brown outline, soft cel shading with a bright highlight from the top left, saturated warm colors with gold accents, slight 3/4 view, centered, plain pure white background, no shadow, NO TEXT. Slightly more detailed than an item icon. Fills about 80% of the square.",
+ "spec": {
+  "canvas": "256×256",
+  "transparent": true,
+  "notes": "梁山、宋代题材的物件，不要西式元素"
+ },
+ "palette": [
+  "#221c1e",
+  "#521707",
+  "#9d7349",
+  "#981b10",
+  "#6d4430",
+  "#d7b16c"
+ ]
+}

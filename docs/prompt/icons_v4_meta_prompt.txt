@@ -1,0 +1,12 @@
+局外成长活动图标 v4（GenerateImage，1:1，2x2）
+参考图：raw/icons_v3/icons_v3_b4.jpg、icons_v3_b1.jpg（只做画风参考）
+原图：game_assets/code_2/assets/raw/icons_v4/icons_v4_meta.jpg
+切图：纯色 #5F7A92 底，四边泛洪（容差 60）+ 被包住的大块底色（容差 28、≥150 像素）一起去掉，等比放进 256 方画布
+  → Art/tab_seven（七日目标）、tab_sprint（招募冲刺）、tab_welfare（每日福利）、ic_active（活跃度）
+  招募冲刺的鼓架腿间还会剩一小块底色：只去 G>R 且 B>G 的蓝灰像素，紫色吊牌 G<R 不受影响。
+
+2x2 grid sprite sheet of 4 game menu icons, each centered in its cell with generous empty space, no grid lines, NO TEXT, no letters, no numbers. Match EXACTLY the art style of the reference icon sheet: cute Q-version fresh casual cartoon, chunky rounded soft shapes, warm soft palette (peach, cream, honey gold, coral red, leaf green, sky blue), soft cel shading with gentle glossy highlights, thin warm cocoa-brown outline (not thick black), not realistic. Background: SOLID FLAT #5F7A92 blue-grey everywhere.
+Cell 1 (top-left): seven-day goal: an open ancient cream paper scroll unrolled upward with a row of small red seal stamps and a golden laurel ribbon, a small shiny gold star badge at its corner.
+Cell 2 (top-right): recruit sprint: a red Chinese war drum on a small wooden stand with orange flames rising behind it and a golden arrow pointing up, a purple recruit token tag hanging on the side.
+Cell 3 (bottom-left): daily welfare: a chubby red cloth lucky bag tied with gold rope, gold coins and a small silver ingot spilling out at its base.
+Cell 4 (bottom-right): activity points: a round honey-gold medal with a bright orange flame emblem in the center and a small coral ribbon below.

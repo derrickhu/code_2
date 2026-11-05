@@ -1,0 +1,22 @@
+{
+ "benchmarks": [
+  "fx_explode",
+  "fx_ice",
+  "fx_lightning",
+  "fx_star"
+ ],
+ "prompt": "Game VFX sprite: {subject}. Bright glowing energy, saturated core fading to soft edges, stylized cartoon VFX, centered, plain pure black background, NO TEXT.",
+ "spec": {
+  "canvas": "最长边 256",
+  "transparent": true,
+  "notes": "发光类在纯黑底上出图，按亮度转透明；实体类（箭、石块）按卡通画法带深色描边，白底抠图"
+ },
+ "palette": [
+  "#fcbe25",
+  "#2fbeff",
+  "#8debff",
+  "#fef9bf",
+  "#ffdf3f",
+  "#c87854"
+ ]
+}

@@ -1,0 +1,22 @@
+{
+ "benchmarks": [
+  "en_soldier",
+  "en_shield",
+  "en_elite",
+  "en_boss"
+ ],
+ "prompt": "Chibi Song imperial army enemy: {subject}. Navy-blue lamellar armor with red trim, steel helmet with a red plume; bosses get black-gold armor and a red cape. anime chibi proportions about 3 heads tall, big head, same face style, clean dark outline, soft cel shading, bright clean colors, few big color shapes, full body standing facing three-quarters toward the camera, plain pure white background, no ground, no shadow, NO TEXT.",
+ "spec": {
+  "canvas": "方形画布 512，首领 768",
+  "transparent": true,
+  "notes": "官军统一蓝灰甲红缨；首领黑金甲红披风"
+ },
+ "palette": [
+  "#1d1818",
+  "#4d3d32",
+  "#381e14",
+  "#715f4d",
+  "#721c14",
+  "#bd9f82"
+ ]
+}

@@ -1,0 +1,23 @@
+{
+ "benchmarks": [
+  "btn_gold",
+  "card_blue",
+  "slot_orange",
+  "panel",
+  "banner"
+ ],
+ "prompt": "Blank game UI piece: {subject}. Bright cheerful casual mobile game UI, cream-white paper and sky-teal frames, sunny yellow primary buttons, a little vermilion red accent, soft vertical gradient, glossy white highlight band, slightly darker same-hue bottom lip, thin darker outline, centered, plain pure white background, NO TEXT, no icons.",
+ "spec": {
+  "canvas": "按组件实际尺寸，九宫格拉伸的要留均匀边框",
+  "transparent": true,
+  "notes": "沿用 code_2/docs/prompt/ui_kit_prompt.txt 的配色"
+ },
+ "palette": [
+  "#3085cc",
+  "#fdcf46",
+  "#fcf4e1",
+  "#e27711",
+  "#9bc1ac",
+  "#a9a974"
+ ]
+}

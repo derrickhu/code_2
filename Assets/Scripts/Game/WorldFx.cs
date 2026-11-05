@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Liangshan.Sim;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -31,6 +32,15 @@ namespace Liangshan
         float _shake, _shakeT;
 
         public int LiveTexts => _liveTexts;
+
+        /// <summary>选卡等弹层打开时藏起飘字，免得数字穿进按钮和说明。</summary>
+        public void ShowNumbers(bool on)
+        {
+            if (_textLayer == null) return;
+            var g = _textLayer.GetComponent<CanvasGroup>() ?? _textLayer.gameObject.AddComponent<CanvasGroup>();
+            g.alpha = on ? 1f : 0f;
+            g.blocksRaycasts = false;
+        }
 
         public static WorldFx Create(Transform parent, RectTransform textLayer, Transform cam)
         {
@@ -193,6 +203,55 @@ namespace Liangshan
                 if (spin != 0) sr.transform.localRotation = Quaternion.Euler(0, 0, rot0 + spin * k);
                 sr.color = col.A(col.a * (k < 0.45f ? 1f : 1f - (k - 0.45f) / 0.55f));
             });
+        }
+
+        /// <summary>寨主剑气：金色月牙从 y0 推到 y1，宽度收进替天行道的半圆里。</summary>
+        public void SwordWave(float y0, float y1, float speed, float width, Color c)
+        {
+            float travel = (y1 - y0) / speed;
+            const float fade = 0.25f;
+            float dur = travel + fade;
+            Vector2 At(float t) => new V2(0, y0 + speed * Mathf.Min(t, travel)).ToV();
+            float Alpha(float t) => t < 0.08f ? t / 0.08f : t > travel ? 1 - (t - travel) / fade : 1f;
+            float Wide(float y)
+            {
+                float dy = y - Layout.WallRowY;
+                float r = Layout.HalfW;
+                if (dy < 0f || dy >= r) return 0f;
+                return Mathf.Min(width, 2f * Mathf.Sqrt(r * r - dy * dy));
+            }
+            var glow = Take(Art.Crescent, At(0), width, 9590, c.A(0.7f), true);
+            var core = Take(Art.Crescent, At(0), width, 9591, Color.white, true);
+            Anim(glow.gameObject, dur, k =>
+            {
+                float t = k * dur;
+                float w = Wide(At(t).y);
+                glow.transform.localPosition = At(t) + new Vector2(0, -0.15f);
+                glow.transform.localScale = new Vector3(w * 1.05f, Mathf.Max(0.2f, w) * 1.2f, 1f);
+                glow.color = c.A(0.75f * Alpha(t));
+            });
+            Anim(core.gameObject, dur, k =>
+            {
+                float t = k * dur;
+                float w = Wide(At(t).y);
+                core.transform.localPosition = At(t);
+                core.transform.localScale = new Vector3(w, Mathf.Max(0.2f, w) * 1.05f, 1f);
+                core.color = Color.white.A(0.95f * Alpha(t));
+            });
+            for (int i = 1; i <= 3; i++)
+            {
+                var ghost = Take(Art.Crescent, At(0), width, 9585, c.A(0), true);
+                float lag = i * 0.06f;
+                Anim(ghost.gameObject, dur, k =>
+                {
+                    float t = k * dur;
+                    float tt = Mathf.Max(0, t - lag);
+                    float w = Wide(At(tt).y);
+                    ghost.transform.localPosition = At(tt);
+                    ghost.transform.localScale = new Vector3(w, Mathf.Max(0.2f, w), 1f);
+                    ghost.color = c.A(0.35f / i * Alpha(t) * (t > lag ? 1 : 0));
+                });
+            }
         }
 
         public void Ring(Vector2 pos, float radius, Color c, float dur = 0.4f, int order = 9400)
@@ -531,6 +590,20 @@ namespace Liangshan
                 t.color = c.A(k < 0.6f ? 1f : 1f - (k - 0.6f) / 0.4f);
             });
         }
+
+        /// <summary>跟随世界坐标的常驻小字（精英血条层数），调用方每帧 Place、用完自己 Destroy。</summary>
+        public Text Pinned(int size, Color c)
+        {
+            var t = Ui.Label(_textLayer, "", size, c, Vector2.zero, new Vector2(160, 60), TextAnchor.MiddleLeft, Fonts.Heavy, "pin");
+            Ui.Stroke(t, Pal.Ink, 2.5f);
+            var rt = t.rectTransform;
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot = new Vector2(0f, 0.5f);
+            return t;
+        }
+
+        public static void Place(Text t, Vector2 world) =>
+            t.rectTransform.anchoredPosition = new Vector2(world.x * 100f, -Ui.FromTop(world.y));
 
         // ---------- 震屏 ----------
 

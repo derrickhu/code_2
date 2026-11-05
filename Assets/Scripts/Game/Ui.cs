@@ -53,11 +53,8 @@ namespace Liangshan
         {
             float match = Tall ? 0f : 1f;
             if (!Mathf.Approximately(_scaler.matchWidthOrHeight, match))
-            {
                 _scaler.matchWidthOrHeight = match;
-                typeof(CanvasScaler).GetMethod("Handle", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(_scaler, null);
-                Canvas.ForceUpdateCanvases();
-            }
+            typeof(CanvasScaler).GetMethod("Handle", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(_scaler, null);
             if (Tall)
             {
                 Root.anchorMin = Vector2.zero;
@@ -71,6 +68,8 @@ namespace Liangshan
                 Root.sizeDelta = new Vector2(W, H);
                 Root.anchoredPosition = Vector2.zero;
             }
+            // 同一帧里就要读到真实高度，否则首页会按 1920 排，高屏多出来的路全空在中间。
+            Canvas.ForceUpdateCanvases();
         }
 
         /// <summary>界面高度（设计像素）。宽窗口恒为 1920。</summary>
@@ -259,7 +258,8 @@ namespace Liangshan
             rt.anchoredPosition = pos;
             var t = rt.gameObject.AddComponent<Text>();
             t.font = font ?? Fonts.Bold;
-            t.fontSize = size;
+            // 手机上 1080 设计稿约缩到 0.38 倍，24 以下的字只剩 9 像素；小字统一往上抬，大字不动
+            t.fontSize = size < 30 ? Mathf.RoundToInt(size + (30 - size) * 0.35f) : size;
             t.color = c;
             t.alignment = align;
             t.text = s;
@@ -292,16 +292,17 @@ namespace Liangshan
             return t;
         }
 
-        public static void Tap(Graphic g, Action onClick, Transform punch = null, bool sound = true)
+        public static void Tap(Graphic g, Action onClick, Transform punch = null, bool sound = true, float sink = 0f)
         {
             g.raycastTarget = true;
             var b = g.gameObject.GetComponent<Button>() ?? g.gameObject.AddComponent<Button>();
             b.transition = Selectable.Transition.None;
             var t = punch ? punch : g.transform;
+            var fx = g.gameObject.GetComponent<PressFx>() ?? g.gameObject.AddComponent<PressFx>();
+            fx.Setup(t, sink);
             b.onClick.AddListener(() =>
             {
                 if (sound) Sfx.Play(Snd.Tap);
-                Tween.Punch(t, 0.16f, 0.12f);
                 onClick?.Invoke();
             });
         }
@@ -335,20 +336,30 @@ namespace Liangshan
             var holder = Rect(parent, "btn");
             holder.sizeDelta = size;
             holder.anchoredPosition = pos;
-            var f = Skin(holder, BtnSkin(face), size, Vector2.zero, -1f, null, "face");
+            float sink = Mathf.Clamp(size.y * 0.075f, 7f, 12f);
+            // 底边留在原地，按住时盖子沉下去盖住它，按钮才有按进面板的感觉。
+            Skin(holder, BtnSkin(face), size, new Vector2(0, -sink), -1f, new Color(0.55f, 0.55f, 0.55f), "lip");
+            var body = Rect(holder, "body");
+            body.sizeDelta = size;
+            Skin(body, BtnSkin(face), size, Vector2.zero, -1f, null, "face");
             float iconW = icon != null ? size.y * 0.7f : 0f;
-            var label = Outlined(holder, text, fontSize, fg ?? Color.white, new Vector2(iconW * 0.5f, 4), new Vector2(size.x - iconW, size.y),
+            var label = Outlined(body, text, fontSize, fg ?? Color.white, new Vector2(iconW * 0.5f, 4), new Vector2(size.x - iconW, size.y),
                 face.Mul(0.45f), 2.6f, TextAnchor.MiddleCenter, "text");
             if (icon != null)
             {
                 float tw = Mathf.Min(size.x - iconW - 20, label.preferredWidth);
-                Icon(holder, icon, iconW, new Vector2(-tw * 0.5f - iconW * 0.15f, 2), "btnIcon");
+                Icon(body, icon, iconW, new Vector2(-tw * 0.5f - iconW * 0.15f, 2), "btnIcon");
             }
-            Tap(f, onClick, holder);
+            var hit = Box(holder, size, Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
+            Tap(hit, onClick, body, true, sink);
             return holder;
         }
 
-        public static void SetBtnText(RectTransform btn, string s) => btn.Find("text").GetComponent<Text>().text = s;
+        public static void SetBtnText(RectTransform btn, string s)
+        {
+            var t = btn.Find("body/text") ?? btn.Find("text");
+            t.GetComponent<Text>().text = s;
+        }
 
         /// <summary>弹窗面板：天青描边、奶油纸面。框画在 size 外沿 15 像素。</summary>
         public static RectTransform Panel(Transform parent, Vector2 size, Vector2 pos, string name = "panel")
@@ -357,7 +368,7 @@ namespace Liangshan
             holder.sizeDelta = size;
             holder.anchoredPosition = pos;
             Box(holder, size + new Vector2(40, 40), new Vector2(0, -16), Color.black.A(0.35f), null, "shadow");
-            Skin(holder, "panel", size + new Vector2(30, 30), Vector2.zero, 1f, null, "frame");
+            Skin(holder, "panel", size + new Vector2(30, 30), Vector2.zero, 0.78f, null, "frame");
             return holder;
         }
 
@@ -374,7 +385,7 @@ namespace Liangshan
             holder.anchoredPosition = pos;
             holder.sizeDelta = new Vector2(width, 110);
             Skin(holder, grey ? "banner_grey" : "banner", new Vector2(width + 170, 132), new Vector2(0, -6), -1f, null, "face");
-            Outlined(holder, s, 56, Color.white, new Vector2(0, 10), new Vector2(width, 100), grey ? Pal.Hex("4A5260") : Pal.Navy, 3.5f);
+            Outlined(holder, s, 56, Color.white, new Vector2(0, 10), new Vector2(width, 100), grey ? Pal.Hex("7A7068") : Pal.Hex("7A1A0E"), 3.5f);
             return holder;
         }
 
@@ -473,6 +484,134 @@ namespace Liangshan
         {
             g.alpha = from;
             Run(g, dur, k => g.alpha = Mathf.Lerp(from, to, k), done, delay);
+        }
+    }
+
+    /// <summary>按下时盖子下沉、颜色变暗，松手弹回。点在热区上，移动的是另一层，手指不会因为按钮挪走而丢失。</summary>
+    public sealed class PressFx : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler, IPointerEnterHandler
+    {
+        struct Tint { public Graphic G; public Color C; }
+
+        Transform _t;
+        RectTransform _rt;
+        float _sink;
+        Vector3 _scale;
+        Vector2 _pos;
+        readonly List<Tint> _tints = new List<Tint>();
+        bool _have, _down, _over, _sunk;
+        int _gen;
+
+        public void Setup(Transform target, float sink)
+        {
+            _t = target;
+            _rt = target as RectTransform;
+            _sink = sink;
+        }
+
+        bool TooBig => _rt != null && _rt.rect.width > 800f && _rt.rect.height > 800f;
+
+        public void OnPointerDown(PointerEventData e)
+        {
+            _down = _over = true;
+            _gen++;
+            if (TooBig || _t == null) return;
+            if (!_sunk)
+            {
+                _have = true;
+                _scale = _t.localScale;
+                if (_rt != null) _pos = _rt.anchoredPosition;
+                _tints.Clear();
+                foreach (var g in _t.GetComponentsInChildren<Graphic>(false))
+                {
+                    if (g.color.a < 0.2f) continue;
+                    var n = g.gameObject.name;
+                    if (n == "glow" || n == "hit" || n == "lip") continue;
+                    _tints.Add(new Tint { G = g, C = g.color });
+                }
+            }
+            Apply(true);
+        }
+
+        public void OnPointerEnter(PointerEventData e)
+        {
+            _over = true;
+            if (_down) Apply(true);
+        }
+
+        public void OnPointerExit(PointerEventData e)
+        {
+            _over = false;
+            if (_sunk) Release(false);
+        }
+
+        public void OnPointerUp(PointerEventData e)
+        {
+            bool back = _down && _over;
+            _down = false;
+            if (_sunk) Release(back);
+        }
+
+        void LateUpdate()
+        {
+            if (!_down) return;
+            if (Input.GetMouseButton(0) || Input.touchCount > 0) return;
+            _down = false;
+            if (_sunk) Release(false);
+        }
+
+        void OnDisable()
+        {
+            _down = false;
+            if (_sunk && _t != null) Restore();
+            _sunk = false;
+        }
+
+        void Apply(bool sunk)
+        {
+            if (_t == null || TooBig || !_have) return;
+            _sunk = sunk;
+            float k = sunk ? (_sink > 0f ? 0.985f : 0.93f) : 1f;
+            _t.localScale = new Vector3(_scale.x * k, _scale.y * k, _scale.z);
+            if (_rt != null && _sink > 0f)
+                _rt.anchoredPosition = _pos + (sunk ? new Vector2(0f, -_sink) : Vector2.zero);
+            foreach (var tn in _tints)
+                if (tn.G) tn.G.color = sunk ? tn.C * 0.82f : tn.C;
+        }
+
+        void Release(bool spring)
+        {
+            _sunk = false;
+            if (_t == null || !spring)
+            {
+                Restore();
+                return;
+            }
+            int gen = _gen;
+            var fromS = _t.localScale;
+            var fromP = _rt != null ? _rt.anchoredPosition : Vector2.zero;
+            foreach (var tn in _tints)
+                if (tn.G) tn.G.color = tn.C;
+            Tween.Run(_t, 0.14f, k =>
+            {
+                if (gen != _gen || _t == null) return;
+                float e = Tween.OutBack(Mathf.Clamp01(k));
+                _t.localScale = Vector3.LerpUnclamped(fromS, _scale, e);
+                if (_rt != null) _rt.anchoredPosition = Vector2.LerpUnclamped(fromP, _pos, e);
+            }, () =>
+            {
+                if (gen != _gen || _t == null) return;
+                Restore();
+            });
+        }
+
+        void Restore()
+        {
+            if (_t == null || !_have) return;
+            _t.localScale = _scale;
+            if (_rt != null) _rt.anchoredPosition = _pos;
+            foreach (var tn in _tints)
+                if (tn.G) tn.G.color = tn.C;
+            _sunk = false;
         }
     }
 }

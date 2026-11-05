@@ -1,0 +1,23 @@
+{
+ "benchmarks": [
+  "ic_chest_gold",
+  "ic_coins",
+  "ic_star",
+  "ic_sword",
+  "ic_tome"
+ ],
+ "prompt": "{subject}, single game icon, glossy cartoon mobile game style, bold dark brown outline, soft cel shading with a bright highlight from the top left, saturated warm colors with gold accents, slight 3/4 view, centered, plain pure white background, no shadow, NO TEXT. The object fills about 90% of the square.",
+ "spec": {
+  "canvas": "256×256",
+  "transparent": true,
+  "notes": "画面占满约九成；功能按钮类（播放、手指、加速）可以更扁平"
+ },
+ "palette": [
+  "#c0892b",
+  "#4a2211",
+  "#883619",
+  "#a05c13",
+  "#dec66d",
+  "#fbe37d"
+ ]
+}

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using Liangshan.Sim;
 using UnityEngine;
@@ -66,6 +67,8 @@ namespace Liangshan
             WorldFx.Create(transform, _floatLayer, _cam.transform);
 
             Profile.Load();
+            ArtPack.Init(gameObject);
+            ArtPack.Ensure(HomeArt());
             Sfx.On = Profile.S.Sound == 1;
             Sfx.Music = Profile.S.Music == 1;
             if (_shots != null) StartCoroutine(SelfCheck());
@@ -83,7 +86,7 @@ namespace Liangshan
         }
 
         /// <summary>等云存档（最多几秒）时盖住画面：先拉云再进首页，免得本地改动和云端打架。</summary>
-        RectTransform BootCover()
+        RectTransform BootCover(string text = "读取存档…")
         {
             var layer = Ui.Rect(Ui.Root, "boot");
             layer.anchorMin = Vector2.zero;
@@ -94,7 +97,7 @@ namespace Liangshan
             float scale = Mathf.Max(Ui.W / 1080f, Ui.Height / 1920f);
             bg.rectTransform.sizeDelta = new Vector2(1080, 1920) * scale;
             Ui.Fill(layer, new Color(0, 0, 0, 0.35f), true);
-            Ui.Label(layer, "读取存档…", 46, Color.white, new Vector2(0, -Ui.Height * 0.5f + 260), new Vector2(900, 90), TextAnchor.MiddleCenter, Fonts.Heavy);
+            Ui.Label(layer, text, 46, Color.white, new Vector2(0, -Ui.Height * 0.5f + 260), new Vector2(900, 90), TextAnchor.MiddleCenter, Fonts.Heavy);
             return layer;
         }
 
@@ -199,6 +202,48 @@ namespace Liangshan
                 Tween.Run(home, 0.35f, k => { }, () => MetaFx.HeroReveal(home.Layer, h));
             }
             _pendingReveal = null;
+            if (Profile.S.Cleared < Defs.LevelCount) ArtPack.Prefetch(BattleArt(Defs.Level(Profile.S.Cleared + 1), Meta.Lineup(Profile.S)));
+        }
+
+        static List<string> HomeArt()
+        {
+            var list = new List<string>();
+            foreach (var h in Meta.Lineup(Profile.S)) list.Add(Defs.Hero(h).Art);
+            return list;
+        }
+
+        /// <summary>一局可能用到的图包：上阵好汉、战场背景、这关会刷的兵和首领精英，外加首领召唤、力士背篓会带出来的兵。</summary>
+        static List<string> BattleArt(LevelDef st, HeroId[] lineup)
+        {
+            var list = new List<string> { st.Bg };
+            foreach (var h in lineup) list.Add(Defs.Hero(h).Art);
+            void Add(EnemyKind k)
+            {
+                string a = Defs.Enemy(k).Art;
+                if (!list.Contains(a)) list.Add(a);
+            }
+            Add(EnemyKind.Soldier);
+            Add(EnemyKind.Cavalry);
+            Add(EnemyKind.Diver);
+            Add(st.BossKind);
+            foreach (var k in st.EliteKinds) Add(k);
+            foreach (var t in st.Troops) Add(t.Kind);
+            if (st.PorterWaves.Length > 0) Add(EnemyKind.Porter);
+            return list;
+        }
+
+        /// <summary>图包齐了再开始；第一次进某章要从 CDN 下，盖一层带进度的加载页。</summary>
+        void WithArt(List<string> need, Action go)
+        {
+            if (ArtPack.Ready(need)) { go(); return; }
+            var cover = BootCover("加载中…");
+            var label = cover.GetComponentInChildren<UnityEngine.UI.Text>();
+            Tween.Run(cover, 9999f, k => label.text = $"加载中 {Mathf.RoundToInt(ArtPack.Progress(need) * 100)}%");
+            ArtPack.Ensure(need, () =>
+            {
+                if (cover) Destroy(cover.gameObject);
+                go();
+            });
         }
 
         public void StartLevel(int no) => Play(Defs.Level(Mathf.Min(no, Profile.S.Cleared + 1)));
@@ -233,7 +278,12 @@ namespace Liangshan
         }
 
         /// <summary>重开本关：已经扣过体力，不再扣。</summary>
-        public void Restart() => Launch(_stage);
+        public void Restart()
+        {
+            if (_battle != null && _battle.B != null)
+                Analytics.LevelFail("restart", _battle.B.Wave, _battle.B.Kills);
+            Launch(_stage);
+        }
 
         LevelDef _stage;
         int _seed;
@@ -245,12 +295,20 @@ namespace Liangshan
             Clear();
             _stage = st;
             _settled = false;
+            var lo = Meta.BuildLoadout(Profile.S);
+            var need = BattleArt(st, lo.Lineup);
+            ArtPack.Keep(need);
+            WithArt(need, () => Begin(st, lo));
+        }
+
+        void Begin(LevelDef st, Loadout lo)
+        {
             var go = new GameObject("Battle");
             go.transform.SetParent(transform, false);
             _battle = go.AddComponent<BattleView>();
             bool tutorial = _autoSkill < 0 && Profile.S.TutorialDone == 0 && st.Mode == StageMode.Main && st.No == 1;
             _seed = _autoSkill >= 0 ? 20261031 + _autoSkill : Environment.TickCount;
-            _battle.Begin(_seed, st, Meta.BuildLoadout(Profile.S), tutorial);
+            _battle.Begin(_seed, st, lo, tutorial);
             if (_autoSkill >= 0)
             {
                 _battle.Auto = new Bot(_autoSkill);
@@ -259,6 +317,8 @@ namespace Liangshan
             else _battle.Speed = Profile.S.Speed15 == 1 && PlayerPrefs.GetInt("speed15", 0) == 1 ? 1.5f : 1f;
             _floatLayer.SetAsFirstSibling();
             Sfx.PlayMusic(st.Mode == StageMode.Main && st.IsChapterBoss ? Bgm.Boss : Bgm.Battle);
+            string mode = st.Mode == StageMode.Daily ? "daily" : st.Mode == StageMode.Escort ? "escort" : "main";
+            Analytics.LevelStart(st.No, st.Title, mode);
         }
 
         Rewards Compute(Battle b, bool win) =>
@@ -271,6 +331,8 @@ namespace Liangshan
         {
             if (_settled) return _last;
             _settled = true;
+            if (win) Analytics.LevelClear(b.Wave, b.Kills);
+            else Analytics.LevelFail("lose", b.Wave, b.Kills);
             var s = Profile.S;
             var r = Compute(b, win);
             Meta.Give(s, r);
@@ -418,6 +480,28 @@ namespace Liangshan
                 yield return WaitReal(0.2f);
                 v.Hud.CloseInfo();
             }
+            v.Hud.LordInfo();
+            yield return WaitReal(0.45f);
+            Shot("02k_lord");
+            yield return WaitReal(0.35f);
+            v.Hud.CloseInfo();
+            var who = v.B.Lineup[0];
+            PerkDef plain = null, extra = null;
+            foreach (var p in Defs.Perks)
+            {
+                if (p.Hero != who) continue;
+                if (!p.Ult && !p.Star && plain == null) plain = p;
+                else if (p.Ult) extra = p;
+                else if (p.Star && extra == null) extra = p;
+            }
+            if (plain != null) v.B.Perks[plain.Id] = 1;
+            if (extra != null) v.B.Perks[extra.Id] = 1;
+            yield return null;
+            v.Hud.OpenPerks(who);
+            yield return WaitReal(0.45f);
+            Shot("02l_perks");
+            yield return WaitReal(0.35f);
+            v.Hud.ClosePerk();
             yield return WaitReal(0.3f);
             v.Hud.OpenPanel("stats");
             yield return WaitReal(1.0f);
@@ -459,7 +543,25 @@ namespace Liangshan
             var s = Meta.ExpectedSave(12);
             s.Cleared = 11;
             s.Selected = 12;
-            for (int i = 0; i < 11; i++) s.Stars[i] = i % 4 == 0 ? 2 : 3;
+            for (int i = 0; i < 11; i++)
+            {
+                s.Stars[i] = i % 4 == 0 ? 2 : 3;
+                s.LevelChest[i] = i % 4 == 0 ? 3 : 7;
+            }
+            s.Pages = 140;
+            s.Tomes = 4;
+            s.Silk = 2600;
+            s.Meteor = 5;
+            s.GearBoxes = 3;
+            s.PageLv = 4;
+            s.TomeNodes = 1;
+            s.FlagLv = 3;
+            s.FlagAffix[0] = 0 * 4 + 2 + 1;
+            s.FlagAffix[1] = 7 * 4 + 1 + 1;
+            s.FlagLock = 1;
+            s.EquipQ[0] = 2;
+            s.EquipQ[3] = 1;
+            s.Meals = 1;
             s.HeroLv[(int)HeroId.ZhangQing] = 3;
             s.HeroLv[(int)HeroId.WuYong] = 2;
             foreach (var h in new[] { HeroId.HuSanniang, HeroId.QinMing, HeroId.AnDaoquan, HeroId.ShiXiu, HeroId.ZhuWu, HeroId.SunErniang, HeroId.ShiQian, HeroId.XieZhen })
@@ -478,25 +580,69 @@ namespace Liangshan
             s.Seen[(int)EnemyKind.Cavalry] = 1;
             s.Seen[(int)EnemyKind.Porter] = 2;
             s.Seen[(int)EnemyKind.Hawk] = 1;
-            s.Task[0] = 3;
-            s.Task[1] = 2;
-            s.Task[4] = 1;
+            s.Task[(int)Act.Login] = 1;
+            s.Task[(int)Act.Battle] = 7;
+            s.Task[(int)Act.Win] = 5;
+            s.Task[(int)Act.Stamina] = 35;
+            s.Task[(int)Act.Ad] = 1;
+            s.TaskClaimed = 1 | 2 | 16;
             s.SignDays = 2;
             s.SignDay = Profile.Today - 1;
             s.Day = Profile.Today;
+            s.Born = Profile.Today - 2 + 1;
+            s.Life[(int)Act.Battle] = 30;
+            s.Life[(int)Act.Win] = 22;
+            s.Life[(int)Act.HeroUp] = 12;
+            s.Life[(int)Act.Forge] = 14;
+            s.Life[(int)Act.Stamina] = 160;
+            s.Talent = Mathf.Max(s.Talent, 12);
+            s.Pulls = 28;
+            s.SevenGot = 1 | 2 | 4 | 8 | 32;
+            s.SevenBox = 0;
+            s.SprintRound = Meta.SprintRoundOf(s, Profile.Today) + 1;
+            s.SprintAct[(int)Act.Recruit] = 24;
+            s.SprintAct[(int)Act.Battle] = 17;
+            s.SprintAct[(int)Act.Stamina] = 90;
+            s.SprintTier = 1;
             Profile.Use(s);
             ShowHome(HomeScreen.TabBattle);
             yield return WaitReal(1.5f);
             yield return Snap("13_home_ch2");
             yield return ModalShot(() => MetaUi.SignIn(_home.Layer), "14_sign");
             yield return ModalShot(() => MetaUi.Tasks(_home.Layer), "15_tasks");
+            yield return ModalShot(() => MetaUi.Seven(_home.Layer), "15b_seven");
+            yield return ModalShot(() => MetaUi.Seven(_home.Layer, 5), "15c_seven_locked");
+            yield return ModalShot(() => MetaUi.Sprint(_home.Layer), "15d_sprint");
+            yield return ModalShot(() => MetaUi.Sprint(_home.Layer, 1), "15e_sprint_tasks");
+            yield return ModalShot(() => MetaUi.Welfare(_home.Layer), "15f_welfare");
             yield return ModalShot(() => MetaUi.Idle(_home.Layer), "16_idle");
             yield return ModalShot(() => MetaUi.Codex(_home.Layer), "17_codex");
             yield return ModalShot(() => MetaUi.Daily(_home.Layer), "18_daily");
             yield return ModalShot(() => MetaUi.Escort(_home.Layer), "18b_escort");
             yield return ModalShot(() => MetaUi.StaminaShop(_home.Layer), "18c_stamina");
             yield return ModalShot(() => MetaUi.Chest(_home.Layer, 1, 2), "18d_chest");
+            var chest2 = _home.transform.Find("page/body/chests/chest2");
+            if (chest2)
+            {
+                yield return ModalShot(() => MetaUi.LevelChestCard(_home.Layer, 15, 2, chest2), "18e_chest_card");
+                yield return ModalShot(() =>
+                {
+                    MetaUi.LevelChestCard(_home.Layer, 15, 2, chest2);
+                    var tile = _home.Layer.Find("pop_chest/card/item");
+                    MetaUi.ItemTip(_home.Layer, new Item(Cur.Tome, 3), tile ? tile : chest2);
+                }, "18f_item_tip");
+            }
+            yield return ModalShot(() => MetaUi.LevelList(_home.Layer), "18g_levels");
+            yield return ModalShot(() => MetaUi.Meals(_home.Layer), "18h_meals");
+            yield return ModalShot(() => MetaUi.ChapterChests(_home.Layer, 2), "18i_chapter_chests");
             CloseModals();
+            s.Selected = 11;
+            Profile.Save();
+            yield return WaitReal(0.8f);
+            yield return Snap("13b_home_sweep");
+            s.Selected = 12;
+            Profile.Save();
+            yield return WaitReal(0.5f);
             _home.SetTab(HomeScreen.TabHero);
             yield return WaitReal(1.0f);
             yield return Snap("19_heroes");
@@ -527,6 +673,9 @@ namespace Liangshan
             yield return Snap("21_forge");
             yield return ModalShot(() => MetaUi.ForgeSlot(_home.Layer, 0), "22_forge_slot");
             yield return ModalShot(() => MetaUi.TalentTree(_home.Layer), "22b_talent");
+            yield return ModalShot(() => MetaUi.Tome(_home.Layer), "22c_tome");
+            yield return ModalShot(() => MetaUi.Flag(_home.Layer), "22d_flag");
+            yield return ModalShot(() => MetaUi.GearBox(_home.Layer), "22e_gearbox");
             CloseModals();
             _home.SetTab(HomeScreen.TabFort);
             yield return WaitReal(1.0f);
@@ -550,6 +699,7 @@ namespace Liangshan
             Profile.Use(s);
             _autoSkill = 2;
             Play(Defs.Level(level));
+            while (_battle == null) yield return null;
             _battle.Speed = 3f;
             bool boss = false, elite = false;
             float last = 0;
@@ -605,7 +755,6 @@ namespace Liangshan
             yield return WaitReal(1.5f);
             Shot("01_home");
             yield return WaitReal(0.5f);
-
             // 新手引导截一张：真人模式开局。
             StartLevel(1);
             yield return WaitReal(2.5f);
@@ -615,9 +764,10 @@ namespace Liangshan
 
             _autoSkill = 2;
             Play(Defs.Level(1));
+            while (_battle == null) yield return null;
             bool cards = false, reels = false, boss = false, rage = false, mid = false, early = false, late = false, gate = false, walkBig = false;
             float lastPeriodic = 0;
-            int periodic = 0;
+            int periodic = 0, lordCasts = 0;
             _autoDone = false;
             while (!_autoDone)
             {
@@ -636,6 +786,15 @@ namespace Liangshan
                     if (walkBig) yield return WalkBurst(EnemyKind.Shield, "03s");
                 }
                 if (!gate && b.Wave == 2 && _battle.GateOpen > 0.95f && hud.ModalKind == null) { gate = true; Shot("03b_gate_open"); }
+                if (lordCasts < 2 && b.LordCasts > lordCasts && hud.ModalKind == null)
+                {
+                    lordCasts = b.LordCasts;
+                    for (int i = 0; i < 3; i++)
+                    {
+                        yield return WaitReal(0.12f);
+                        Shot($"03c_lord{lordCasts}_{i}");
+                    }
+                }
                 if (!cards && hud.ModalKind == "cards")
                 {
                     cards = true;
@@ -683,6 +842,7 @@ namespace Liangshan
             // 失败结算：只会召唤的机器人。
             _autoSkill = 0;
             Play(Defs.Level(1));
+            while (_battle == null) yield return null;
             _battle.Speed = 3f;
             while (true)
             {

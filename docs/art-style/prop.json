@@ -1,0 +1,21 @@
+{
+ "benchmarks": [
+  "prop_drum",
+  "prop_book",
+  "prop_songjiang"
+ ],
+ "prompt": "Isometric cartoon diorama prop: {subject}, standing on a small square stone base, chibi cartoon style, clean dark outline, soft cel shading, warm wood and red-gold colors, plain pure white background, NO TEXT.",
+ "spec": {
+  "canvas": "最长边 400～540",
+  "transparent": true,
+  "notes": "45 度俯视、带石质底座"
+ },
+ "palette": [
+  "#2d1e13",
+  "#5d2c17",
+  "#bc8d48",
+  "#885731",
+  "#524f3c",
+  "#dec89c"
+ ]
+}

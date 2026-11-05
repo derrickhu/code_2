@@ -11,6 +11,7 @@ namespace Liangshan
 
         public static string Atk(HeroDef d, Battle b = null)
         {
+            if (d.Buff.HasValue) return Buff(d, b);
             var h = d.Id;
             int count = b?.CountOf(h) ?? d.Count;
             int chain = b?.ChainOf(h) ?? d.Chain;
@@ -21,95 +22,126 @@ namespace Liangshan
             float slow = b?.SlowOf(h) ?? d.Slow;
             string dmg = $"{O(P(d.Coef))}攻击力的{d.Element}伤害";
             string t;
-            switch (d.Shot)
+            if (d.Chan > 0)
             {
-                case ShotKind.Arrow:
-                    t = $"向前排射出{O(count)}支箭，每支造成{dmg}" + (chain > 0 ? $"，穿透{O(chain)}个敌人" : "");
-                    break;
-                case ShotKind.Bomb:
-                    t = $"投掷{O(count)}枚炸弹，对半径{O((d.Radius * area).ToString("0.#"))}内的敌人造成{dmg}";
-                    break;
-                case ShotKind.Fireball:
-                    t = $"掷出{O(count)}颗火球，落地爆炸对半径{O((d.Radius * area).ToString("0.#"))}内的敌人造成{dmg}";
-                    break;
-                case ShotKind.Lightning:
-                    t = $"召雷劈中敌人，造成{dmg}" + (chain > 0 ? $"，再连锁{O(chain)}个敌人" : "");
-                    break;
-                case ShotKind.Punch:
-                    t = $"只打墙前近身的敌人，出拳{O(count)}次，每次造成{dmg}并击退";
-                    break;
-                case ShotKind.Slam:
-                    t = $"砸地震击周围敌人，造成{dmg}并震退";
-                    break;
-                case ShotKind.Spear:
-                    t = $"长枪贯穿目标和身后一列敌人，造成{dmg}";
-                    break;
-                case ShotKind.Stone:
-                    t = $"掷出飞石造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次（每次{O("80%")}）" : "");
-                    break;
-                case ShotKind.Lasso:
-                    t = $"甩出套索缚住{O(count)}个敌人，造成{dmg}，定身{Sec(stun)}";
-                    break;
-                default:
-                    t = $"风刃卷向敌群，对目标造成{dmg}，周围敌人受一半伤害";
-                    break;
+                float chan = d.Chan + (b != null ? Defs.ChanPerCount * b.Stat(h, Eff.Count) : 0);
+                string head = $"持续施法{Sec(chan)}，每{O(d.Tick.ToString("0.##"))}秒";
+                switch (d.Shot)
+                {
+                    case ShotKind.Beam: t = $"{head}灼烧射线上的敌人，目标受到{dmg}，射线路过的敌人受{O("60%")}"; break;
+                    case ShotKind.Lightning: t = $"{head}一道天雷随机劈向前排，造成{dmg}" + (chain > 0 ? $"并连锁{O(chain)}个敌人" : ""); break;
+                    case ShotKind.Wind: t = $"{head}在目标处绞杀，对周围敌人造成{dmg}"; break;
+                    default: t = $"{head}祭出金砖砸向敌人，造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次" : ""); break;
+                }
+            }
+            else
+            {
+                switch (d.Shot)
+                {
+                    case ShotKind.Arrow:
+                        t = $"向前排射出{O(count)}支箭，每支造成{dmg}" + (chain > 0 ? $"，穿透{O(chain)}个敌人" : "");
+                        break;
+                    case ShotKind.Bomb:
+                        t = $"投掷{O(count)}枚炸弹，对半径{O((d.Radius * area).ToString("0.#"))}内的敌人造成{dmg}";
+                        break;
+                    case ShotKind.Fireball:
+                        t = $"掷出{O(count)}颗火球，落地爆炸对半径{O((d.Radius * area).ToString("0.#"))}内的敌人造成{dmg}";
+                        break;
+                    case ShotKind.Lightning:
+                        t = $"召雷劈中敌人，造成{dmg}" + (chain > 0 ? $"，再连锁{O(chain)}个敌人" : "");
+                        break;
+                    case ShotKind.Punch:
+                        t = $"只打墙前近身的敌人，连击{O(count)}次，每次造成{dmg}并击退";
+                        break;
+                    case ShotKind.Slam:
+                        t = $"砸地震击周围敌人，造成{dmg}并震退";
+                        break;
+                    case ShotKind.Spear:
+                        t = $"长枪贯穿目标和身后一列敌人，造成{dmg}";
+                        break;
+                    case ShotKind.Stone:
+                        t = $"掷出飞石造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次（每次{O("80%")}）" : "");
+                        break;
+                    case ShotKind.Lasso:
+                        t = $"甩出套索缚住{O(count)}个敌人，造成{dmg}，定身{Sec(stun)}";
+                        break;
+                    default:
+                        t = $"风刃卷向敌群，对目标造成{dmg}，周围敌人受一半伤害";
+                        break;
+                }
             }
             if (d.Shot != ShotKind.Lasso && chance > 0)
                 t += chance >= 1f ? $"，击晕{Sec(stun)}" : $"，{O(P(chance))}几率击晕{Sec(stun)}";
             if (slow > 0) t += $"，减速{Sec(slow)}";
-            if (d.Aura != AuraKind.None) t += "\n" + Aura(d, b);
+            if (d.Chan <= 0 && d.Count > 1) t += $"\n1星每轮只出{O(1)}发，每升1星多1发，最多{O(System.Math.Min(d.Count, 4))}发（强化另加）";
+            string aura = Aura(d, b);
+            if (aura.Length > 0) t += "\n" + aura;
+            return t;
+        }
+
+        /// <summary>辅助的技能：给队友加持，不打伤害。</summary>
+        static string Buff(HeroDef d, Battle b)
+        {
+            float boost = b?.BuffBoost(d.Id) ?? 1f;
+            string t;
+            switch (d.Buff.Value)
+            {
+                case UltKind.Bless:
+                    t = $"祝福一位输出好汉（{O("3星")}起两位）：接下来{O("2+星级")}次技能冷却速度{O("+" + P(d.BuffV * boost))}";
+                    break;
+                case UltKind.Rush:
+                    t = $"其余好汉的技能和大招冷却立即缩短{O(P(d.BuffV * boost))}（每星再{O("+10%")}）";
+                    break;
+                case UltKind.Mend:
+                    t = $"为寨墙回复最大生命的{O(P(d.BuffV * boost))}×星级，并解除所有好汉的晕眩";
+                    break;
+                case UltKind.Forge:
+                    t = $"打造神兵：{Sec(8)}内全军伤害{O("+" + P(d.BuffV * boost))}起（星级越高越多）";
+                    break;
+                case UltKind.Steal:
+                    t = $"偷来银两：{O("20+10×星级+4×波次")}" + (boost > 1.01f ? $"，再{O("×" + boost.ToString("0.##"))}" : "");
+                    break;
+                case UltKind.Interest:
+                    t = $"立即获得当前银两{O(P(d.BuffV * boost))}的利息（{O("30~400")}）";
+                    break;
+                default: t = ""; break;
+            }
+            string aura = Aura(d, b);
+            if (aura.Length > 0) t += "\n" + aura;
             return t;
         }
 
         public static string Aura(HeroDef d, Battle b = null)
         {
             string v = O(P(d.AuraV));
-            string t;
             switch (d.Aura)
             {
-                case AuraKind.Speed: t = $"光环：在场每星为全军加{v}攻速" + (b != null ? $"（当前{O("+" + P(b.Aura))}）" : ""); break;
-                case AuraKind.Dmg: t = $"光环：在场每星为全军加{v}伤害" + (b != null ? $"（当前{O("+" + P(b.DmgAura))}）" : ""); break;
-                case AuraKind.Charge: t = $"光环：在场每星让全军大招充能加快{v}" + (b != null ? $"（当前{O("+" + P(b.ChargeAura))}）" : ""); break;
-                case AuraKind.Heal: t = $"每次出手为寨墙回复最大生命的{v}×星级"; break;
-                case AuraKind.Coin: t = $"光环：在场每星让击杀银两加{v}" + (b != null ? $"（当前{O("+" + P(b.CoinAura))}）" : ""); break;
-                case AuraKind.Interest: t = $"每4秒获得当前银两{v}×星级的利息（单次最多25）"; break;
+                case AuraKind.Speed: return $"光环：在场每星为全军加{v}攻速" + (b != null ? $"（当前{O("+" + P(b.Aura))}）" : "");
+                case AuraKind.Dmg: return $"光环：在场每星为全军加{v}伤害" + (b != null ? $"（当前{O("+" + P(b.DmgAura))}）" : "");
+                case AuraKind.Charge: return $"光环：在场每星让全军冷却加快{v}" + (b != null ? $"（当前{O("+" + P(b.ChargeAura))}）" : "");
+                case AuraKind.Coin: return $"光环：在场每星让击杀银两加{v}" + (b != null ? $"（当前{O("+" + P(b.CoinAura))}）" : "");
+                case AuraKind.Interest: return $"每4秒获得当前银两{v}×星级的利息（单次最多25）";
                 default: return "";
             }
-            return t;
         }
 
-        /// <summary>pow：大招威力倍率（等级 25 的 +50%、强化加成）。</summary>
+        /// <summary>pow：大招威力倍率（强化加成）。</summary>
         public static string Ult(HeroDef d, float pow = 1f)
         {
-            string dmg = $"{O(P(d.Coef * d.UltCoef * pow))}攻击力";
+            if (!d.HasUlt) return "仅传说好汉拥有大招";
+            string dmg = $"{O(P(d.UltCoef * pow))}攻击力";
             string n = O(d.UltN);
             switch (d.Ult)
             {
-                case UltKind.Rain: return $"火箭齐射{n}支，覆盖敌群最密处，每支造成{dmg}伤害";
-                case UltKind.BigBomb: return $"砸下一枚巨型火炮，对大范围敌人造成{dmg}伤害并震退";
                 case UltKind.Thunder: return $"{n}道天雷劈向敌群，每道造成{dmg}伤害并麻痹{Sec(d.UltStun)}";
-                case UltKind.Barrage: return $"连环出拳{n}击，每击造成{dmg}伤害并击退";
-                case UltKind.Volley: return $"{n}枚飞石连打前排，每枚造成{dmg}伤害并击晕{Sec(d.UltStun)}";
-                case UltKind.Arrows: return $"连珠{n}箭射向前排，每箭造成{dmg}伤害";
                 case UltKind.Frost: return $"风雪冰封一片敌人，造成{dmg}伤害，冻住{Sec(d.UltStun)}";
                 case UltKind.Sweep: return $"横扫墙前一整排，{n}段各造成{dmg}伤害并击飞";
-                case UltKind.Haste: return $"全军攻速{O("+60%")}持续{Sec(6f * pow)}，并获得银两";
+                case UltKind.Haste: return $"全军攻速{O("+60%")}持续{Sec(8f * pow)}";
                 case UltKind.Heal: return $"为寨墙回复{O(P(d.UltCoef * pow))}最大生命，并解除所有好汉的晕眩";
                 case UltKind.Bind: return $"同时套住{n}个敌人（优先精英、首领），每个造成{dmg}伤害并定身{Sec(d.UltStun)}";
                 case UltKind.Snipe: return $"瞄准场上最强的敌人，一箭造成{dmg}伤害";
                 case UltKind.Tornado: return $"召出龙卷风，范围内敌人受到{dmg}伤害并被卷起{Sec(d.UltStun)}";
                 case UltKind.Meteor: return $"天降{n}颗火流星，每颗造成{dmg}范围伤害";
-                case UltKind.FireLine: return $"沿墙前布下{n}团烈火，每团造成{dmg}范围伤害";
-                case UltKind.Formation: return $"布下八门金锁阵：全场敌人受到{dmg}伤害，减速{Sec(4f * pow)}，{Sec(6f * pow)}内受到伤害{O("+25%")}";
-                case UltKind.Net: return $"撒下大网，范围内敌人受到{dmg}伤害并定身{Sec(d.UltStun)}";
-                case UltKind.Powder: return $"洒出蒙汗药，范围内敌人受到{dmg}伤害并麻倒{Sec(d.UltStun)}";
-                case UltKind.Wave: return $"引水冲阵，两排水浪各造成{dmg}伤害并减速";
-                case UltKind.Brick: return $"祭起金砖砸向最强的敌人，造成{dmg}伤害并击晕{Sec(d.UltStun)}";
-                case UltKind.Hook: return $"钩镰枪横扫墙前{n}处，每处造成{dmg}伤害并绊倒{Sec(d.UltStun)}";
-                case UltKind.Steal: return $"偷来银两：{O("20+10×星级+4×波次")}";
-                case UltKind.Interest: return $"立即获得当前银两{O(P(d.UltCoef * pow))}的利息（{O("30~400")}）";
-                case UltKind.Forge: return $"打造神兵：{Sec(6)}内全军伤害{O("+" + P(d.UltCoef * pow))}";
-                case UltKind.Charge: return $"神行甲马：其余好汉大招冷却立即缩短{O(P(d.UltCoef))}，全军攻速{O("+30%")}持续{Sec(4f * pow)}";
             }
             return "";
         }
@@ -117,6 +149,7 @@ namespace Liangshan
         public static string Passive(HeroDef d) => Defs.EffText(d.Id, d.PassiveEff, d.PassiveV);
 
         public static string Tip(HeroDef d) =>
+            d.Buff.HasValue ? "辅助：不打伤害，专给队友加持" :
             d.Melee ? "近战：打不到飞行敌人" : d.Physical ? "物理：被重甲削弱" : "法术：克制重甲";
     }
 }

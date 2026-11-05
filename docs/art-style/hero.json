@@ -1,0 +1,22 @@
+{
+ "benchmarks": [
+  "hero_wusong",
+  "hero_linchong",
+  "hero_lujunyi",
+  "hero_zhangqing"
+ ],
+ "prompt": "Chibi Water Margin hero: {subject}. anime chibi proportions about 3 heads tall, big head, same face style, clean dark outline, soft cel shading, bright clean colors, few big color shapes, full body standing facing three-quarters toward the camera, plain pure white background, no ground, no shadow, NO TEXT.",
+ "spec": {
+  "canvas": "方形画布 384 或 512，脚底贴底边、身体居中",
+  "transparent": true,
+  "notes": "四帧：待机A / 待机B（只改表情或小动作，武器不能消失）/ 蓄力 / 出手，同一套装备"
+ },
+ "palette": [
+  "#1c2129",
+  "#343438",
+  "#7b736f",
+  "#b5aca3",
+  "#e9d6c2",
+  "#5f3a2d"
+ ]
+}

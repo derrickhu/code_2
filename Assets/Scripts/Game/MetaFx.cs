@@ -262,27 +262,27 @@ namespace Liangshan
             Tween.Run(root, 2.6f, k => { }, Close);
         }
 
-        /// <summary>等级里程碑：「永久强化」横幅，带技能六边形和说明。第 20 级是开局自带的强化，用「解锁选项」。</summary>
+        /// <summary>等级里程碑：5、20 级往局内卡池加一张选项，用「解锁选项」；其余是「永久强化」。</summary>
         public static void Perma(Transform layer, HeroId h, int unlockIdx, Action done = null)
         {
             var d = Defs.Hero(h);
             RectTransform root = null;
             root = Overlay(layer, "perma", 0.55f, () => { Dismiss(root); done?.Invoke(); }, 0.6f);
             Sfx.Play(Snd.Unlock, 0.9f);
-            bool option = unlockIdx == 4;
+            var opt = unlockIdx == 1 ? Meta.OptPerk(h, 1) : unlockIdx == 4 ? Meta.OptPerk(h, 2) : null;
             Band(root, 60, 420);
-            var word = BigWord(root, option ? "解锁选项" : "永久强化", new Vector2(0, 250), 92);
+            var word = BigWord(root, opt != null ? "解锁选项" : "永久强化", new Vector2(0, 250), 92);
             Burst(root, new Vector2(0, 250), 18, 460);
-            string icon = unlockIdx == 1 ? "ic_star" : unlockIdx == 2 ? d.AtkIcon : unlockIdx == 4 ? HeroArtOrIcon(h) : unlockIdx == 6 ? "ic_fast" : d.UltIcon;
+            string icon = opt != null ? (opt.Opt == 2 ? "ic_star" : d.AtkIcon) : unlockIdx == 2 ? "ic_star" : unlockIdx == 6 ? "ic_fast" : d.AtkIcon;
             var hex = Hex(root, icon, 150, new Vector2(0, 110), false, d.Rarity);
             Tween.Pop(hex, 0.35f, 0.15f);
-            string name = unlockIdx == 1 ? d.PassiveName : unlockIdx == 2 ? d.AtkName + "·精通" : unlockIdx == 3 ? d.UltName + "·迅捷" :
-                unlockIdx == 4 ? Defs.Perk(Meta.FirstPerk(h)).Name : unlockIdx == 5 ? d.UltName + "·极意" : "疾风";
+            string name = opt != null ? opt.Name : unlockIdx == 2 ? d.PassiveName : unlockIdx == 3 ? Meta.OptPerk(h, 1).Name + "·精通" :
+                unlockIdx == 5 ? d.AtkName + "·极意" : "疾风";
             Ui.Outlined(root, name, 44, Pal.Hex("FFE7A0"), new Vector2(0, 2), new Vector2(800, 60), Pal.Ink, 3f);
-            string desc = option
-                ? $"{d.Name}上阵后，开局直接获得强化{HeroText.O("[" + name + "]")}"
+            string desc = opt != null
+                ? $"{d.Name}上阵时，局内强化可抽到{HeroText.O("[" + name + "]")}：{opt.Desc}"
                 : $"{d.Name}获得{HeroText.O("[" + name + "]")}：{Meta.Talent(h, unlockIdx)}";
-            Ui.Label(root, desc, 32, Color.white, new Vector2(0, -72), new Vector2(880, 90), TextAnchor.MiddleCenter, Fonts.Heavy);
+            Ui.Label(root, desc, 32, Color.white, new Vector2(0, -72), new Vector2(880, 110), TextAnchor.MiddleCenter, Fonts.Heavy);
             Hint(root, -300);
             word.transform.SetAsLastSibling();
         }

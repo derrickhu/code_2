@@ -1,0 +1,21 @@
+{
+ "benchmarks": [
+  "home_bg",
+  "hall_bg",
+  "map_fort"
+ ],
+ "prompt": "Bright cheerful cartoon mobile game background: {subject}. Water Margin Liangshan setting on a sunny day, clear blue sky with soft clouds, saturated but light palette, soft cel shading, no dark shadows, large clean empty areas for UI, NO TEXT.",
+ "spec": {
+  "canvas": "1080×1920 竖版（横幅按实际位置）",
+  "transparent": false,
+  "notes": "沿用 ui_kit_prompt.txt 的局外背景描述"
+ },
+ "palette": [
+  "#706040",
+  "#b5ab78",
+  "#e4cc9d",
+  "#eddebd",
+  "#53a598",
+  "#97cda7"
+ ]
+}
