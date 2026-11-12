@@ -23,7 +23,7 @@ namespace Liangshan.EditorTools
                 ActivateWeChat();
                 EnsureConfig();
                 long packs = ArtPacks.Build(EditorUserBuildSettings.activeBuildTarget);
-                Debug.Log($"[微信] 图包 {packs / 1048576f:0.0} MB，发布前跑 node tools/upload_cdn.mjs 把 wechat-minigame/webgl/StreamingAssets 传到 CDN。");
+                Debug.Log($"[微信] 图包 {packs / 1048576f:0.0} MB。首包和图包都在 CDN：导出后跑 node tools/upload_cdn.mjs。");
                 Debug.Log("[微信] 开始转换，第一次编 WASM 要比较久。");
                 object result = Invoke("WeChatWASM.WXConvertCore", "DoExport", new object[] { true });
                 bool ok = result != null && result.ToString() == "SUCCEED";
@@ -53,8 +53,9 @@ namespace Liangshan.EditorTools
             Set(so, "ProjectConf.CDN", CloudConfig.AssetCdn);
             Set(so, "ProjectConf.relativeDST", "wechat-minigame");
             Set(so, "ProjectConf.DST", Path.Combine(ProjectRoot, "wechat-minigame"));
-            Set(so, "ProjectConf.assetLoadType", 1);
-            // 压缩的首包资源启动时会被插件解压后整份写进用户文件缓存，开发者工具 10MB 的上限装不下。
+            // 0 = 首包走 CDN。wasm（约 3MB）+ 首包（约 26MB）已经顶满代码包 30MB，再放进 data-package 分包传不上去。
+            Set(so, "ProjectConf.assetLoadType", 0);
+            // 压缩的首包启动时会被插件解压后整份写进用户文件缓存。保持不压缩，CDN 上放 .bin.txt。
             Set(so, "ProjectConf.compressDataPackage", false);
             Set(so, "ProjectConf.Orientation", 0);
             so.ApplyModifiedPropertiesWithoutUndo();
@@ -87,19 +88,37 @@ namespace Liangshan.EditorTools
         }
 
         /// <summary>
-        /// 首包（画面、字体、音效）不到 30MB 时留在小游戏分包里；超了插件会改成从 CDN 整包下载。
-        /// 美术质量优先，超 30MB 只提醒，发布前把 webgl.data 传到 CDN 即可。曲子始终在 CDN。
+        /// 首包固定走 CDN：webgl 目录下的 {md5}.webgl.data.unityweb.bin.txt，地址是 DATA_CDN 加文件名。
+        /// 图包和曲子在 StreamingAssets，同一条上传脚本一起传。
         /// </summary>
         static bool CheckGameJs()
         {
-            string js = File.ReadAllText(Path.Combine(ProjectRoot, "wechat-minigame", "minigame", "game.js"));
+            string root = Path.Combine(ProjectRoot, "wechat-minigame");
+            string js = File.ReadAllText(Path.Combine(root, "minigame", "game.js"));
+            string gameJson = File.ReadAllText(Path.Combine(root, "minigame", "game.json"));
             bool sub = js.Contains("loadDataPackageFromSubpackage: true");
             bool raw = js.Contains("compressDataPackage: false");
             bool cdn = js.Contains(CloudConfig.AssetCdn);
-            Debug.Log($"[微信] 分包加载首包={sub}，不压缩首包={raw}，资源 CDN={cdn}");
-            if (!sub) Debug.LogWarning("[微信] 首包超 30MB，已改成从 CDN 下载。发布前要把 wechat-minigame/webgl/Build/webgl.data 传到 CDN。");
-            if (!cdn) Debug.LogError("[微信] game.js 里没有资源 CDN 地址，曲子会拉不到。");
-            return cdn;
+            bool declared = gameJson.Contains("data-package");
+            bool folder = Directory.Exists(Path.Combine(root, "minigame", "data-package"));
+            string dataFile = "";
+            long dataBytes = 0;
+            foreach (var file in Directory.GetFiles(Path.Combine(root, "webgl"), "*.webgl.data.unityweb.bin.txt"))
+            {
+                var info = new FileInfo(file);
+                if (info.Length > dataBytes)
+                {
+                    dataBytes = info.Length;
+                    dataFile = info.Name;
+                }
+            }
+            Debug.Log($"[微信] 首包走CDN={!sub}，不压缩首包={raw}，资源CDN={cdn}，首包文件={dataFile}（{dataBytes / 1048576f:0.0}MB）");
+            if (sub) Debug.LogError("[微信] 首包还在代码分包里，包体会超过 30MB。");
+            if (declared || folder) Debug.LogError("[微信] minigame 里还留着 data-package，上传时仍会计入代码包。");
+            if (dataFile.Length == 0) Debug.LogError("[微信] webgl 目录没有首包文件，CDN 上没有东西可拉。");
+            if (!cdn) Debug.LogError("[微信] game.js 里没有资源 CDN 地址。");
+            if (!raw) Debug.LogError("[微信] 首包被压成了 .br，和 CDN 上的 .bin.txt 对不上。");
+            return cdn && raw && !sub && !declared && !folder && dataFile.Length > 0;
         }
 
         /// <summary>微信子平台没 Active 时转换 SDK 不编译；Mac 演示包会把当前平台切走，导出前切回来。</summary>

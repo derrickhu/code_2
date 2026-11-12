@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * 宋江别慌张：把微信导出的 StreamingAssets（图包 art/、曲子 Music/）增量传到云存储 biehuang/StreamingAssets。
+ * 宋江别慌张：把微信导出的资源传到云存储。
+ * StreamingAssets（图包 art/、曲子 Music/）→ biehuang/StreamingAssets
+ * 首包 {md5}.webgl.data.unityweb.bin.txt → biehuang/ 根上，和 game.js 的 DATA_CDN 拼在一起。
  * 做法照搬 xiaochu2/scripts/upload_cdn.js：COS 签名 PUT，按远端 manifest.json 里的 sha1 比对只传变了的文件。
  *
  *   node tools/upload_cdn.mjs --dry-run   只列出要传什么
@@ -21,9 +23,11 @@ import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LOCAL = path.join(ROOT, 'wechat-minigame', 'webgl', 'StreamingAssets');
+const WEBGL = path.join(ROOT, 'wechat-minigame', 'webgl');
 const BUCKET = '726f-rosa-env-d7grf78r5dbd37323-1414200063';
 const BASE_URL = `https://${BUCKET}.tcb.qcloud.la`;
 const PREFIX = 'biehuang/StreamingAssets';
+const DATA_PREFIX = 'biehuang';
 const FORCE = process.argv.includes('--force');
 const DRY_RUN = process.argv.includes('--dry-run');
 const PRUNE = process.argv.includes('--prune');
@@ -89,10 +93,10 @@ async function inferRegion() {
   return (REGION = m[1].trim());
 }
 
-async function cos(method, objectPath, body = null, headers = {}) {
+async function cos(method, objectPath, body = null, headers = {}, timeoutMs = 60000) {
   const host = `${BUCKET}.cos.${REGION}.myqcloud.com`;
   const uri = `/${encodePathname(objectPath)}`;
-  const res = await request({ method, hostname: host, path: uri, headers: { Host: host, Authorization: cosAuth(method, host, uri), ...headers }, body });
+  const res = await request({ method, hostname: host, path: uri, headers: { Host: host, Authorization: cosAuth(method, host, uri), ...headers }, body, timeoutMs });
   if (res.statusCode < 200 || (res.statusCode >= 300 && !(method === 'DELETE' && res.statusCode === 404)))
     throw new Error(`${method} ${objectPath} 返回 ${res.statusCode}: ${res.body.toString('utf-8').slice(0, 200)}`);
 }
@@ -145,24 +149,56 @@ async function pool(tasks, n) {
 
 const mb = (b) => `${(b / 1048576).toFixed(2)} MB`;
 
+function scanDataPacks() {
+  if (!fs.existsSync(WEBGL)) return [];
+  return fs.readdirSync(WEBGL)
+    .filter((name) => /\.webgl\.data\.unityweb\.bin\.(txt|br)$/.test(name))
+    .map((name) => {
+      const local = path.join(WEBGL, name);
+      const buf = fs.readFileSync(local);
+      return { name, local, hash: sha1Hex(buf), size: buf.length };
+    });
+}
+
+async function dataManifest() {
+  const url = new URL(`${BASE_URL}/${DATA_PREFIX}/datapack-manifest.json?t=${Date.now()}`);
+  try {
+    const res = await request({ hostname: url.hostname, path: url.pathname + url.search });
+    if (res.statusCode !== 200) return null;
+    const m = JSON.parse(res.body.toString('utf-8'));
+    return m && m.files ? m : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function main() {
   if (!fs.existsSync(LOCAL)) throw new Error(`没有 ${LOCAL}，先导出微信小游戏`);
   const local = scan();
   const total = Object.values(local).reduce((a, f) => a + f.size, 0);
-  console.log(`本地 ${Object.keys(local).length} 个文件，共 ${mb(total)}  →  ${BASE_URL}/${PREFIX}/`);
+  console.log(`图包曲子 ${Object.keys(local).length} 个文件，共 ${mb(total)}  →  ${BASE_URL}/${PREFIX}/`);
   const remote = FORCE ? null : await remoteManifest();
   const old = remote?.files || {};
-  console.log(remote ? `云端清单 v${remote.version}，${Object.keys(old).length} 个文件` : '云端没有清单，全量上传');
+  console.log(remote ? `云端清单 v${remote.version}，${Object.keys(old).length} 个文件` : '云端没有图包清单，全量上传');
 
   const up = Object.keys(local).filter((rp) => FORCE || old[rp]?.hash !== local[rp].hash).sort();
   const del = PRUNE ? Object.keys(old).filter((rp) => !local[rp]).sort() : [];
   const upBytes = up.reduce((a, rp) => a + local[rp].size, 0);
-  console.log(`要上传 ${up.length} 个（${mb(upBytes)}），删除 ${del.length} 个，跳过 ${Object.keys(local).length - up.length} 个`);
+  console.log(`图包要上传 ${up.length} 个（${mb(upBytes)}），删除 ${del.length} 个，跳过 ${Object.keys(local).length - up.length} 个`);
   for (const rp of up) console.log(`  + ${rp} (${mb(local[rp].size)})`);
   for (const rp of del) console.log(`  - ${rp}`);
+
+  const packs = scanDataPacks();
+  if (packs.length === 0) throw new Error(`没有 ${WEBGL}/*.webgl.data.unityweb.bin.txt，先导出微信小游戏`);
+  const packRemote = FORCE ? null : await dataManifest();
+  const packOld = packRemote?.files || {};
+  const packUp = packs.filter((f) => FORCE || packOld[f.name]?.hash !== f.hash);
+  console.log(`首包 ${packs.length} 个，要上传 ${packUp.length} 个 → ${BASE_URL}/${DATA_PREFIX}/`);
+  for (const f of packs) console.log(`  ${packUp.includes(f) ? '+' : '='} ${f.name} (${mb(f.size)})`);
+
   if (DRY_RUN) return console.log('dry-run：没有上传任何文件。');
   if (!secret.id || !secret.key) throw new Error(`缺 TENCENTCLOUD_SECRET_ID / KEY（读的是 ${secret.file}）`);
-  if (up.length === 0 && del.length === 0) return console.log('已是最新。');
+  if (up.length === 0 && del.length === 0 && packUp.length === 0) return console.log('已是最新。');
 
   console.log('region:', await inferRegion());
   const failed = await pool(up.map((rp) => async () => {
@@ -174,17 +210,44 @@ async function main() {
       throw e;
     }
   }), CONCURRENCY);
-  if (failed) throw new Error(`${failed} 个文件上传失败，清单没更新，重跑即可续传`);
+  if (failed) throw new Error(`${failed} 个图包上传失败，清单没更新，重跑即可续传`);
   for (const rp of del) await cos('DELETE', `${PREFIX}/${rp}`);
 
-  const files = PRUNE ? {} : { ...old };
-  for (const [rp, f] of Object.entries(local)) files[rp] = { hash: f.hash, size: f.size };
-  const manifest = { version: Number(remote?.version || 0) + 1, updated: new Date().toISOString(), files };
-  // 清单名含 json，微信插件不会缓存它；CDN 边缘也不许缓存，否则会拿到旧清单。
-  await cos('PUT', `${PREFIX}/manifest.json`, JSON.stringify(manifest, null, 1), {
-    'Content-Type': 'application/json', 'Cache-Control': 'no-cache, max-age=0, must-revalidate',
-  });
-  console.log(`完成：上传 ${up.length} 个，清单 v${manifest.version}`);
+  if (up.length || del.length) {
+    const files = PRUNE ? {} : { ...old };
+    for (const [rp, f] of Object.entries(local)) files[rp] = { hash: f.hash, size: f.size };
+    const manifest = { version: Number(remote?.version || 0) + 1, updated: new Date().toISOString(), files };
+    // 清单名含 json，微信插件不会缓存它；CDN 边缘也不许缓存，否则会拿到旧清单。
+    await cos('PUT', `${PREFIX}/manifest.json`, JSON.stringify(manifest, null, 1), {
+      'Content-Type': 'application/json', 'Cache-Control': 'no-cache, max-age=0, must-revalidate',
+    });
+    console.log(`图包完成：上传 ${up.length} 个，清单 v${manifest.version}`);
+  }
+
+  let packFailed = 0;
+  for (const f of packUp) {
+    try {
+      await cos('PUT', `${DATA_PREFIX}/${f.name}`, fs.readFileSync(f.local), {
+        'Content-Type': 'application/octet-stream',
+        'Cache-Control': 'public, max-age=31536000',
+      }, 300000);
+      console.log(`  [+] ${f.name}`);
+    } catch (e) {
+      packFailed++;
+      console.error(`  [x] ${f.name}: ${e.message}`);
+    }
+  }
+  if (packFailed) throw new Error(`${packFailed} 个首包上传失败，重跑即可续传`);
+  if (packUp.length) {
+    const files = { ...packOld };
+    for (const f of packs) files[f.name] = { hash: f.hash, size: f.size };
+    await cos('PUT', `${DATA_PREFIX}/datapack-manifest.json`, JSON.stringify({
+      version: Number(packRemote?.version || 0) + 1, updated: new Date().toISOString(), files,
+    }, null, 1), {
+      'Content-Type': 'application/json', 'Cache-Control': 'no-cache, max-age=0, must-revalidate',
+    });
+  }
+  for (const f of packs) console.log(`首包地址 ${BASE_URL}/${DATA_PREFIX}/${f.name}`);
 }
 
 main().catch((e) => {

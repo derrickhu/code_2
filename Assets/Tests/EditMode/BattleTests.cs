@@ -36,13 +36,50 @@ namespace Liangshan.Tests
         }
 
         [Test]
-        public void OneStarFiresOnceAndEachStarAddsAShot()
+        public void StarMultipliersFollowDiminishingCurveAndMergeShocksNearWall()
         {
+            Assert.AreEqual(1.0f, Defs.StarMul[0], 1e-4f);
+            Assert.AreEqual(2.0f, Defs.StarMul[1], 1e-4f, "1→2星整整翻倍，性价比最高");
+            Assert.Less(Defs.StarMul[2], Defs.StarMul[1] * 2f, "2→3星边际微敛，靠质变和词条放大");
+            Assert.Greater(Defs.StarMul[3], Defs.StarMul[2] * 1.5f);
             var d = Defs.Hero(HeroId.HuaRong);
-            Assert.AreEqual(1, Defs.ShotsAt(d, 1));
-            Assert.AreEqual(2, Defs.ShotsAt(d, 2));
-            Assert.AreEqual(d.Count, Defs.ShotsAt(d, 3));
-            Assert.AreEqual(1, Defs.ShotsAt(Defs.Hero(HeroId.LinChong), 4));
+            Assert.AreEqual(d.Count, Defs.ShotsAt(d, 1), "1星就有完整职业连射节奏");
+
+            var b = new Battle(2, Lineup);
+            b.Slots[0].Unit = new Unit { Hero = HeroId.ShiXiu, Star = 1 };
+            b.Slots[1].Unit = new Unit { Hero = HeroId.ShiXiu, Star = 1 };
+            var near = new Enemy { Id = 910, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 500, MaxHp = 500, Pos = new V2(b.Slots[1].Pos.X, Layout.StopY), Attacking = true };
+            b.Enemies.Add(near);
+            Assert.IsTrue(b.Drop(0, 1));
+            Assert.LessOrEqual(b.Slots[1].Unit.Cd, 0.3f, "合成落地立即重置冷却准备爆发");
+            Assert.Greater(near.Pos.Y, Layout.StopY + 0.3f, "合成冲击震退贴墙敌军");
+            Assert.Greater(near.Stun, 0.2f);
+        }
+
+        [Test]
+        public void ShatterAndResonanceAmplifySynergyDamage()
+        {
+            var b = new Battle(5, new[] { HeroId.HuaRong, HeroId.RuanXiaoqi, HeroId.XieZhen, HeroId.ShiXiu });
+            b.Slots[0].Unit = new Unit { Hero = HeroId.HuaRong, Star = 3 };
+            b.Slots[1].Unit = new Unit { Hero = HeroId.XieZhen, Star = 1 };
+            b.Perks["huarong_res"] = 1;
+            b.Perks["huarong_shatter"] = 1;
+            // 通过 Pick 刷新内部 _stat 表
+            b.Choices = new[] { Defs.Perk("huarong_0") };
+            b.Phase = Phase.Choosing;
+            b.Pick(0);
+            Assert.Greater(b.SlotHeroAtk(b.Slots[0]), b.HeroAtk(HeroId.HuaRong, 3) * 1.35f, "众星捧月按场上同职业人数放大主C攻击");
+
+            var plain = new Enemy { Id = 920, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0, 1f), Stun = 0f };
+            var chilled = new Enemy { Id = 921, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0, 1f), SlowT = 3f };
+            b.Enemies.Add(plain);
+            b.Enemies.Add(chilled);
+            b.Shots.Add(new Shot { Id = 1, Kind = ShotKind.Arrow, Hero = HeroId.HuaRong, From = b.Slots[0].Pos, To = plain.Pos, TargetId = plain.Id, Dur = 0.01f, Damage = 100f });
+            b.Shots.Add(new Shot { Id = 2, Kind = ShotKind.Arrow, Hero = HeroId.HuaRong, From = b.Slots[0].Pos, To = chilled.Pos, TargetId = chilled.Id, Dur = 0.01f, Damage = 100f });
+            b.Update(0.02f);
+            float plainLost = plain.MaxHp - plain.Hp;
+            float chillLost = chilled.MaxHp - chilled.Hp;
+            Assert.Greater(chillLost, plainLost * 1.7f, "破冰追击对受控敌人造成大幅额外伤害");
         }
 
         [Test]
@@ -235,6 +272,26 @@ namespace Liangshan.Tests
         }
 
         [Test]
+        public void StagesIntroduceMonstersGraduallyAndCapPerStageTypes()
+        {
+            var allMinions = new System.Collections.Generic.HashSet<EnemyKind>();
+            foreach (var st in Defs.Levels)
+            {
+                Assert.LessOrEqual(st.Troops.Length, 2, $"第{st.No}关特色小兵不超过2种（加基础官兵最多3种）");
+                var b = new Battle(1, Lineup, st);
+                var roster = b.StageRoster();
+                Assert.LessOrEqual(roster.Count, 5, $"第{st.No}关本关怪物总数不扎堆");
+
+                var w1 = Defs.WaveTroops(st, 1, new Rng(11));
+                Assert.IsTrue(w1.All(k => k == EnemyKind.Soldier), $"第{st.No}关第1波只出基础官兵，后续波次再逐步混入新怪");
+                foreach (var m in st.Troops) allMinions.Add(m.Kind);
+            }
+            Assert.AreEqual(1, Defs.Level(1).Troops.Length, "第1关只解锁盾兵1种特色怪");
+            Assert.AreEqual(1, Defs.Level(2).Troops.Length, "第2关只解锁骑兵1种特色怪");
+            Assert.GreaterOrEqual(allMinions.Count, 14, "全5章逐步覆盖全部特色兵种");
+        }
+
+        [Test]
         public void ReelsJackpotDoublesSilver()
         {
             var b = new Battle(5, Lineup) { Phase = Phase.Reels, PendingReels = 1 };
@@ -411,6 +468,176 @@ namespace Liangshan.Tests
             Put(b, 0, HeroId.DaiZong);
             b.Update(1f / 30f);
             Assert.Less(mage.Cd, before * 0.75f);
+        }
+
+        [Test]
+        public void MeleeSwingTravelsToTheTargetAndHitsOnArrival()
+        {
+            Assert.That(Battle.MeleeDur, Is.InRange(0.15f, 0.4f), "太快看不见刀在走，太慢不像砍");
+
+            var b = new Battle(1, Lineup);
+            var slot = b.Slots[0];
+            slot.Unit = new Unit { Hero = HeroId.ShiXiu, Star = 1 };
+            var foe = new Enemy { Id = 900, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(slot.Pos.X, Layout.StopY), Attacking = true };
+            b.Enemies.Add(foe);
+            Shot cut = null;
+            for (int i = 0; i < 120 && cut == null; i++)
+            {
+                b.Update(1f / 60f);
+                cut = b.Shots.FirstOrDefault(s => s.Kind == ShotKind.Punch && s.Hero == HeroId.ShiXiu);
+            }
+            Assert.IsNotNull(cut);
+            Assert.AreEqual(Battle.MeleeDur, cut.Dur, 1e-4f);
+            Assert.AreEqual(foe.MaxHp, foe.Hp, "刀还在路上就不该掉血");
+            float flown = 0f;
+            while (b.Shots.Contains(cut) && flown < 1f)
+            {
+                Assert.AreEqual(foe.MaxHp, foe.Hp);
+                b.Update(1f / 60f);
+                flown += 1f / 60f;
+            }
+            Assert.Less(foe.Hp, foe.MaxHp);
+            Assert.AreEqual(cut.Dur, flown, 2f / 60f);
+        }
+
+        [Test]
+        public void TradeCardsExcludeEachOtherAndAdvancedNeedsTheMorph()
+        {
+            var b = new Battle(1, Lineup);
+            b.Slots[0].Unit = new Unit { Hero = HeroId.HuaRong, Star = 1 };
+            var heavy = Defs.Perk("huarong_heavy");
+            var quick = Defs.Perk("huarong_quick");
+            var morph = Defs.Perk("huarong_morph");
+            var adv = Defs.Perk("huarong_adv");
+            Assert.AreEqual(Eff.Blast, morph.Eff);
+            bool Offered(PerkDef p)
+            {
+                for (int k = 0; k < 400; k++)
+                {
+                    b.Coins = 99999;
+                    b.Enhances = 0;
+                    if (!b.Enhance()) return false;
+                    bool hit = b.Choices.Contains(p);
+                    b.Choices = null;
+                    b.Phase = Phase.Running;
+                    if (hit) return true;
+                }
+                return false;
+            }
+            void Take(PerkDef p)
+            {
+                b.Choices = new[] { p };
+                b.Phase = Phase.Choosing;
+                b.Pick(0);
+            }
+            Assert.IsFalse(Offered(adv), "没有质变时不出进阶");
+            Assert.IsTrue(Offered(quick));
+            float dmg0 = b.HeroDmgMul(HeroId.HuaRong), spd0 = b.HeroSpeedMul(HeroId.HuaRong);
+            Take(heavy);
+            Assert.Greater(b.HeroDmgMul(HeroId.HuaRong), dmg0, "重手加伤害");
+            Assert.Less(b.HeroSpeedMul(HeroId.HuaRong), spd0, "重手的代价是攻速");
+            Assert.IsFalse(Offered(quick), "重手和快手二选一");
+            Take(morph);
+            Assert.IsTrue(Offered(adv), "拿了质变后出进阶");
+        }
+
+        [Test]
+        public void BurnTicksOverItsDuration()
+        {
+            var b = new Battle(1, Lineup);
+            var foe = new Enemy { Id = 900, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0f, 2f), Stun = 99f };
+            b.Enemies.Add(foe);
+            foe.BurnT = Defs.BurnDur;
+            foe.BurnDps = 100f;
+            foe.BurnTick = Defs.BurnEvery;
+            for (int i = 0; i < 240; i++) b.Update(1f / 60f);
+            Assert.AreEqual(1e6f - 100f * Defs.BurnDur, foe.Hp, 100f * Defs.BurnEvery + 1f, "灼烧 3 秒共掉约 BurnDps × 3");
+            Assert.LessOrEqual(foe.BurnT, 0f);
+        }
+
+        [Test]
+        public void EveryHeroUnlocksATraitAtEachMergedStar()
+        {
+            foreach (var d in Defs.Heroes)
+                for (int star = 2; star <= 4; star++)
+                {
+                    var t = StarTraits.At(d, star);
+                    Assert.IsNotNull(t, $"{d.Name} {star} 星");
+                    Assert.IsNotEmpty(t.Name);
+                    Assert.IsNotEmpty(t.Desc);
+                }
+            Assert.IsNull(StarTraits.At(Defs.Hero(HeroId.ShiXiu), 1));
+        }
+
+        [Test]
+        public void ThreeStarBladeSendsQiDownTheColumn()
+        {
+            Shot Swing(int star, out Battle b)
+            {
+                b = new Battle(1, Lineup);
+                var slot = b.Slots[0];
+                slot.Unit = new Unit { Hero = HeroId.ShiXiu, Star = star };
+                b.Enemies.Add(new Enemy { Id = 900, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0f, Layout.StopY), Attacking = true });
+                for (int i = 0; i < 120; i++)
+                {
+                    b.Update(1f / 60f);
+                    if (b.Shots.Any(s => s.Kind == ShotKind.Punch)) break;
+                }
+                return b.Shots.FirstOrDefault(s => s.Kind == ShotKind.Qi);
+            }
+            Assert.IsNull(Swing(2, out _), "2 星还没有刀气");
+            var qi = Swing(3, out var b3);
+            Assert.IsNotNull(qi, "3 星挥刀带一道刀气");
+            Assert.Greater(qi.To.Y, qi.From.Y, "刀气往敌阵方向飞");
+            var behind = new Enemy { Id = 901, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(qi.From.X, qi.From.Y + 2f) };
+            b3.Enemies.Add(behind);
+            for (int i = 0; i < 60 && b3.Shots.Contains(qi); i++) b3.Update(1f / 60f);
+            Assert.Less(behind.Hp, behind.MaxHp, "刀气打到身后同一列的敌人");
+        }
+
+        [Test]
+        public void ForceWinEndsAtFullWall()
+        {
+            var b = new Battle(1, Lineup);
+            b.Wall = 10;
+            b.Enemies.Add(new Enemy());
+            b.Shots.Add(new Shot());
+            b.Phase = Phase.Choosing;
+            b.PendingReels = 1;
+            b.ForceWin();
+            Assert.AreEqual(Phase.Victory, b.Phase);
+            Assert.AreEqual(b.WallMax, b.Wall);
+            Assert.AreEqual(0, b.Enemies.Count);
+            Assert.AreEqual(0, b.Shots.Count);
+            Assert.AreEqual(0, b.PendingReels);
+            Assert.IsTrue(b.Events.Any(e => e.Type == Ev.Victory));
+            b.ForceWin();
+            Assert.AreEqual(Phase.Victory, b.Phase);
+        }
+
+        [Test]
+        public void ForceLoseBreaksTheWallOnTheCurrentWave()
+        {
+            var b = new Battle(1, Lineup);
+            var foe = new Enemy();
+            b.Enemies.Add(foe);
+            b.Shots.Add(new Shot());
+            b.Wave = 4;
+            b.Phase = Phase.Running;
+            b.ForceLose();
+            Assert.AreEqual(Phase.Defeat, b.Phase);
+            Assert.AreEqual(0, b.Wall);
+            Assert.AreEqual(4, b.Wave);
+            Assert.AreSame(foe, b.Enemies[0]);
+            Assert.AreEqual(0, b.Shots.Count);
+            Assert.IsTrue(b.Events.Any(e => e.Type == Ev.Defeat));
+            b.ForceWin();
+            Assert.AreEqual(Phase.Defeat, b.Phase);
+
+            var early = new Battle(2, Lineup);
+            early.ForceLose();
+            Assert.AreEqual(1, early.Wave);
+            Assert.AreEqual(Phase.Defeat, early.Phase);
         }
     }
 }

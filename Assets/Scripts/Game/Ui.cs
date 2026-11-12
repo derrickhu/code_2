@@ -271,24 +271,22 @@ namespace Liangshan
             return t;
         }
 
-        /// <summary>卡通描边字：四向描边 + 下沉投影。</summary>
+        /// <summary>卡通描边字：八向圆滑描边 + 紧致底边立体投影，笔画通透不糊团。</summary>
         public static Text Outlined(Transform parent, string s, int size, Color c, Vector2 pos, Vector2 box, Color edge,
-            float thick = 3f, TextAnchor align = TextAnchor.MiddleCenter, string name = "olabel")
+            float thick = 2.4f, TextAnchor align = TextAnchor.MiddleCenter, string name = "olabel")
         {
             var t = Label(parent, s, size, c, pos, box, align, Fonts.Heavy, name);
             Stroke(t, edge, thick);
             return t;
         }
 
-        /// <summary>Outline 自带四向偏移；叠多个会让顶点数按 5 的幂增长，长文本直接超 65000。</summary>
+        /// <summary>八向等距真圆描边（替代 Unity 四角对角线 Outline 的重影分叉）；字号越小描边自动收细。</summary>
         public static Text Stroke(Text t, Color c, float d)
         {
-            var ol = t.gameObject.AddComponent<Outline>();
-            ol.effectColor = c;
-            ol.effectDistance = new Vector2(d, -d);
-            var sh = t.gameObject.AddComponent<Shadow>();
-            sh.effectColor = c;
-            sh.effectDistance = new Vector2(0, -d * 1.6f);
+            float eff = Mathf.Clamp(d * 0.64f, 1.05f, Mathf.Min(2.5f, t.fontSize * 0.056f));
+            var cs = t.gameObject.GetComponent<CrispStroke>() ?? t.gameObject.AddComponent<CrispStroke>();
+            cs.Color = c;
+            cs.Radius = eff;
             return t;
         }
 
@@ -329,26 +327,57 @@ namespace Liangshan
             return "btn_teal";
         }
 
-        /// <summary>手绘按钮，可选左侧图标。</summary>
+        static (Color outer, Color lip, Color stroke) BtnTheme(string skin)
+        {
+            switch (skin)
+            {
+                case "btn_gold": return (Pal.Hex("664610"), Pal.Hex("C48C1C"), Pal.Hex("5E3A0A"));
+                case "btn_green": return (Pal.Hex("18522B"), Pal.Hex("20863C"), Pal.Hex("134423"));
+                case "btn_teal": return (Pal.Hex("15465C"), Pal.Hex("1B6E90"), Pal.Hex("103A4D"));
+                case "btn_orange": return (Pal.Hex("69300E"), Pal.Hex("B25012"), Pal.Hex("5C2709"));
+                case "btn_red": return (Pal.Hex("63171C"), Pal.Hex("9E2226"), Pal.Hex("561217"));
+                default: return (Pal.Hex("344250"), Pal.Hex("4F5F70"), Pal.Hex("24303C"));
+            }
+        }
+
+        /// <summary>高清厚涂按钮，可选左侧图标。亮金按钮采用深棕无糊边字，深色按钮采用八向锐利白字。</summary>
         public static RectTransform Btn(Transform parent, string text, Vector2 size, Vector2 pos, Color face, Action onClick,
             int fontSize = 52, string icon = null, Color? fg = null)
         {
             var holder = Rect(parent, "btn");
             holder.sizeDelta = size;
             holder.anchoredPosition = pos;
-            float sink = Mathf.Clamp(size.y * 0.075f, 7f, 12f);
-            // 底边留在原地，按住时盖子沉下去盖住它，按钮才有按进面板的感觉。
-            Skin(holder, BtnSkin(face), size, new Vector2(0, -sink), -1f, new Color(0.55f, 0.55f, 0.55f), "lip");
+            string skin = BtnSkin(face);
+            var th = BtnTheme(skin);
+            float sink = Mathf.Clamp(size.y * 0.068f, 5f, 9f);
+            // 干净的实心立体底沿（不重复叠整张带框贴图，彻底消除双层描边发虚）
+            Box(holder, size - new Vector2(4, 4), new Vector2(0, -sink), th.outer, Art.RoundedSmall, "lipRim");
+            Box(holder, size - new Vector2(9, 9), new Vector2(0, -sink), th.lip, Art.RoundedSmall, "lip");
             var body = Rect(holder, "body");
             body.sizeDelta = size;
-            Skin(body, BtnSkin(face), size, Vector2.zero, -1f, null, "face");
-            float iconW = icon != null ? size.y * 0.7f : 0f;
-            var label = Outlined(body, text, fontSize, fg ?? Color.white, new Vector2(iconW * 0.5f, 4), new Vector2(size.x - iconW, size.y),
-                face.Mul(0.45f), 2.6f, TextAnchor.MiddleCenter, "text");
+            Skin(body, skin, size, Vector2.zero, Mathf.Min(1f, size.y / 84f), null, "face");
+            float iconW = icon != null ? size.y * 0.66f : 0f;
+            Color textCol = fg ?? (skin == "btn_gold" ? Pal.Hex("56340C") : Color.white);
+            float lum = textCol.r * 0.299f + textCol.g * 0.587f + textCol.b * 0.114f;
+            Text label;
+            if (lum < 0.45f)
+            {
+                // 亮底深字（如琥珀金「强化」按钮）：绝不叠深色描边，仅加 1px 暖白微高光，笔锋如刀刻般清晰
+                label = Label(body, text, fontSize, textCol, new Vector2(iconW * 0.48f, 1), new Vector2(size.x - iconW, size.y),
+                    TextAnchor.MiddleCenter, Fonts.Heavy, "text");
+                var sheen = label.gameObject.AddComponent<Shadow>();
+                sheen.effectColor = new Color(1f, 0.97f, 0.86f, 0.55f);
+                sheen.effectDistance = new Vector2(0f, -1.2f);
+            }
+            else
+            {
+                label = Outlined(body, text, fontSize, textCol, new Vector2(iconW * 0.48f, 2), new Vector2(size.x - iconW, size.y),
+                    th.stroke, 2.2f, TextAnchor.MiddleCenter, "text");
+            }
             if (icon != null)
             {
                 float tw = Mathf.Min(size.x - iconW - 20, label.preferredWidth);
-                Icon(body, icon, iconW, new Vector2(-tw * 0.5f - iconW * 0.15f, 2), "btnIcon");
+                Icon(body, icon, iconW, new Vector2(-tw * 0.5f - iconW * 0.14f, 1), "btnIcon");
             }
             var hit = Box(holder, size, Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
             Tap(hit, onClick, body, true, sink);
@@ -361,18 +390,18 @@ namespace Liangshan
             t.GetComponent<Text>().text = s;
         }
 
-        /// <summary>弹窗面板：天青描边、奶油纸面。框画在 size 外沿 15 像素。</summary>
+        /// <summary>弹窗面板：宋瓷青釉双线框 + 清爽白瓷纸面。</summary>
         public static RectTransform Panel(Transform parent, Vector2 size, Vector2 pos, string name = "panel")
         {
             var holder = Rect(parent, name);
             holder.sizeDelta = size;
             holder.anchoredPosition = pos;
-            Box(holder, size + new Vector2(40, 40), new Vector2(0, -16), Color.black.A(0.35f), null, "shadow");
-            Skin(holder, "panel", size + new Vector2(30, 30), Vector2.zero, 0.78f, null, "frame");
+            Box(holder, size + new Vector2(36, 36), new Vector2(0, -14), new Color(0.03f, 0.08f, 0.14f, 0.34f), Art.Rounded, "shadow");
+            Skin(holder, "panel", size + new Vector2(26, 26), Vector2.zero, 1f, null, "frame");
             return holder;
         }
 
-        /// <summary>蓝绶带标题；传入灰色调时换灰绶带（失败等场合）。</summary>
+        /// <summary>霁蓝绶带标题；传入灰色调时换灰绶带（失败等场合）。</summary>
         public static RectTransform Ribbon(Transform parent, string s, Vector2 pos, float width = 560, Color? color = null)
         {
             bool grey = false;
@@ -385,7 +414,7 @@ namespace Liangshan
             holder.anchoredPosition = pos;
             holder.sizeDelta = new Vector2(width, 110);
             Skin(holder, grey ? "banner_grey" : "banner", new Vector2(width + 170, 132), new Vector2(0, -6), -1f, null, "face");
-            Outlined(holder, s, 56, Color.white, new Vector2(0, 10), new Vector2(width, 100), grey ? Pal.Hex("7A7068") : Pal.Hex("7A1A0E"), 3.5f);
+            Outlined(holder, s, 56, Color.white, new Vector2(0, 10), new Vector2(width, 100), grey ? Pal.Hex("4E5C6A") : Pal.Hex("103454"), 3.2f);
             return holder;
         }
 
@@ -525,7 +554,7 @@ namespace Liangshan
                 {
                     if (g.color.a < 0.2f) continue;
                     var n = g.gameObject.name;
-                    if (n == "glow" || n == "hit" || n == "lip") continue;
+                    if (n == "glow" || n == "hit" || n == "lip" || n == "lipRim") continue;
                     _tints.Add(new Tint { G = g, C = g.color });
                 }
             }
@@ -612,6 +641,71 @@ namespace Liangshan
             foreach (var tn in _tints)
                 if (tn.G) tn.G.color = tn.C;
             _sunk = false;
+        }
+    }
+
+    /// <summary>
+    /// 八向等距圆滑描边 + 微底边立体感：
+    /// 彻底解决 Unity 原生四角对角线 Outline 在横竖笔画处拉出双线重影、导致小字“糊成一团”的问题。
+    /// </summary>
+    public sealed class CrispStroke : BaseMeshEffect
+    {
+        public Color Color = new Color(0.08f, 0.14f, 0.22f, 1f);
+        public float Radius = 1.4f;
+
+        static readonly Vector2[] Dirs8 =
+        {
+            new Vector2(1f, 0f), new Vector2(-1f, 0f), new Vector2(0f, 1f), new Vector2(0f, -1f),
+            new Vector2(0.7071068f, 0.7071068f), new Vector2(-0.7071068f, 0.7071068f),
+            new Vector2(0.7071068f, -0.7071068f), new Vector2(-0.7071068f, -0.7071068f),
+        };
+
+        static readonly List<UIVertex> Src = new List<UIVertex>(512);
+        static readonly List<UIVertex> Dst = new List<UIVertex>(4096);
+
+        public override void ModifyMesh(VertexHelper vh)
+        {
+            if (!IsActive() || Radius <= 0.05f) return;
+            Src.Clear();
+            vh.GetUIVertexStream(Src);
+            int n = Src.Count;
+            if (n == 0) return;
+
+            int dirs = n > 3600 ? 4 : 8;
+            Dst.Clear();
+            int need = n * (dirs + 2);
+            if (Dst.Capacity < need) Dst.Capacity = need;
+
+            Color32 c32 = Color;
+            // 1. 紧致微下沉底边（仅 0.88x 半径，增强立体感而不拖泥带水）
+            AppendOffset(Src, n, c32, 0f, -Radius * 0.88f);
+            // 2. 八向圆周描边
+            for (int d = 0; d < dirs; d++)
+            {
+                var dir = Dirs8[d];
+                AppendOffset(Src, n, c32, dir.x * Radius, dir.y * Radius);
+            }
+            // 3. 最上层原字面
+            for (int i = 0; i < n; i++) Dst.Add(Src[i]);
+
+            vh.Clear();
+            vh.AddUIVertexTriangleStream(Dst);
+        }
+
+        static void AppendOffset(List<UIVertex> src, int count, Color32 col, float dx, float dy)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                var v = src[i];
+                var p = v.position;
+                p.x += dx;
+                p.y += dy;
+                v.position = p;
+                var c = col;
+                c.a = (byte)((c.a * v.color.a) / 255);
+                v.color = c;
+                Dst.Add(v);
+            }
         }
     }
 }

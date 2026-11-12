@@ -76,29 +76,37 @@ namespace Liangshan
             else
             {
                 CloudSync.Imported += OnCloudImported;
-                var boot = BootCover();
-                CloudSync.Startup(() =>
-                {
-                    Destroy(boot.gameObject);
-                    ShowHome();
-                });
+                // 微信上封面就是这张启动图。主界面画出来再揭，云存档最多再等 6 秒，到点也揭。
+                if (LoadingScreen.InWeChat) LoadingScreen.SuppressAutoHide();
+                var loading = LoadingScreen.InWeChat ? null : LoadingScreen.Open();
+                CloudSync.Startup(() => _cloudReady = true);
+                StartCoroutine(FinishBoot(loading));
             }
         }
 
-        /// <summary>等云存档（最多几秒）时盖住画面：先拉云再进首页，免得本地改动和云端打架。</summary>
-        RectTransform BootCover(string text = "读取存档…")
+        bool _cloudReady;
+
+        IEnumerator FinishBoot(LoadingScreen loading)
         {
-            var layer = Ui.Rect(Ui.Root, "boot");
-            layer.anchorMin = Vector2.zero;
-            layer.anchorMax = Vector2.one;
-            layer.offsetMin = layer.offsetMax = Vector2.zero;
-            var bg = Ui.Box(layer, new Vector2(1080, 1920), Vector2.zero, Color.white, Art.Img("home_bg"), "bg");
-            bg.type = UnityEngine.UI.Image.Type.Simple;
-            float scale = Mathf.Max(Ui.W / 1080f, Ui.Height / 1920f);
-            bg.rectTransform.sizeDelta = new Vector2(1080, 1920) * scale;
-            Ui.Fill(layer, new Color(0, 0, 0, 0.35f), true);
-            Ui.Label(layer, text, 46, Color.white, new Vector2(0, -Ui.Height * 0.5f + 260), new Vector2(900, 90), TextAnchor.MiddleCenter, Fonts.Heavy);
-            return layer;
+            float until = Time.realtimeSinceStartup + 6.5f;
+            while (!_cloudReady && Time.realtimeSinceStartup < until) yield return null;
+            if (!LoadingScreen.InWeChat && loading != null) yield return loading.WaitMin();
+            try { ShowHome(); }
+            catch (Exception e) { Debug.LogException(e); }
+            if (LoadingScreen.InWeChat)
+            {
+                yield return null;
+                yield return null;
+                LoadingScreen.HideWeChatCover();
+                yield break;
+            }
+            if (loading != null)
+            {
+                loading.SetFill(1f);
+                loading.BringToFront();
+                yield return new WaitForSecondsRealtime(0.12f);
+                yield return loading.FadeOut();
+            }
         }
 
         void OnDestroy() => CloudSync.Imported -= OnCloudImported;
@@ -232,18 +240,25 @@ namespace Liangshan
             return list;
         }
 
-        /// <summary>图包齐了再开始；第一次进某章要从 CDN 下，盖一层带进度的加载页。</summary>
+        /// <summary>图包齐了再开始；第一次进某章要从 CDN 下，盖上和启动页同一张加载图。</summary>
         void WithArt(List<string> need, Action go)
         {
             if (ArtPack.Ready(need)) { go(); return; }
-            var cover = BootCover("加载中…");
-            var label = cover.GetComponentInChildren<UnityEngine.UI.Text>();
-            Tween.Run(cover, 9999f, k => label.text = $"加载中 {Mathf.RoundToInt(ArtPack.Progress(need) * 100)}%");
-            ArtPack.Ensure(need, () =>
+            var loading = LoadingScreen.Open();
+            loading.Follow(need);
+            ArtPack.Ensure(need, () => StartCoroutine(FinishArt(loading, go)));
+        }
+
+        IEnumerator FinishArt(LoadingScreen loading, Action go)
+        {
+            if (loading)
             {
-                if (cover) Destroy(cover.gameObject);
-                go();
-            });
+                loading.SetFill(1f);
+                loading.BringToFront();
+                yield return new WaitForSecondsRealtime(0.12f);
+                yield return loading.FadeOut();
+            }
+            go();
         }
 
         public void StartLevel(int no) => Play(Defs.Level(Mathf.Min(no, Profile.S.Cleared + 1)));
@@ -553,6 +568,23 @@ namespace Liangshan
             s.Silk = 2600;
             s.Meteor = 5;
             s.GearBoxes = 3;
+            s.RefineStones = 16;
+            s.Hammers = 9;
+            s.CloakLv = 2;
+            Meta.SetWish(s, HeroId.HuaRong);
+            var tRng = new Rng(2026);
+            s.Totems.Clear();
+            var tEpic = Meta.RollTotem(s, 2, tRng, 1);
+            tEpic.Beast = 1; tEpic.Kind = 2; // 玄熊图腾·凤翅盔：对前三波怪物增伤
+            var tLeg = Meta.RollTotem(s, 3, tRng, 1);
+            tLeg.Beast = 5; tLeg.Kind = 8; // 麒麟图腾·凤翅盔：战士职业伤害
+            Meta.ToggleInlayTotem(s, tEpic.Id);
+            Meta.ToggleInlayTotem(s, tLeg.Id);
+            for (int ti = 0; ti < 11; ti++)
+            {
+                var td = Meta.RollTotem(s, ti < 2 ? 3 : ti < 7 ? 2 : 1, tRng, ti % 6);
+                if (ti < 4) Meta.ToggleInlayTotem(s, td.Id);
+            }
             s.PageLv = 4;
             s.TomeNodes = 1;
             s.FlagLv = 3;
@@ -671,6 +703,22 @@ namespace Liangshan
             _home.SetTab(HomeScreen.TabForge);
             yield return WaitReal(1.0f);
             yield return Snap("21_forge");
+            if (s.Totems.Count > 0)
+            {
+                int firstId = s.Totems[0].Id;
+                yield return ModalShot(() => MetaUi.TotemDetail(_home.Layer, firstId), "21b_totem_detail");
+            }
+            CloseModals();
+            _home.SetForgeSubTab(2);
+            yield return WaitReal(0.8f);
+            yield return Snap("21c_forge_materials");
+            var firstMat = _home.transform.Find("page/body/drawer/matView/content/item");
+            yield return ModalShot(() => MetaUi.ItemTip(_home.Layer, new Item(Cur.Refine, s.RefineStones), firstMat), "21d_refine_tip");
+            CloseModals();
+            _home.SetForgeSubTab(1);
+            yield return WaitReal(0.6f);
+            yield return Snap("21f_forge_equips");
+            yield return ModalShot(() => MetaUi.Cloak(_home.Layer), "21e_cloak");
             yield return ModalShot(() => MetaUi.ForgeSlot(_home.Layer, 0), "22_forge_slot");
             yield return ModalShot(() => MetaUi.TalentTree(_home.Layer), "22b_talent");
             yield return ModalShot(() => MetaUi.Tome(_home.Layer), "22c_tome");
@@ -683,6 +731,12 @@ namespace Liangshan
             _home.SetTab(HomeScreen.TabShop);
             yield return WaitReal(1.0f);
             yield return Snap("24_shop");
+            yield return ModalShot(() => MetaUi.WishPicker(_home.Layer), "24a_wish_picker");
+            CloseModals();
+            _home.SetShopSubTab(1);
+            yield return WaitReal(0.8f);
+            yield return Snap("24c_shop_totem");
+            _home.SetShopSubTab(0);
             _home.DoRecruit(10, false);
             yield return WaitReal(2.2f);
             yield return Snap("24b_recruit10");
@@ -711,7 +765,7 @@ namespace Liangshan
                 if (!elite && hud.ModalKind == null)
                     foreach (var e in b.Enemies)
                         if (e.Def.Rank == EnemyRank.Elite && e.Pos.Y < 4f) { elite = true; Shot(prefix + "_elite"); break; }
-                if (!boss && b.Wave == b.Stage.BossWave && b.Time > (b.Stage.BossWave - 1) * Defs.WaveTime + 10f && hud.ModalKind == null) { boss = true; Shot(prefix + "_boss"); }
+                if (!boss && b.Wave == b.Stage.BossWave && b.WaveAge > 10f && hud.ModalKind == null) { boss = true; Shot(prefix + "_boss"); }
                 if (b.Time - last > 40f && hud.ModalKind == null)
                 {
                     last = b.Time;
@@ -731,8 +785,72 @@ namespace Liangshan
             yield return WaitReal(0.3f);
         }
 
+        /// <summary>出招特效连拍：指定阵容 1 倍速打一会儿，连拍几十张看刀光、虚影、法阵、落砖。</summary>
+        IEnumerator FxBurst(HeroId[] lineup, string prefix, bool meleeOnly = false)
+        {
+            var s = Meta.ExpectedSave(20);
+            s.Lineup = Array.ConvertAll(lineup, h => (int)h);
+            foreach (var h in lineup) s.HeroLv[(int)h] = Mathf.Max(s.HeroLv[(int)h], Mathf.Max(1, s.HeroLv[0]));
+            Profile.Use(s);
+            _autoSkill = 2;
+            Play(Defs.Level(20));
+            while (_battle == null) yield return null;
+            _battle.B.Coins += 3000;
+            _battle.Speed = 2f;
+            while (_battle.B.Time < 55f) yield return null;
+            _battle.Speed = 1f;
+            if (meleeOnly)
+                foreach (var sl in _battle.B.Slots)
+                    if (sl.Unit != null && sl.Unit.Star < 3) sl.Unit.Star = 3;
+            var cam = new GameObject("fxCam").AddComponent<Camera>();
+            cam.CopyFrom(_cam);
+            cam.depth = _cam.depth + 1;
+            cam.orthographicSize = 2.6f;
+            int n = 0;
+            float end = Time.realtimeSinceStartup + 40f, next = 0f;
+            while (n < 36 && Time.realtimeSinceStartup < end)
+            {
+                Sim.Shot pick = null;
+                foreach (var sh in _battle.B.Shots)
+                {
+                    if (sh.T < 0 || sh.Kind == ShotKind.MiniBomb) continue;
+                    if (meleeOnly && sh.Kind != ShotKind.Punch && sh.Kind != ShotKind.Spear && sh.Kind != ShotKind.Slam && sh.Kind != ShotKind.Qi) continue;
+                    if (pick != null && pick.Kind == ShotKind.Qi && n % 2 == 0) continue;
+                    if (pick == null || sh.Id % 7 == n % 7 || sh.Kind == ShotKind.Qi && n % 2 == 0) pick = sh;
+                }
+                if (_battle.Hud.ModalKind == null && pick != null && Time.realtimeSinceStartup >= next)
+                {
+                    var at = meleeOnly ? (pick.From.ToV() + pick.To.ToV()) * 0.5f + new Vector2(0, 0.5f)
+                        : n % 3 == 2 ? pick.From.ToV() + new Vector2(0, 0.8f) : pick.To.ToV() + new Vector2(0, 0.5f);
+                    cam.transform.position = new Vector3(at.x, at.y, -10);
+                    for (int f = 0; f < (meleeOnly ? 3 : 1); f++)
+                    {
+                        yield return null;
+                        yield return null;
+                        Shot($"{prefix}_{n++:00}");
+                    }
+                    next = Time.realtimeSinceStartup + 0.12f;
+                }
+                yield return null;
+            }
+            Destroy(cam.gameObject);
+        }
+
         IEnumerator SelfCheck()
         {
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-fxshots") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                if (Array.IndexOf(Environment.GetCommandLineArgs(), "-fxmelee") < 0)
+                {
+                    yield return FxBurst(new[] { HeroId.ShiXiu, HeroId.LiKui, HeroId.MaLing, HeroId.WuSong }, "fxa");
+                    yield return FxBurst(new[] { HeroId.LinChong, HeroId.GuanSheng, HeroId.ZhuWu, HeroId.GongSun }, "fxb");
+                }
+                yield return FxBurst(new[] { HeroId.ShiXiu, HeroId.GuanSheng, HeroId.LiKui, HeroId.WuSong }, "fxc", true);
+                Application.Quit(0);
+                yield break;
+            }
             if (_metaOnly)
             {
                 Sfx.On = false;
@@ -818,10 +936,35 @@ namespace Liangshan
                         yield return WaitReal(0.12f);
                         Shot("07_fx" + i);
                     }
+                    Enemy near = null;
+                    foreach (var en in b.Enemies) if (!en.Dead && en.Pos.Y < 4f && (near == null || en.Def.Big)) near = en;
+                    if (near != null)
+                    {
+                        hud.EnemyInfo(near);
+                        yield return WaitReal(0.4f);
+                        Shot("07e_enemy_info");
+                        yield return WaitReal(0.2f);
+                        hud.CloseInfo();
+                    }
+                    Slot top = null;
+                    foreach (var sl in b.Slots) if (sl.Unit != null && (top == null || sl.Unit.Star > top.Unit.Star)) top = sl;
+                    if (top != null)
+                    {
+                        hud.SlotInfo(top, 4);
+                        yield return WaitReal(0.4f);
+                        Shot("07s_star_tab");
+                        yield return WaitReal(0.2f);
+                        hud.CloseInfo();
+                    }
+                    hud.OpenRoster();
+                    yield return WaitReal(0.5f);
+                    Shot("07r_roster");
+                    yield return WaitReal(0.2f);
+                    hud.CloseRoster();
                 }
-                if (!boss && b.Wave == b.Stage.BossWave && b.Time > (b.Stage.BossWave - 1) * Defs.WaveTime + 9f && hud.ModalKind == null) { boss = true; Shot("08_boss"); }
-                if (!rage && b.Wave == b.Stage.RageWave && b.Time > (b.Stage.RageWave - 1) * Defs.WaveTime + 4f && hud.ModalKind == null) { rage = true; Shot("09_rage"); }
-                if (!late && b.Wave >= 10 && b.Time > 9 * Defs.WaveTime + 8f && hud.ModalKind == null) { late = true; Shot("10_late"); }
+                if (!boss && b.Wave == b.Stage.BossWave && b.WaveAge > 9f && hud.ModalKind == null) { boss = true; Shot("08_boss"); }
+                if (!rage && b.Wave == b.Stage.RageWave && b.WaveAge > 4f && hud.ModalKind == null) { rage = true; Shot("09_rage"); }
+                if (!late && b.Wave >= 10 && b.WaveAge > 8f && hud.ModalKind == null) { late = true; Shot("10_late"); }
                 if (b.Time - lastPeriodic > 30f && hud.ModalKind == null)
                 {
                     lastPeriodic = b.Time;

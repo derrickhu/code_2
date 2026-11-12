@@ -1,87 +1,33 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""把微信启动封面换成首页底图：顶上印游戏名，底下压一条暗带印健康游戏忠告，进度条让在忠告上面。
-
-用法：导出微信包后由 WxMiniGame.Export 调用，也可以单独跑 python3 tools/wechat_loading_cover.py
-依赖：Pillow；字体用 game_assets/code_2/fonts 里的思源黑体可变字体，找不到时退回系统冬青黑体。
+"""
+微信启动封面：直接用 Assets/Resources/Art/loading.jpg（tools/build_loading_art.py 合成）。
+标题、进度槽、健康忠告、适龄标都在图上。插件只在槽里画金色填充和一行状态字。
+坐标和合成脚本同一套 720x1280 设计尺寸，等比铺满，不拉伸。
 """
 
+import shutil
+import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from build_loading_art import BAR_BOTTOM, BAR_H, BAR_W, DH, DW, TEXT_BOTTOM, TEXT_H  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "Assets/Resources/Art/home_bg.jpg"
+SRC = ROOT / "Assets/Resources/Art/loading.jpg"
 OUT = ROOT / "wechat-minigame/minigame/images/background.jpg"
 GAME_JS = ROOT / "wechat-minigame/minigame/game.js"
-FONT_VF = ROOT.parent / "game_assets/code_2/fonts/NotoSansSC-VF.ttf"
-FONT_FALLBACK = Path("/System/Library/Fonts/Hiragino Sans GB.ttc")
 
-GAME_NAME = "宋江别慌张"
-TITLE = "健康游戏忠告"
-LINES = [
-    "抵制不良游戏，拒绝盗版游戏。",
-    "注意自我保护，谨防受骗上当。",
-    "适度游戏益脑，沉迷游戏伤身。",
-    "合理安排时间，享受健康生活。",
-]
-
-W, H = 720, 1280
-NAME_PX = 92
-NAME_TOP = 150
-ADVICE_TITLE_PX = 26
-ADVICE_PX = 22
-ADVICE_STEP = 32
-ADVICE_BOTTOM = 40
-BAND_H = 250
-BAR_H = 8
-# 进度条和加载文字从底边量，放在忠告暗带的上沿之上。
-BAR_BOTTOM = BAND_H + 26
-TEXT_BOTTOM = BAR_BOTTOM + BAR_H + 10
-TEXT_H = 22
-
-NAME_FILL = (255, 233, 168)
-NAME_EDGE = (46, 26, 14)
-ADVICE_FILL = (245, 236, 214)
-BAR = "#D8452F"
-
-
-def font(size, weight):
-    if FONT_VF.exists():
-        f = ImageFont.truetype(str(FONT_VF), size)
-        try:
-            f.set_variation_by_axes([weight])
-        except (OSError, ValueError):
-            pass
-        return f
-    return ImageFont.truetype(str(FONT_FALLBACK), size, index=1 if weight >= 700 else 0)
-
-
-def centered(draw, text, face, top, fill, stroke=0, edge=None):
-    box = draw.textbbox((0, 0), text, font=face, stroke_width=stroke)
-    x = (W - (box[2] - box[0])) / 2 - box[0]
-    draw.text((x, top - box[1]), text, font=face, fill=fill, stroke_width=stroke, stroke_fill=edge)
+W, H = DW, DH
+BAR_FILL = "#E6B54A"
+TEXT_COLOR = "#EBDDBE"
 
 
 def compose():
-    im = Image.open(SRC).convert("RGB").resize((W, H), Image.Resampling.LANCZOS)
-
-    band = Image.new("RGBA", (W, BAND_H), (20, 14, 10, 190))
-    base = im.convert("RGBA")
-    base.alpha_composite(band, (0, H - BAND_H))
-    im = base.convert("RGB")
-
-    draw = ImageDraw.Draw(im)
-    centered(draw, GAME_NAME, font(NAME_PX, 900), NAME_TOP, NAME_FILL, stroke=7, edge=NAME_EDGE)
-
-    body = font(ADVICE_PX, 500)
-    top = H - ADVICE_BOTTOM - ADVICE_STEP * len(LINES)
-    centered(draw, TITLE, font(ADVICE_TITLE_PX, 800), top - ADVICE_TITLE_PX - 18, ADVICE_FILL)
-    for i, line in enumerate(LINES):
-        centered(draw, line, body, top + i * ADVICE_STEP, ADVICE_FILL)
-
+    if not SRC.exists():
+        raise SystemExit(f"缺少 {SRC}，先跑 tools/build_loading_art.py")
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    im.save(OUT, "JPEG", quality=86, optimize=True)
+    shutil.copyfile(SRC, OUT)
     print(f"封面 {OUT}  {OUT.stat().st_size // 1024}KB")
 
 
@@ -109,10 +55,10 @@ def patch_game_js():
     block = f"""loadingPageConfig: {{
                 totalLaunchTime: 7000,
                 animationDuration: 100,
-                // 720x1280 首页底图，健康忠告印在底部暗带里，进度条停在暗带上面。
+                // 720x1280 整张都要看见。长屏上下留边，不裁左右，武松和鲁智深才不会被切掉。
                 designWidth: {W},
                 designHeight: {H},
-                scaleMode: scaleMode.exactFit,
+                scaleMode: scaleMode.showAll,
                 textConfig: {{
                     firstStartText: '首次加载请耐心等待',
                     downloadingText: ['正在加载资源'],
@@ -123,19 +69,20 @@ def patch_game_js():
                     style: {{
                         bottom: {TEXT_BOTTOM},
                         height: {TEXT_H},
-                        width: 360,
+                        width: {BAR_W},
                         lineHeight: {TEXT_H},
-                        color: '#FFF1D0',
-                        fontSize: 15,
+                        color: '{TEXT_COLOR}',
+                        fontSize: 13,
                     }},
                 }},
                 barConfig: {{
                     style: {{
-                        width: 300,
+                        width: {BAR_W},
                         height: {BAR_H},
-                        padding: 1,
+                        padding: 0,
                         bottom: {BAR_BOTTOM},
-                        backgroundColor: '{BAR}',
+                        backgroundColor: '{BAR_FILL}',
+                        borderRadius: {BAR_H // 2},
                     }},
                 }},
                 iconConfig: {{
@@ -152,13 +99,46 @@ def patch_game_js():
                     iconImage: 'images/unity_logo.png',
                 }},
             }}"""
-    GAME_JS.write_text(js[:start] + block + js[end:], encoding="utf-8")
-    print("已改 game.js：封面换成首页底图，进度条在健康忠告上方")
+    js = js[:start] + block + js[end:]
+    js = js.replace("hideAfterCallmain: true", "hideAfterCallmain: false")
+    js = js.replace("callmain结束后立即隐藏封面视频", "封面留到主界面画出来再揭")
+    # 引擎起来之后 C# 会揭封面。这里再兜一层，避免停在「初始化中」。
+    needle = "if (e.type === launchEventType.prepareGame) {\n            }"
+    guard = """if (e.type === launchEventType.prepareGame) {
+                setTimeout(() => {
+                    if (gameManager && gameManager.hideLoadingPage) gameManager.hideLoadingPage();
+                }, 8000);
+            }"""
+    if needle in js and "hideLoadingPage" not in js[js.find("onLaunchProgress"):js.find("onLaunchProgress") + 1200]:
+        js = js.replace(needle, guard, 1)
+    GAME_JS.write_text(js, encoding="utf-8")
+    print("已改 game.js：封面整张显示，金色进度条落在槽里，主界面出来后揭开")
+
+
+def drop_data_subpackage():
+    """首包改走 CDN 后，代码包里不能再留 data-package，否则空目录声明也会让微信去数那 26MB。"""
+    import json
+    import shutil
+
+    game_json = ROOT / "wechat-minigame/minigame/game.json"
+    if not game_json.exists():
+        raise SystemExit(f"缺少 {game_json}")
+    data = json.loads(game_json.read_text(encoding="utf-8"))
+    data["subpackages"] = [x for x in data.get("subpackages") or [] if x.get("name") != "data-package"]
+    preload = data.get("parallelPreloadSubpackages")
+    if isinstance(preload, list):
+        data["parallelPreloadSubpackages"] = [x for x in preload if x.get("name") != "data-package"]
+    game_json.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    pack = ROOT / "wechat-minigame/minigame/data-package"
+    if pack.exists():
+        shutil.rmtree(pack)
+    print("已从代码包去掉 data-package，首包只留在 webgl 目录等上传 CDN")
 
 
 def main():
     if not SRC.exists():
         raise SystemExit(f"缺少 {SRC}")
+    drop_data_subpackage()
     compose()
     patch_game_js()
 

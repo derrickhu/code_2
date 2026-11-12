@@ -16,7 +16,7 @@ MonoBehaviour:
     projectName: biehuang
     Appid: wxde332003e4d0ef23
     CDN: https://726f-rosa-env-d7grf78r5dbd37323-1414200063.tcb.qcloud.la/biehuang
-    assetLoadType: 1
+    assetLoadType: 0
     compressDataPackage: 0
     VideoUrl: 
     relativeDST: wechat-minigame

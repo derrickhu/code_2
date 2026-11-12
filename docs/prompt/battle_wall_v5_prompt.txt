@@ -1,0 +1,4 @@
+Wide horizontal isolated 2.5D top-down oblique stone fortress defensive wall sprite on a uniform solid pure white background (for transparent cutout), matching the tactile cool grey-slate carved stone architecture of the reference image's bottom defensive battlement wall:
+- Spanning horizontally from left edge to right edge is a sturdy, straight, carved cool blue-grey bluestone fortress parapet wall seen from 2.5D top-down oblique perspective, with a flat wide stone walkway along the top and thick beveled vertical stone masonry front face below.
+- Flanking the extreme left and right ends are two compact square stone corner watchtower bastions with subtle celadon-grey eaves and bronze corner brackets.
+- Clean chiseled stone block joints, crisp top highlight bevels, subtle weathering, NO characters, NO slots drawn on top, NO health bar, NO UI, NO TEXT, no labels anywhere.

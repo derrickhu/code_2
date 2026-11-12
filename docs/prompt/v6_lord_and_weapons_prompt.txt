@@ -1,0 +1,35 @@
+Prompts for v6 Out-of-Battle Lord System & Physical Cold Weapons:
+
+1. lord_songjiang_v6:
+Full-body isolated 2D chibi game character illustration on a uniform solid pure white background. Use the reference image ONLY for the crisp thick-outlined cel-shaded Q-version art style, 2.5-head chibi proportions, and confident heroic standing pose with a sword (do NOT copy the western knight design or any UI/text). Depict young Commander Song Jiang of Liangshan in Song-dynasty martial attire: wearing a handsome golden-and-jade commander coronet over tied dark hair, polished silver-and-azure-blue Song lamellar breastplate with bronze trim, a flowing azure-navy cloak trimmed with white fur over his shoulders, dark-blue bracers and armored boots, one hand resting confidently on his hip and the other holding a gleaming azure-gemmed Song broadsword angled downward. Clean bold dark-brown outlines, vibrant cel-shading, crisp highlights, isolated full figure on solid white background, NO pedestal, NO background scenery, NO TEXT, no labels anywhere.
+
+2. lord_equips_v6 (3 columns x 2 rows):
+3 columns x 2 rows sprite sheet grid of 6 isolated chibi RPG equipment icons on a uniform solid pure white background with generous spacing between items, matching the crisp thick-outlined vibrant cel-shaded icon style of the reference image's equipment slots:
+- Row 1 Col 1 (eq_weapon): A gleaming Song-dynasty commander sword with silver-steel wide blade, golden dragon crossguard set with a sky-blue sapphire, and crimson tassel.
+- Row 1 Col 2 (eq_helmet): An ornate golden-and-azure Song general's crown-helm with upturned phoenix-wing side guards and a glowing blue gem on the brow.
+- Row 1 Col 3 (eq_armor): A polished silver-and-azure Song scale breastplate with golden shoulder pauldrons and jade waist belt.
+- Row 2 Col 1 (eq_boots): A pair of sturdy azure-and-silver armored war greaves boots with golden cloud trim.
+- Row 2 Col 2 (eq_amulet): A radiant celadon-blue jade pendant set in ornate gold filigree on a braided cord.
+- Row 2 Col 3 (eq_horn): A curved golden-bronze war horn banded with azure enamel and crimson cord.
+Crisp bold dark outlines, clean cel-shading, NO frames, NO boxes, NO TEXT, no numbers anywhere.
+
+3. lord_totems_v6 (3 columns x 3 rows):
+3 columns x 3 rows sprite sheet grid of 9 isolated chibi game emblem & item icons on a uniform solid pure white background with generous spacing between items, matching the crisp symmetrical animal-totem mask & item icon style of the reference images:
+- Row 1 Col 1 (totem_tiger): Symmetrical fierce White Tiger spirit-totem mask emblem in silver-white, ice-blue, and gold.
+- Row 1 Col 2 (totem_bear): Symmetrical mighty Armored Bear King spirit-totem mask emblem in royal purple, silver, and bronze.
+- Row 1 Col 3 (totem_wolf): Symmetrical sharp Dire Wolf spirit-totem mask emblem in slate-azure and glowing cyan.
+- Row 2 Col 1 (totem_hawk): Symmetrical Golden Roc Falcon spirit-totem mask emblem in imperial gold and crimson-amber.
+- Row 2 Col 2 (totem_turtle): Symmetrical Xuanwu Dragon-Tortoise spirit-totem mask emblem in emerald-jade and dark bronze.
+- Row 2 Col 3 (totem_qilin): Symmetrical mythical Radiant Qilin spirit-totem mask emblem in golden-orange, pearl-white, and horn-jade.
+- Row 3 Col 1 (ic_refine): A glowing multifaceted golden-amber runic refinement crystal stone with warm inner swirl.
+- Row 3 Col 2 (ic_hammer): A chunky sky-blue crystal and silver-iron treasure smithing hammer.
+- Row 3 Col 3 (eq_cloak): A folded royal azure-blue commander's fur-collared battle cloak with golden clasp.
+Crisp bold dark outlines, clean cel-shading, NO square frames, NO backgrounds, NO TEXT, no labels anywhere.
+
+4. phys_weapons_v6 (2 columns x 2 rows):
+2 columns x 2 rows sprite sheet grid of 4 isolated heavy Song-dynasty physical cold weapon sprites, each strictly upright pointing straight UP (vertical orientation), on a uniform solid pure white background with generous spacing between items, bold dark outlines, high-contrast metallic steel bevels, ZERO magic glow or aura:
+- Top-left (wp_broadsword): A wide, thick-spined Song steel broadsword (Podao / Sabre) pointing straight UP, gleaming bright silver-white cutting bevel on one side, dark gunmetal-iron spine on the other, solid brass disc guard, crimson cord-wrapped handle.
+- Top-right (wp_greatsword): A heavy Green Dragon Crescent Blade (Guandao) pointing straight UP, wide curved gleaming steel blade, ornate golden dragon-mouth collar, sturdy crimson-lacquered upper polearm shaft.
+- Bottom-left (wp_staff): A heavy iron Buddhist monk's crescent staff (Chanzhang) pointing straight UP, wide gleaming steel crescent spade head at top, dark forged-iron shaft with brass rings.
+- Bottom-right (wp_ironfist): A heavy riveted dark-iron and brass martial-arts gauntlet clenched in a powerful upward-striking fist, crisp metallic knuckles.
+NO glow, NO motion blur, NO TEXT, no labels anywhere.

@@ -1,0 +1,10 @@
+Full-body standing 2D game character sprite of Song Jiang (宋江, leader of Liangshan), strictly matching the exact character identity, face, beard, hat, and green robe of Song Jiang in the provided reference images.
+
+Exact character consistency requirements (DO NOT change his identity or outfit):
+- Same chibi proportions (~2.6 heads tall), thick crisp dark cel-shaded outlines, vibrant clean shading, warm skin tone, big expressive dark eyes, thick black eyebrows, neat black mustache and short pointed chin beard.
+- Exact same headwear: black Song-dynasty scholar-official hat (乌纱方帽/幞头) with the signature small rectangular gold plaque emblem centered on the front.
+- Exact same signature attire: rich dark emerald-green / pine-green Song-dynasty wide-sleeved official commander robe (深翠绿交领宋袍) with refined gold brocade trim along the collar and cuffs, white inner collar, black belt with a square gold jade buckle at the waist, and traditional black boots with white soles.
+- Pose & expression: standing full-body in a 3/4 front-facing heroic yet warm and spirited commander pose ("及时雨宋江"), confident composed smile (no panic sweat drops), left hand resting on an ornate gold-hilted Song ceremonial sword at his waist, right hand holding a rolled golden silk command scroll / tally at chest level.
+- Isolated single character centered on a completely plain, uniform solid white background (#FFFFFF), full head-to-toe visible with clean margin around hat and boots, no ground platform, no cast shadow on floor, no background scenery, no extra characters.
+
+NO TEXT, no labels, no Chinese characters, no letters, no watermark, no UI elements anywhere in the image.

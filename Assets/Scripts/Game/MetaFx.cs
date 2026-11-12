@@ -10,7 +10,7 @@ namespace Liangshan
     /// <summary>局外的庆祝演出：升级成功、火焰属性条、永久强化、天赋提升、恭喜获得、新好汉揭晓。都挂在 Layer 最上层，点一下推进或关闭。</summary>
     public static class MetaFx
     {
-        static readonly Color BandColor = new Color(0.22f, 0.14f, 0.05f, 0.9f);
+        static readonly Color BandColor = new Color(0.06f, 0.14f, 0.24f, 0.92f);
 
         /// <summary>全屏遮罩。minShow 秒内点击无效，免得连点把演出直接点没了。</summary>
         public static RectTransform Overlay(Transform layer, string key, float dim, Action onTap, float minShow = 0.35f)

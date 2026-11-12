@@ -16,7 +16,8 @@ namespace Liangshan
             public float T, Dur, Arc;
             public ShotKind Kind;
             public Color Tint;
-            public bool Boom, Upright;
+            public bool Boom, Upright, Fall;
+            public float Sweep;
         }
 
         sealed class Puff
@@ -198,6 +199,27 @@ namespace Liangshan
                 shade = true;
                 size = (kind == ShotKind.Spear ? 124f : kind == ShotKind.Arrow ? 90f : kind == ShotKind.Punch ? 84f : kind == ShotKind.Stone ? 56f : kind == ShotKind.Wind ? 96f : 76f) * d.ProjSize;
             }
+            // 和局里一致：近战兵器从好汉手上一路抡到怪物身上（朴刀边飞边挥半圈，板斧打旋，长枪直捅）；法师的金砖从头顶砸下。
+            bool melee = kind == ShotKind.Punch || kind == ShotKind.Spear;
+            bool fall = kind == ShotKind.Stone && d.Kind == Sim.Role.Mage;
+            float sweep = 0f;
+            if (melee)
+            {
+                dur = 0.3f; arc = 0f;
+                if (d.Proj == "wp_slash")
+                {
+                    art = "wp_dao";
+                    size = 100f * d.ProjSize;
+                    tint = Color.white;
+                    sweep = Random.value < 0.5f ? 190f : -190f;
+                    along = true;
+                }
+            }
+            if (fall)
+            {
+                a = b + new Vector2(0, 260f);
+                dur = 0.36f; arc = 0f; along = false;
+            }
             var img = Make(Art.Img(art), a, size, tint.a < 0.01f ? Color.white : tint);
             Image sh = null;
             if (shade)
@@ -211,7 +233,7 @@ namespace Liangshan
             _bolts.Add(new Bolt
             {
                 Rt = img.rectTransform, Img = img, Shade = sh, A = a, B = b,
-                T = -delay, Dur = dur, Arc = arc, Kind = kind, Tint = tint, Boom = !along, Upright = upright,
+                T = -delay, Dur = dur, Arc = arc, Kind = kind, Tint = tint, Boom = !along, Upright = upright, Fall = fall, Sweep = sweep,
             });
         }
 
@@ -246,7 +268,7 @@ namespace Liangshan
                 o.Rt.anchoredPosition = o.B;
                 float s = Mathf.Lerp(0.35f, 1.7f, Tween.OutCubic(k));
                 o.Rt.localScale = Vector3.one * s;
-                o.Img.color = Color.white.A(1f - k);
+                o.Img.color = o.Tint.A(1f - k);
             }
             else
             {
@@ -260,13 +282,16 @@ namespace Liangshan
                     float lift = o.Arc * 4f * k * (1f - k);
                     o.Shade.color = new Color(0, 0, 0, 0.3f / (1f + lift * 0.004f));
                 }
-                if (o.Boom)
+                if (o.Fall)
+                    o.Rt.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(k * 9f) * 8f);
+                else if (o.Boom)
                     o.Rt.localRotation = Quaternion.Euler(0, 0, -o.T * (o.Kind == ShotKind.Wind ? 180f : o.Upright ? 900f : 520f));
                 else
                 {
-                    var vel = ahead - now;
+                    var vel = o.Sweep != 0f ? o.B - o.A : ahead - now;
                     float ang = Mathf.Atan2(vel.y, vel.x) * Mathf.Rad2Deg;
-                    o.Rt.localRotation = Quaternion.Euler(0, 0, ang - (o.Kind == ShotKind.Spear && !o.Upright ? 45f : 90f));
+                    float swing = o.Sweep != 0f ? Mathf.Lerp(o.Sweep * 0.5f, -o.Sweep * 0.55f, k * k * (3f - 2f * k)) : 0f;
+                    o.Rt.localRotation = Quaternion.Euler(0, 0, ang - (o.Kind == ShotKind.Spear && !o.Upright ? 45f : 90f) + swing);
                 }
                 if (o.Kind == ShotKind.Wind)
                     o.Rt.localScale = Vector3.one * Mathf.Lerp(0.7f, 1.35f, k);
@@ -279,7 +304,8 @@ namespace Liangshan
         static Vector2 Spot(Bolt o, float k)
         {
             float z = o.Arc * 4f * k * (1f - k);
-            return Vector2.Lerp(o.A, o.B, o.Kind == ShotKind.Spear || o.Kind == ShotKind.Punch ? Tween.OutCubic(k) : k) + new Vector2(0, z);
+            float t = o.Fall ? Tween.InCubic(k) : o.Kind == ShotKind.Spear || o.Kind == ShotKind.Punch ? Tween.OutCubic(k) : k;
+            return Vector2.Lerp(o.A, o.B, t) + new Vector2(0, z);
         }
 
         void Impact(ShotKind kind, Vector2 at, Color tint)
@@ -298,9 +324,17 @@ namespace Liangshan
                     Burst(Art.Sparkle, at, 80, 0.18f, Pal.Hex("BFE6FF"));
                     break;
                 case ShotKind.Punch when _def != null && _def.Proj != null:
-                    Burst(Art.Img("wp_slash"), at + new Vector2(0, 10), 120, 0.2f, Color.white);
+                    Burst(Art.Img("fx_swing"), at + new Vector2(0, 12), 150, 0.2f, _def.Proj == "wp_axe" ? Pal.Hex("FF7A3A") : Pal.Hex("D8E8FF"));
+                    Burst(Art.Img("fx_hit"), at + new Vector2(0, 14), 90, 0.18f, Pal.Hex("FFB49A"));
                     Burst(Art.Sparkle, at + new Vector2(0, 16), 80, 0.16f, Pal.Hex("FFE6B0"));
                     break;
+                case ShotKind.Stone when _def != null && _def.Kind == Sim.Role.Mage:
+                {
+                    var gold = Pal.Hex(_def.Tint ?? "FFD24A");
+                    Burst(Art.Img("fx_rune"), at, 170, 0.45f, gold);
+                    Burst(Art.Img("fx_hit"), at + new Vector2(0, 12), 110, 0.22f, gold);
+                    break;
+                }
                 case ShotKind.Punch:
                 case ShotKind.Slam:
                     Burst(Art.Img("fx_shock"), at, kind == ShotKind.Slam ? 180 : 130, 0.3f, Color.white);

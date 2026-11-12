@@ -13,6 +13,7 @@ namespace Liangshan
         Tab, Open, Close, LevelUp, Unlock, Talent, Forge, Reward, Reveal, Flip, Drum, Swap, Tick,
         Dart, Staff, Dao, Sword, Whip, SpearHit, Hammer, Axe, Lasso, Water, Whirl, Poison, Magic, Heal, Horse,
         Crit, UltWind, UltWater,
+        Chop, Thrust, Jab, Spell, GoldSlam, Gust,
     }
 
     public enum Bgm { None, Menu, Battle, Boss, Victory, Defeat }
@@ -81,8 +82,8 @@ namespace Liangshan
             Load(Snd.UltFist, "ult_smash", Snd.Warn);
             Load(Snd.Dart, "dart", Snd.Bow);
             Load(Snd.Staff, "staff", Snd.Fist);
-            Load(Snd.Dao, "dao", Snd.ArrowHit);
-            Load(Snd.Sword, "sword", Snd.Bow);
+            Load(Snd.Dao, "blade_hit", Snd.ArrowHit);
+            Load(Snd.Sword, "blade_swing", Snd.Bow);
             Load(Snd.Whip, "whip", Snd.Bow);
             Load(Snd.SpearHit, "spear", Snd.ArrowHit);
             Load(Snd.Hammer, "hammer", Snd.WallHit);
@@ -90,13 +91,19 @@ namespace Liangshan
             Load(Snd.Lasso, "lasso", Snd.ArrowHit);
             Load(Snd.Water, "water", Snd.Kill);
             Load(Snd.Whirl, "ult_whirl", Snd.Kill);
-            Load(Snd.Poison, "poison", Snd.Kill);
-            Load(Snd.Magic, "ult_magic", Snd.SlotAdd);
+            Load(Snd.Poison, "poison_puff", Snd.Kill);
+            Load(Snd.Magic, "magic_soft", Snd.SlotAdd);
             Load(Snd.Heal, "ult_heal", Snd.SlotAdd);
             Load(Snd.Horse, "horse", Snd.Tap);
             Load(Snd.Crit, "crit", Snd.ArrowHit);
             Load(Snd.UltWind, "ult_wind", Snd.Wave);
             Load(Snd.UltWater, "ult_water", Snd.Wave);
+            Load(Snd.Chop, "axe_chop", Snd.Axe);
+            Load(Snd.Thrust, "spear_thrust", Snd.Sword);
+            Load(Snd.Jab, "fist_swing", Snd.Sword);
+            Load(Snd.Spell, "spell_cast", Snd.Magic);
+            Load(Snd.GoldSlam, "gold_slam", Snd.Hammer);
+            Load(Snd.Gust, "spell_wind", Snd.Whirl);
 
             Load(Snd.Tap, "ui_tap", Snd.Tap);
             Load(Snd.Deny, "ui_deny", Snd.Deny);

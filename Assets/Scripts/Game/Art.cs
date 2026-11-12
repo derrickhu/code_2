@@ -5,28 +5,33 @@ namespace Liangshan
 {
     public static class Pal
     {
-        public static readonly Color Ink = Hex("4A2E1A");
-        public static readonly Color Edge = Hex("5A3820");
-        public static readonly Color Cream = Hex("FFF6E2");
-        public static readonly Color Parchment = Hex("F3E6C8");
-        public static readonly Color ParchmentDeep = Hex("E2CFA6");
-        public static readonly Color Gold = Hex("FFC93C");
-        public static readonly Color GoldDeep = Hex("C98A16");
-        public static readonly Color Orange = Hex("FF9A2E");
-        public static readonly Color Red = Hex("E2483A");
-        public static readonly Color RedDeep = Hex("8E2016");
-        public static readonly Color Green = Hex("57C443");
-        public static readonly Color GreenDeep = Hex("2E7D27");
-        public static readonly Color Teal = Hex("3DBFA6");
-        public static readonly Color TealDeep = Hex("1F7E6C");
-        public static readonly Color Blue = Hex("4C8EE8");
-        public static readonly Color Purple = Hex("9C5BE0");
-        /// <summary>禁用按钮等暖灰。饱和度要低于 0.35，Ui.BtnSkin 才会选灰色皮肤。</summary>
-        public static readonly Color Slate = Hex("7A6E66");
-        public static readonly Color SlateDeep = Hex("4A3A30");
-        /// <summary>局外亮色界面的描边色：亮背景、彩色底上的白字都压这个暖可可色。</summary>
-        public static readonly Color Navy = Hex("7A4A2A");
-        public static readonly Color Shadow = new Color(0.08f, 0.05f, 0.03f, 0.35f);
+        public static readonly Color Ink = Hex("1A2938");
+        public static readonly Color SubInk = Hex("4A6278");
+        public static readonly Color Muted = Hex("748CA2");
+        public static readonly Color Edge = Hex("22364A");
+        public static readonly Color Cream = Hex("F4F8FC");
+        public static readonly Color Parchment = Hex("EAF1F8");
+        public static readonly Color ParchmentDeep = Hex("D5E2EE");
+        public static readonly Color Gold = Hex("FFD042");
+        public static readonly Color GoldDeep = Hex("C48A14");
+        public static readonly Color Amber = Hex("F5BA36");
+        public static readonly Color Champagne = Hex("FFE699");
+        public static readonly Color Orange = Hex("F29B2E");
+        public static readonly Color Red = Hex("E54545");
+        public static readonly Color RedDeep = Hex("841C22");
+        public static readonly Color Green = Hex("3CC468");
+        public static readonly Color GreenDeep = Hex("1E7A40");
+        public static readonly Color Teal = Hex("2EB8A6");
+        public static readonly Color TealDeep = Hex("196B68");
+        public static readonly Color Azure = Hex("2B88C4");
+        public static readonly Color Blue = Hex("3E8CE4");
+        public static readonly Color Purple = Hex("8E5CE0");
+        /// <summary>禁用按钮等冷灰蓝。饱和度低于 0.35，Ui.BtnSkin 会选灰色皮肤。</summary>
+        public static readonly Color Slate = Hex("6E7E8E");
+        public static readonly Color SlateDeep = Hex("182838");
+        /// <summary>局外彩色底、铭牌上的深海蓝描边。</summary>
+        public static readonly Color Navy = Hex("14304D");
+        public static readonly Color Shadow = new Color(0.04f, 0.08f, 0.14f, 0.36f);
 
         /// <summary>星级色：一星白、二星绿、三星蓝紫、满星金。</summary>
         public static readonly Color[] Star = { Hex("F4F1EA"), Hex("7BE36A"), Hex("8FA8FF"), Hex("FFD24A") };
@@ -81,14 +86,18 @@ namespace Liangshan
     {
         static readonly Dictionary<string, Sprite> Cache = new Dictionary<string, Sprite>();
 
-        public static Sprite Rounded => Get("rounded", () => RoundRect(96, 26, 0));
-        public static Sprite RoundedSmall => Get("rounded_s", () => RoundRect(64, 12, 0));
-        public static Sprite Pill => Get("pill", () => RoundRect(96, 47, 0));
-        public static Sprite Circle => Get("circle", () => Disc(128, 0.02f));
+        public static Sprite Rounded => Get("rounded", () => RoundRect(256, 64, 0));
+        public static Sprite RoundedSmall => Get("rounded_s", () => RoundRect(256, 36, 0));
+        public static Sprite Pill => Get("pill", () => RoundRect(256, 126, 0));
+        public static Sprite Circle => Get("circle", () => Disc(256, 0.02f));
         public static Sprite SoftDot => Get("softdot", () => Disc(128, 1f));
+        /// <summary>贴地脚影：内圈紧实深影、外沿柔化，让角色和抛射物稳稳踩在石板上不发飘。</summary>
+        public static Sprite GroundShadow => Get("groundshadow", GroundShadowTex);
         public static Sprite Ring => Get("ring", () => RingTex(256, 0.82f));
         public static Sprite White => Get("white", () => Solid(4));
         public static Sprite Hex6 => Get("hex", HexTex);
+        /// <summary>高清描边翠绿升级箭头：对标主流竖版卡牌清爽角标，不糊边。</summary>
+        public static Sprite UpArrow => Get("uparrow", UpArrowTex);
         public static Sprite VGrad => Get("vgrad", VGradTex);
         public static Sprite Coin => Img("ic_silver");
         public static Sprite Hole => Get("hole", HoleTex);
@@ -340,28 +349,28 @@ namespace Liangshan
         /// <summary>左、下、右、上。横条类上下为 0，配合按高度缩放使用。</summary>
         static Vector4 SkinBorder(string n)
         {
-            if (n.StartsWith("btn_")) return new Vector4(40, 44, 40, 36);
-            if (n.StartsWith("bar_")) return new Vector4(30, 0, 30, 0);
-            if (n.StartsWith("card_")) return new Vector4(40, 90, 40, 40);
-            if (n.StartsWith("slot_")) return new Vector4(44, 44, 44, 44);
+            if (n.StartsWith("btn_")) return new Vector4(32, 32, 32, 32);
+            if (n.StartsWith("bar_")) return new Vector4(14, 0, 14, 0);
+            if (n.StartsWith("card_")) return new Vector4(30, 74, 30, 30);
+            if (n.StartsWith("slot_")) return new Vector4(32, 32, 32, 32);
             if (n == "banner") return new Vector4(262, 0, 262, 0);
             if (n.StartsWith("banner")) return new Vector4(120, 0, 120, 0);
             switch (n)
             {
-                case "panel": return new Vector4(142, 142, 142, 142);
-                case "dark": return new Vector4(30, 30, 30, 30);
-                case "tab_on": return new Vector4(40, 40, 40, 40);
+                case "panel": return new Vector4(48, 48, 48, 48);
+                case "dark": return new Vector4(32, 32, 32, 32);
+                case "tab_on": return new Vector4(32, 32, 32, 32);
                 case "tabbar": return new Vector4(40, 20, 40, 30);
-                case "row": return new Vector4(42, 42, 42, 42);
-                case "pill": return new Vector4(30, 0, 30, 0);
+                case "row": return new Vector4(28, 28, 28, 28);
+                case "pill": return new Vector4(28, 0, 28, 0);
                 case "plate": return new Vector4(50, 0, 50, 0);
                 case "plaque": return new Vector4(176, 0, 176, 0);
                 case "flame_bar": return new Vector4(60, 60, 230, 130);
-                case "h_start": return new Vector4(80, 70, 80, 60);
-                case "h_tabbar": return new Vector4(30, 14, 30, 44);
-                case "h_tile": return new Vector4(60, 60, 60, 60);
-                case "h_capsule": return new Vector4(58, 0, 58, 0);
-                case "h_plaque": return new Vector4(54, 0, 54, 0);
+                case "h_start": return new Vector4(46, 46, 46, 46);
+                case "h_tabbar": return new Vector4(24, 24, 24, 28);
+                case "h_tile": return new Vector4(28, 28, 28, 28);
+                case "h_capsule": return new Vector4(28, 0, 28, 0);
+                case "h_plaque": return new Vector4(44, 0, 44, 0);
                 case "h_ribbon": return new Vector4(96, 0, 96, 0);
                 default: return Vector4.zero;
             }
@@ -426,6 +435,23 @@ namespace Liangshan
             return Make(t);
         }
 
+        static Sprite GroundShadowTex()
+        {
+            const int n = 128;
+            var t = NewTex(n, n);
+            var px = new Color[n * n];
+            float r = n * 0.5f;
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float d = Mathf.Sqrt((x + 0.5f - r) * (x + 0.5f - r) + (y + 0.5f - r) * (y + 0.5f - r)) / r;
+                    float core = 1f - Mathf.SmoothStep(0.42f, 0.98f, d);
+                    px[y * n + x] = new Color(1, 1, 1, core);
+                }
+            t.SetPixels(px);
+            return Make(t);
+        }
+
         static Sprite RingTex(int n, float inner)
         {
             var t = NewTex(n, n);
@@ -443,10 +469,10 @@ namespace Liangshan
             return Make(t);
         }
 
-        /// <summary>尖顶六边形（倍速按钮）。</summary>
+        /// <summary>尖顶六边形（倍速按钮与宝石镶孔）。256×256 高倍超采抗锯齿。</summary>
         static Sprite HexTex()
         {
-            const int n = 128;
+            const int n = 256;
             var t = NewTex(n, n);
             var px = new Color[n * n];
             float r = n * 0.5f;
@@ -454,8 +480,51 @@ namespace Liangshan
                 for (int x = 0; x < n; x++)
                 {
                     float px0 = Mathf.Abs(x + 0.5f - r) / r, py0 = Mathf.Abs(y + 0.5f - r) / r;
-                    float d = Mathf.Max(px0 * 0.866f + py0 * 0.5f, py0) - 0.96f;
+                    float d = Mathf.Max(px0 * 0.8660254f + py0 * 0.5f, py0) - 0.96f;
                     px[y * n + x] = new Color(1, 1, 1, Mathf.Clamp01(-d * r));
+                }
+            t.SetPixels(px);
+            return Make(t);
+        }
+
+        /// <summary>翠绿描边上箭头角标（y=0 为底、y=n-1 为箭头尖）。</summary>
+        static Sprite UpArrowTex()
+        {
+            const int n = 96;
+            var t = NewTex(n, n);
+            var px = new Color[n * n];
+            Color dark = Pal.Hex("153B22");
+            Color topCol = Pal.Hex("7CF892");
+            Color botCol = Pal.Hex("2CC452");
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float u = (x + 0.5f) / n * 2f - 1f; // -1..1
+                    float v = (y + 0.5f) / n * 2f - 1f; // -1(bottom)..+1(top)
+                    float ax = Mathf.Abs(u);
+
+                    // Rounded stem: x in [-0.26, 0.26], y in [-0.72, 0.08]
+                    float sx = ax - 0.24f, sy = Mathf.Max(-0.70f - v, v - 0.12f);
+                    float dStem = Mathf.Sqrt(Mathf.Max(sx, 0f) * Mathf.Max(sx, 0f) + Mathf.Max(sy, 0f) * Mathf.Max(sy, 0f))
+                                  + Mathf.Min(Mathf.Max(sx, sy), 0f) - 0.05f;
+
+                    // Triangle head: apex at (0, 0.76), base at y = -0.02, half-width = 0.62
+                    // Signed distance to isosceles triangle (upward)
+                    float ty = 0.76f - v; // 0 at apex, 0.78 at base
+                    float slope = (ax - ty * (0.62f / 0.78f)) * 0.78f;
+                    float dBase = -0.02f - v;
+                    float dHead = Mathf.Max(slope, dBase) - 0.04f;
+                    if (v > 0.76f) dHead = Mathf.Sqrt(ax * ax + (v - 0.76f) * (v - 0.76f)) - 0.04f;
+
+                    float d = Mathf.Min(dStem, dHead) * (n * 0.5f); // in pixels
+                    float aOut = Mathf.Clamp01(0.5f - (d - 4.2f));
+                    float aIn = Mathf.Clamp01(0.5f - d);
+                    if (aOut <= 0.001f) { px[y * n + x] = Color.clear; continue; }
+
+                    Color fill = Color.Lerp(botCol, topCol, Mathf.Clamp01((v + 0.75f) / 1.5f));
+                    if (u < -0.02f && v > -0.1f) fill = Color.Lerp(fill, Color.white, 0.18f);
+                    Color rgb = Color.Lerp(dark, fill, aIn);
+                    px[y * n + x] = new Color(rgb.r, rgb.g, rgb.b, aOut);
                 }
             t.SetPixels(px);
             return Make(t);

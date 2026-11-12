@@ -292,7 +292,16 @@ namespace Liangshan.Tests
             for (int r = 0; r < Defs.RoleCount; r++) Assert.GreaterOrEqual(Defs.Heroes.Count(d => (int)d.Kind == r), 4);
             foreach (var d in Defs.Heroes)
             {
-                Assert.AreEqual(6, Defs.PerksOf(d.Id, false).Count, d.Name);
+                var regular = Defs.PerksOf(d.Id, false);
+                Assert.AreEqual(2, regular.Count(p => p.Kind == PerkKind.Trade && p.Group == "pace"), d.Name + " 重手/快手");
+                if (d.Kind != Role.Support)
+                {
+                    var morph = regular.Single(p => p.Kind == PerkKind.Morph);
+                    Assert.AreEqual(morph.Id, regular.Single(p => p.Kind == PerkKind.Adv).Req, d.Name + " 进阶接在质变后面");
+                    Assert.AreEqual(13, regular.Count, d.Name);
+                }
+                else Assert.AreEqual(9, regular.Count, d.Name);
+                foreach (var p in regular.Where(p => p.Has2)) Assert.Less(p.V2, 0f, p.Name + " 取舍的代价是负的");
                 Assert.IsNotNull(Meta.OptPerk(d.Id, 1), d.Name);
                 Assert.IsNotNull(Meta.OptPerk(d.Id, 2), d.Name);
                 Assert.AreEqual(3, Defs.PerksOf(d.Id, true).Count, d.Name);
@@ -522,11 +531,79 @@ namespace Liangshan.Tests
         [Test]
         public void OldSaveGetsNewArrays()
         {
-            var s = new SaveData { LevelChest = null, FlagAffix = null, EquipQ = null };
+            var s = new SaveData { LevelChest = null, FlagAffix = null, EquipQ = null, Totems = null, TotemEquipped = null };
             Meta.Normalize(s);
             Assert.AreEqual(Defs.LevelCount, s.LevelChest.Length);
             Assert.AreEqual(Meta.FlagSlotsMax, s.FlagAffix.Length);
             Assert.AreEqual(Meta.Equips.Length, s.EquipQ.Length);
+            Assert.AreEqual(Meta.TotemTotalSockets, s.TotemEquipped.Length);
+            Assert.IsNotNull(s.Totems);
+        }
+
+        [Test]
+        public void TotemsInlayRefineMergeAndWishRecruitBoostPower()
+        {
+            var s = Meta.NewSave(0);
+            s.Cleared = 20;
+            s.RefineStones = 10;
+            s.Hammers = 12;
+            s.Silk = 2000;
+            s.Copper = 50000;
+            int pw0 = Meta.TeamPower(s);
+
+            var pulls = Meta.PullTotems(s, 10, new Rng(77));
+            Assert.AreEqual(10, pulls.Count);
+            Assert.IsTrue(pulls.Any(t => t.Rarity >= 2), "十连寻宝必出史诗及以上图腾");
+
+            var epic = s.Totems.First(t => t.Rarity >= 2);
+            int oldKind = epic.Kind;
+            Assert.IsTrue(Meta.RefineTotem(s, epic.Id, new Rng(88)));
+            Assert.AreNotEqual(oldKind, epic.Kind, "洗炼必换新词条");
+            Assert.IsTrue(Meta.ToggleInlayTotem(s, epic.Id));
+            Assert.IsTrue(Meta.IsTotemEquipped(s, epic.Id));
+            Assert.IsTrue(Meta.UpgradeCloak(s));
+            Assert.Greater(Meta.TeamPower(s), pw0, "镶嵌图腾与升阶战氅提升全队战力");
+
+            // 三合一合成
+            var rng = new Rng(99);
+            for (int i = 0; i < 3; i++) Meta.RollTotem(s, 1, rng, 0);
+            var merged = Meta.MergeAllTotems(s, rng);
+            Assert.GreaterOrEqual(merged.Count, 1);
+            Assert.GreaterOrEqual(merged[0].Rarity, 2);
+
+            // 心愿单 50% UP 验证
+            Meta.SetWish(s, HeroId.HuaRong);
+            int hits = 0, epics = 0;
+            for (int i = 0; i < 40; i++)
+                foreach (var p in Meta.Recruit(s, 10, new Rng(500 + i)))
+                    if (Defs.Hero(p.Hero).Rarity == 3)
+                    {
+                        epics++;
+                        if (p.Hero == HeroId.HuaRong) hits++;
+                    }
+            Assert.Greater(hits, epics * 0.35f, "心愿好汉显著提高同品质命中率");
+        }
+
+        [Test]
+        public void SubsetFontsCoverAllCodeCharacters()
+        {
+            var heavy = UnityEngine.Resources.Load<UnityEngine.Font>("Fonts/Heavy");
+            var bold = UnityEngine.Resources.Load<UnityEngine.Font>("Fonts/Bold");
+            Assert.IsNotNull(heavy, "缺 Fonts/Heavy");
+            Assert.IsNotNull(bold, "缺 Fonts/Bold");
+
+            var missing = new System.Collections.Generic.HashSet<char>();
+            string scriptsDir = System.IO.Path.Combine(UnityEngine.Application.dataPath, "Scripts");
+            foreach (var file in System.IO.Directory.GetFiles(scriptsDir, "*.cs", System.IO.SearchOption.AllDirectories))
+            {
+                string txt = System.IO.File.ReadAllText(file);
+                foreach (char c in txt)
+                {
+                    if (c <= 0x7E || char.IsWhiteSpace(c) || char.IsSurrogate(c)) continue;
+                    if (!heavy.HasCharacter(c) || !bold.HasCharacter(c)) missing.Add(c);
+                }
+            }
+            Assert.AreEqual(0, missing.Count, "子集字体缺字（需运行 python3 tools/build_font.py）：" + new string(missing.ToArray()));
         }
     }
 }

@@ -17,20 +17,29 @@ OUT = ROOT / "Assets" / "Resources" / "Fonts"
 LICENSES = ROOT / "LICENSES"
 
 # (输出名, 字重, 改名后的家族名)。OFL 字体改动后要换家族名。
+# 字重说明：750（ExtraBold）笔画饱满但内白通透，配细描边不糊团；570（SemiBold）正文与标签清爽利落。
 FONTS = [
-    ("Heavy.ttf", 900, "Liangshan Heavy"),
-    ("Bold.ttf", 700, "Liangshan Bold"),
+    ("Heavy.ttf", 750, "Liangshan Heavy"),
+    ("Bold.ttf", 570, "Liangshan Bold"),
 ]
 
-EXTRA = "，。！？、：；「」『』（）《》—…·★☆↓→←↑×％+-/0123456789KkMm"
+EXTRA = (
+    "，。！？、：；「」『』（）【】《》—…·★☆◆◇▲▼◀▶↑↓←→"
+    "×÷＋－±％‰✓!?"
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+)
 
 
 def collect_chars() -> str:
     chars = set(chr(c) for c in range(0x20, 0x7F))
     chars.update(EXTRA)
-    for p in (ROOT / "Assets" / "Scripts").rglob("*.cs"):
-        for m in re.finditer(r"[^\x00-\x7F]", p.read_text(encoding="utf-8")):
-            chars.add(m.group(0))
+    for folder in ("Scripts", "Tests"):
+        base = ROOT / "Assets" / folder
+        if not base.exists():
+            continue
+        for p in base.rglob("*.cs"):
+            for m in re.finditer(r"[^\x00-\x7F]", p.read_text(encoding="utf-8")):
+                chars.add(m.group(0))
     return "".join(sorted(chars))
 
 

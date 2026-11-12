@@ -9,8 +9,8 @@ namespace Liangshan
     /// <summary>每日任务（活跃宝箱）、七日目标、招募冲刺、每日福利。</summary>
     public static partial class MetaUi
     {
-        static readonly Color Claim = Pal.Hex("F2B632");
-        static readonly Color Grass = Pal.Hex("4FB548");
+        static readonly Color Claim = Pal.Gold;
+        static readonly Color Grass = Pal.Green;
 
         // ---------------- 通用部件 ----------------
 
@@ -50,12 +50,12 @@ namespace Liangshan
         static void ProgressRow(RectTransform r, float w, IList<Item> rewards, string title, int cur, int need, RowState st,
             Action claim, Action go, Transform tipLayer, int points = 0)
         {
-            Ui.Skin(r, "row", new Vector2(w, 136), Vector2.zero, 1f, st == RowState.Taken ? new Color(0.82f, 0.8f, 0.78f) : Color.white);
+            Ui.Skin(r, "row", new Vector2(w, 136), Vector2.zero, 1f, st == RowState.Taken ? new Color(0.82f, 0.85f, 0.88f) : Color.white);
             float x = -w * 0.5f + 70;
             if (points > 0)
             {
                 Ui.Icon(r, "ic_active", 64, new Vector2(x - 6, 16));
-                Ui.Outlined(r, "+" + points, 27, Color.white, new Vector2(x - 6, -38), new Vector2(90, 30), Pal.Hex("B0501A"), 2f);
+                Ui.Outlined(r, "+" + points, 27, Color.white, new Vector2(x - 6, -38), new Vector2(90, 30), Pal.Navy, 2f);
                 x += 96;
             }
             foreach (var it in rewards)
@@ -70,17 +70,17 @@ namespace Liangshan
             switch (st)
             {
                 case RowState.Taken:
-                    Ui.Outlined(r, "已领取", 32, Pal.Hex("8A7A60"), bpos, new Vector2(190, 60), Pal.Cream, 1f);
+                    Ui.Outlined(r, "已领取", 32, Pal.Muted, bpos, new Vector2(190, 60), Color.white, 1f);
                     break;
                 case RowState.Claim:
-                    Dot(Ui.Btn(r, "领取", new Vector2(180, 86), bpos, Claim, claim, 34), new Vector2(84, 38));
+                    Ui.Btn(r, "领取", new Vector2(180, 86), bpos, Claim, claim, 34);
                     break;
                 case RowState.Locked:
                     Ui.Btn(r, "未开启", new Vector2(180, 86), bpos, Pal.Slate, () => Ui.Toast("还没到这一天", 200), 30);
                     break;
                 default:
-                    if (go != null) Ui.Btn(r, "前往", new Vector2(180, 86), bpos, Pal.Teal, go, 34);
-                    else Ui.Outlined(r, "进行中", 30, Pal.Hex("7A5432"), bpos, new Vector2(190, 60), Pal.Cream, 1f);
+                    if (go != null) Ui.Btn(r, "前往", new Vector2(180, 86), bpos, Pal.Azure, go, 34);
+                    else Ui.Outlined(r, "进行中", 30, Pal.SubInk, bpos, new Vector2(190, 60), Color.white, 1f);
                     break;
             }
         }
@@ -128,9 +128,9 @@ namespace Liangshan
         /// <summary>宝箱没到门槛时看一眼里面有什么。</summary>
         static void BoxPreview(Transform layer, IList<Item> items, string hint)
         {
-            Modal(layer, "boxPreview", "宝箱奖励", new Vector2(820, 520), out var p, Pal.Hex("8A5A2A"));
+            Modal(layer, "boxPreview", "宝箱奖励", new Vector2(820, 520), out var p);
             ItemRow(p, new List<Item>(items), new Vector2(0, 40), 130);
-            Ui.Label(p, hint, 30, Pal.Hex("6E4A2A"), new Vector2(0, -170), new Vector2(740, 44));
+            Ui.Label(p, hint, 30, Pal.SubInk, new Vector2(0, -170), new Vector2(740, 44));
         }
 
         static readonly string[] ChestIcons = { "ic_chest_wood", "ic_chest_silver", "ic_chest_silver", "ic_chest_gold", "ic_chest" };
@@ -140,7 +140,7 @@ namespace Liangshan
         public static void Tasks(Transform layer)
         {
             var m = Modal(layer, "tasks", "每日任务", new Vector2(960, 1380), out var p);
-            Ui.Label(p, "做任务攒活跃度，开活跃宝箱；出征越多，奖励越多", 28, Pal.Hex("7A5432"), new Vector2(0, 600), new Vector2(880, 40));
+            Ui.Label(p, "做任务攒活跃度，开活跃宝箱；出征越多，奖励越多", 28, Pal.SubInk, new Vector2(0, 600), new Vector2(880, 40));
             BoxBar(p, 470, 900, Meta.ActPoints(S), Meta.ActBoxNeed, k => (S.ActBox & (1 << k)) != 0, k => Meta.CanActBox(S, k), k =>
             {
                 var got = Meta.OpenActBox(S, k);
@@ -184,9 +184,9 @@ namespace Liangshan
             int today = Profile.Today, now = Mathf.Clamp(Meta.DayNo(S, today), 1, Meta.SevenDays);
             if (day <= 0) day = _sevenDay > 0 ? _sevenDay : FirstSevenDay(today, now);
             _sevenDay = day;
-            var m = Modal(layer, "seven", "七日目标", new Vector2(1000, 1420), out var p, Pal.Hex("C0602A"));
+            var m = Modal(layer, "seven", "七日目标", new Vector2(1000, 1420), out var p);
             var hd = Defs.Hero(Meta.SevenHero);
-            Ui.Label(p, $"完成七日目标攒积分，集满领取传说好汉 <color=#D0602A>{hd.Nick}·{hd.Name}</color>", 26, Pal.Hex("7A5432"),
+            Ui.Label(p, $"完成七日目标攒积分，集满领取传说好汉 <color=#1874B0>{hd.Nick}·{hd.Name}</color>", 26, Pal.SubInk,
                 new Vector2(0, 620), new Vector2(920, 40));
             BoxBar(p, 500, 940, Meta.SevenPointsOf(S), Meta.SevenBoxNeed, k => (S.SevenBox & (1 << k)) != 0, k => Meta.CanSevenBox(S, k), k =>
             {
@@ -204,11 +204,11 @@ namespace Liangshan
                 var tab = Ui.Rect(p, "day" + d);
                 tab.anchoredPosition = new Vector2(-410, 340 - (d - 1) * 140);
                 tab.sizeDelta = new Vector2(140, 124);
-                var face = Ui.Skin(tab, on ? "tab_on" : "row", new Vector2(140, 124), Vector2.zero, 1f,
-                    open ? (on ? Color.white : new Color(0.95f, 0.9f, 0.84f)) : new Color(0.7f, 0.7f, 0.72f));
-                Ui.Outlined(tab, $"第{d}天", 30, Color.white, new Vector2(0, 8), new Vector2(140, 44), on ? Pal.Hex("C0602A") : Pal.Ink, 2f);
+                var face = Ui.Skin(tab, on ? "btn_teal" : "row", new Vector2(140, 124), Vector2.zero, 1f,
+                    open ? Color.white : new Color(0.75f, 0.78f, 0.82f));
+                Ui.Outlined(tab, $"第{d}天", 29, Color.white, new Vector2(0, 8), new Vector2(140, 44), on ? Pal.Navy : Pal.Ink, 2f);
                 if (!open) Ui.Icon(tab, "ic_lock", 40, new Vector2(0, -34));
-                else if (d == now) Ui.Outlined(tab, "今天", 22, Pal.Hex("FFE08A"), new Vector2(0, -34), new Vector2(120, 30), Pal.Ink, 1.5f);
+                else if (d == now) Ui.Outlined(tab, "今天", 22, Pal.Champagne, new Vector2(0, -34), new Vector2(120, 30), Pal.Ink, 1.5f);
                 int badge = open ? Meta.DayBadge(S, d, today) : 0;
                 if (badge > 0) Dot(tab, new Vector2(56, 48), badge);
                 Ui.Tap(face, () => Seven(layer, dd), tab);
@@ -236,7 +236,7 @@ namespace Liangshan
                 }, () => { Close(m); Game.I.Home?.Goto(g.Act); }, layer);
             }
             string tip = dayOpen ? "每个目标 +10 积分，往后几天的目标提前完成也能领" : $"第 {day} 天开启，现在可以先做起来";
-            Ui.Label(p, tip, 26, Pal.Hex("7A5432"), new Vector2(80, -470), new Vector2(800, 40));
+            Ui.Label(p, tip, 26, Pal.SubInk, new Vector2(80, -470), new Vector2(800, 40));
         }
 
         /// <summary>打开时先跳到有奖可领的那天，没有就跳今天。</summary>
@@ -251,19 +251,19 @@ namespace Liangshan
         public static void Sprint(Transform layer, int tab = 0)
         {
             int today = Profile.Today;
-            var m = Modal(layer, "sprint", "招募冲刺", new Vector2(1000, 1420), out var p, Pal.Hex("3A6AB0"));
+            var m = Modal(layer, "sprint", "招募冲刺", new Vector2(1000, 1420), out var p);
             Ui.Icon(p, "tab_sprint", 150, new Vector2(-380, 560));
-            Ui.Outlined(p, $"本轮已招募 {Meta.SprintPulls(S)} 次", 40, Pal.Hex("FFE08A"), new Vector2(-40, 590), new Vector2(560, 56), Pal.Ink, 2.5f);
-            Ui.Label(p, $"每轮 {Meta.SprintDays} 天 · 本轮还剩 {Meta.SprintDaysLeft(S, today)} 天 · 招募越多返得越多", 26, Pal.Hex("6E4A2A"),
+            Ui.Outlined(p, $"本轮已招募 {Meta.SprintPulls(S)} 次", 40, Pal.Champagne, new Vector2(-40, 590), new Vector2(560, 56), Pal.Ink, 2.5f);
+            Ui.Label(p, $"每轮 {Meta.SprintDays} 天 · 本轮还剩 {Meta.SprintDaysLeft(S, today)} 天 · 招募越多返得越多", 26, Pal.SubInk,
                 new Vector2(-40, 538), new Vector2(620, 40));
-            Ui.Btn(p, "前往招募", new Vector2(220, 90), new Vector2(360, 560), Pal.Hex("E8862A"), () => { Close(m); Game.I.Home?.Goto(Act.Recruit); }, 32);
+            Ui.Btn(p, "前往招募", new Vector2(220, 90), new Vector2(360, 560), Pal.Azure, () => { Close(m); Game.I.Home?.Goto(Act.Recruit); }, 32);
 
             string[] tabs = { "冲刺目标", "冲刺任务" };
             int[] badges = { Meta.SprintTierBadge(S), Meta.SprintTaskBadge(S) };
             for (int i = 0; i < 2; i++)
             {
                 int ti = i;
-                var b = Ui.Btn(p, tabs[i], new Vector2(300, 86), new Vector2((i - 0.5f) * 330, 430), i == tab ? Claim : Pal.Hex("A08A70"), () => Sprint(layer, ti), 36);
+                var b = Ui.Btn(p, tabs[i], new Vector2(300, 86), new Vector2((i - 0.5f) * 330, 430), i == tab ? Pal.Azure : Pal.Slate, () => Sprint(layer, ti), 36);
                 if (badges[i] > 0) Dot(b, new Vector2(136, 36), badges[i]);
             }
             int n = tab == 0 ? Meta.SprintTierNeed.Length : Meta.SprintTasks.Length;
@@ -314,9 +314,9 @@ namespace Liangshan
         public static void Welfare(Transform layer)
         {
             int today = Profile.Today;
-            Modal(layer, "welfare", "每日福利", new Vector2(880, 900), out var p, Pal.Hex("C0503A"));
+            Modal(layer, "welfare", "每日福利", new Vector2(880, 900), out var p);
             Ui.Icon(p, "tab_welfare", 230, new Vector2(0, 230));
-            Ui.Label(p, "每天免费领一次，零点刷新", 30, Pal.Hex("6E4A2A"), new Vector2(0, 80), new Vector2(760, 44));
+            Ui.Label(p, "每天免费领一次，零点刷新", 30, Pal.SubInk, new Vector2(0, 80), new Vector2(760, 44));
             ItemRow(p, new List<Item>(Meta.WelfareReward(S)), new Vector2(0, -60), 140);
             bool can = Meta.CanWelfare(S, today);
             Ui.Btn(p, can ? "免费领取" : "明日再来", new Vector2(340, 116), new Vector2(0, -300), can ? Claim : Pal.Slate, () =>

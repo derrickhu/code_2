@@ -10,7 +10,7 @@ namespace Liangshan
     /// <summary>关卡宝箱卡片、道具说明、关卡列表、章节宝箱、聚义宴、天书、杏黄旗、装备箱。</summary>
     public static partial class MetaUi
     {
-        static readonly Color CardFace = Pal.Hex("F6EEDF"), CardEdge = Pal.Hex("8C7B63"), CardInk = Pal.Hex("4A3A2A");
+        static readonly Color CardFace = Pal.Hex("F2F7FB"), CardEdge = Pal.Hex("3B82AD"), CardInk = Pal.Hex("1A2938");
 
         /// <summary>轻量浮层：全屏透明挡板点一下就收起，卡片挂在 card 下。</summary>
         static RectTransform Popover(Transform layer, string key, out RectTransform card, Vector2 size, Vector2 pos)
@@ -66,7 +66,7 @@ namespace Liangshan
             float top = size.y * 0.5f;
             Ui.Label(card, "宝箱奖励", 32, CardInk, new Vector2(0, top - 34), new Vector2(size.x, 44), TextAnchor.MiddleCenter, Fonts.Heavy);
             bool got = Meta.LevelChestGot(S, level, k);
-            Ui.Label(card, $"条件：{Meta.LevelChestCond[k]}" + (got ? "  <color=#3A9A3A>已获得</color>" : ""), 24, Pal.Hex("7A6A56"),
+            Ui.Label(card, $"条件：{Meta.LevelChestCond[k]}" + (got ? "  <color=#1E8A48>已获得</color>" : ""), 24, Pal.SubInk,
                 new Vector2(0, top - 74), new Vector2(size.x, 36), TextAnchor.MiddleCenter, Fonts.Heavy);
             float gx = -(cols - 1) * (cell + gap) * 0.5f, gy = top - 104 - cell * 0.5f;
             var layerT = layer;
@@ -77,20 +77,38 @@ namespace Liangshan
             }
         }
 
-        /// <summary>道具说明小卡：图标、名字、「道具」、说明、来源。</summary>
+        /// <summary>对标参考图3「洗炼石」暖金顶栏圆角道具详情卡：上层品质色横幅（框住图标+名称+道具副标），下层白瓷底说明与来源。</summary>
         public static void ItemTip(Transform layer, Item it, Transform anchor)
         {
             var info = CurInfo(it);
-            var size = new Vector2(600, 250);
-            var at = LocalOf(layer, anchor);
-            var pos = ClampX(layer, at + new Vector2(0, size.y * 0.5f + 80), size.x * 0.5f);
-            Popover(layer, "tip", out var card, size, pos);
-            float l = -size.x * 0.5f;
-            ItemTile(card, new Item(it.Cur, 0, it.Hero), new Vector2(l + 80, 50), 104, false).Find("olabel")?.gameObject.SetActive(false);
-            Ui.Label(card, CurName(it), 32, CardInk, new Vector2(l + 150 + 200, 76), new Vector2(400, 44), TextAnchor.MiddleLeft, Fonts.Heavy);
-            Ui.Label(card, "道具", 22, Pal.Hex("9A8A72"), new Vector2(l + 150 + 200, 36), new Vector2(400, 30), TextAnchor.MiddleLeft);
-            Ui.Label(card, info.Desc, 24, CardInk, new Vector2(0, -36), new Vector2(size.x - 50, 64), TextAnchor.MiddleLeft);
-            Ui.Label(card, $"【来源】{info.From}", 22, Pal.Hex("8A5A2A"), new Vector2(0, -94), new Vector2(size.x - 50, 36), TextAnchor.MiddleLeft, Fonts.Heavy);
+            var size = new Vector2(740, 340);
+            var at = anchor != null ? LocalOf(layer, anchor) : Vector2.zero;
+            var pos = ClampX(layer, new Vector2(at.x * 0.35f, Mathf.Clamp(at.y + 230f, -220f, 340f)), size.x * 0.5f);
+            var root = Popover(layer, "tip", out var card, size, pos);
+            root.Find("hit").GetComponent<Image>().color = new Color(0.02f, 0.05f, 0.1f, 0.42f);
+
+            string sk = SlotSkin(it);
+            Color headCol = sk == "slot_orange" ? Pal.Hex("E8B04B") : sk == "slot_purple" ? Pal.Hex("8868D8") : sk == "slot_blue" ? Pal.Hex("549EE0") : Pal.Hex("C8A064");
+            Ui.Box(card, size + new Vector2(8, 8), Vector2.zero, Pal.Hex("FAF8F2"), Art.Rounded);
+            Ui.Box(card, new Vector2(size.x, 168), new Vector2(0, size.y * 0.5f - 84), headCol, Art.Rounded);
+            Ui.Box(card, new Vector2(size.x, 36), new Vector2(0, size.y * 0.5f - 150), headCol, Art.White);
+            Ui.Box(card, new Vector2(size.x, size.y - 168), new Vector2(0, -84), Pal.Hex("F6F3EC"), Art.Rounded);
+            Ui.Box(card, new Vector2(size.x, 24), new Vector2(0, size.y * 0.5f - 180), Pal.Hex("F6F3EC"), Art.White);
+            Ui.Box(card, new Vector2(size.x, 3), new Vector2(0, size.y * 0.5f - 168), headCol.Mul(0.82f), Art.White);
+
+            // 左侧品质方框图标
+            var iconPos = new Vector2(-size.x * 0.5f + 104, size.y * 0.5f - 84);
+            Ui.Box(card, new Vector2(138, 138), iconPos + new Vector2(0, -3), new Color(0, 0, 0, 0.16f), Art.RoundedSmall);
+            Ui.Box(card, new Vector2(134, 134), iconPos, Color.Lerp(headCol, Color.white, 0.45f), Art.RoundedSmall);
+            Ui.Box(card, new Vector2(122, 122), iconPos, Color.Lerp(headCol, Color.white, 0.2f), Art.RoundedSmall);
+            Ui.Icon(card, CurIcon(it), 102, iconPos + new Vector2(0, 2));
+            if (it.Cur == Cur.Shard) Ui.Icon(card, "ic_shard", 42, iconPos + new Vector2(-38, 38));
+
+            Ui.Outlined(card, CurName(it), 40, Color.white, new Vector2(56, size.y * 0.5f - 62), new Vector2(450, 52), Pal.Hex("3B2810"), 2.4f, TextAnchor.MiddleLeft);
+            Ui.Outlined(card, it.Cur == Cur.Shard ? "好汉碎片" : "道具", 26, Color.white, new Vector2(56, size.y * 0.5f - 110), new Vector2(450, 38), Pal.Hex("3B2810"), 1.8f, TextAnchor.MiddleLeft);
+
+            Ui.Label(card, info.Desc, 27, Pal.Hex("3C3A36"), new Vector2(0, -56), new Vector2(size.x - 68, 96), TextAnchor.UpperLeft, Fonts.Bold);
+            Ui.Label(card, $"获取途径：{info.From}", 23, Pal.Hex("2B6E9E"), new Vector2(0, -134), new Vector2(size.x - 68, 36), TextAnchor.MiddleLeft, Fonts.Heavy);
         }
 
         // ---------------- 关卡列表 ----------------
@@ -102,12 +120,12 @@ namespace Liangshan
             chapter = Mathf.Clamp(chapter, 1, maxCh);
             var ch = Defs.Chapters[chapter - 1];
             float ph = Mathf.Min(1500, Ui.Height - Ui.SafeTop - 300);
-            var m = Modal(layer, "levels", $"第{chapter}章 · {ch.Name}", new Vector2(960, ph), out var p, Pal.Hex("3A6A8A"));
+            var m = Modal(layer, "levels", $"第{chapter}章 · {ch.Name}", new Vector2(960, ph), out var p);
             float top = ph * 0.5f;
             if (chapter > 1) ArrowIn(p, new Vector2(-400, top - 60), -1, () => LevelList(layer, chapter - 1));
             if (chapter < maxCh) ArrowIn(p, new Vector2(400, top - 60), 1, () => LevelList(layer, chapter + 1));
             int stars = Meta.ChapterStars(S, chapter);
-            Ui.Label(p, $"本章星数 {stars}/30", 28, Pal.Hex("6E4A2A"), new Vector2(0, top - 66), new Vector2(500, 40), TextAnchor.MiddleCenter, Fonts.Heavy);
+            Ui.Label(p, $"本章星数 {stars}/30", 28, Pal.SubInk, new Vector2(0, top - 66), new Vector2(500, 40), TextAnchor.MiddleCenter, Fonts.Heavy);
             float rowH = Mathf.Min(118, (ph - 160) / Defs.LevelsPerChapter);
             for (int i = 0; i < Defs.LevelsPerChapter; i++)
             {
@@ -117,12 +135,12 @@ namespace Liangshan
                 var r = Ui.Rect(p, "lv" + n);
                 r.anchoredPosition = new Vector2(0, top - 130 - rowH * 0.5f - i * rowH);
                 r.sizeDelta = new Vector2(880, rowH - 10);
-                var face = Ui.Skin(r, "row", new Vector2(880, rowH - 10), Vector2.zero, 1f, sel ? Pal.Hex("FFE9A8") : open ? Color.white : new Color(0.78f, 0.78f, 0.8f));
+                var face = Ui.Skin(r, "row", new Vector2(880, rowH - 10), Vector2.zero, 1f, sel ? Pal.Hex("D6EEFF") : open ? Color.white : new Color(0.8f, 0.84f, 0.88f));
                 var bd = Defs.Enemy(st.BossKind);
                 var ic = Ui.Icon(r, bd.Art, rowH - 20, new Vector2(-380, 0));
-                if (!open) ic.color = new Color(0.2f, 0.2f, 0.25f, 0.8f);
-                Ui.Label(r, $"{n}. {st.Name}", 34, open ? Pal.Ink : Pal.Hex("6E6E74"), new Vector2(-110, 14), new Vector2(400, 46), TextAnchor.MiddleLeft, Fonts.Heavy);
-                Ui.Label(r, st.IsChapterBoss ? $"章节首领 · {bd.Name}" : $"{st.Waves} 波 · 首领 {bd.Name}", 27, Pal.Hex("7A5A3A"), new Vector2(-110, -26), new Vector2(400, 36), TextAnchor.MiddleLeft);
+                if (!open) ic.color = new Color(0.2f, 0.24f, 0.3f, 0.8f);
+                Ui.Label(r, $"{n}. {st.Name}", 34, open ? Pal.Ink : Pal.Muted, new Vector2(-110, 14), new Vector2(400, 46), TextAnchor.MiddleLeft, Fonts.Heavy);
+                Ui.Label(r, st.IsChapterBoss ? $"章节首领 · {bd.Name}" : $"{st.Waves} 波 · 首领 {bd.Name}", 27, Pal.SubInk, new Vector2(-110, -26), new Vector2(400, 36), TextAnchor.MiddleLeft);
                 if (open)
                     for (int k = 0; k < 3; k++)
                     {
@@ -194,7 +212,7 @@ namespace Liangshan
                     ShowRewards(layer, $"{Meta.ChestStars[ck]} 星宝箱", got2);
                 });
             }
-            Ui.Label(p, "满血通关得 3 星，半血 2 星，通关 1 星", 26, Pal.Hex("7A5432"), new Vector2(0, -230), new Vector2(800, 40));
+            Ui.Label(p, "满血通关得 3 星，半血 2 星，通关 1 星", 26, Pal.SubInk, new Vector2(0, -230), new Vector2(800, 40));
         }
 
         // ---------------- 聚义宴 ----------------
@@ -204,24 +222,24 @@ namespace Liangshan
         public static void Meals(Transform layer)
         {
             int hour = DateTime.Now.Hour;
-            Modal(layer, "meals", "聚义宴", new Vector2(900, 980), out var p, Pal.Hex("B9622C"));
+            Modal(layer, "meals", "聚义宴", new Vector2(900, 980), out var p);
             Ui.Icon(p, "ic_feast", 200, new Vector2(0, 310));
-            Ui.Label(p, $"每天四顿，开席各得体力 {Meta.MealStamina}，错过的当天都能补领", 28, Pal.Hex("6E4A2A"), new Vector2(0, 180), new Vector2(820, 44));
+            Ui.Label(p, $"每天四顿，开席各得体力 {Meta.MealStamina}，错过的当天都能补领", 28, Pal.SubInk, new Vector2(0, 180), new Vector2(820, 44));
             for (int i = 0; i < Meta.MealHours.Length; i++)
             {
                 bool taken = (S.Meals & (1 << i)) != 0, ready = hour >= Meta.MealHours[i] && !taken;
                 var r = Ui.Rect(p, "meal" + i);
                 r.anchoredPosition = new Vector2(0, 80 - i * 120);
                 r.sizeDelta = new Vector2(800, 108);
-                Ui.Skin(r, "row", new Vector2(800, 108), Vector2.zero, 1f, taken ? new Color(0.82f, 0.8f, 0.78f) : Color.white);
+                Ui.Skin(r, "row", new Vector2(800, 108), Vector2.zero, 1f, taken ? new Color(0.82f, 0.85f, 0.88f) : Color.white);
                 Ui.Icon(r, "ic_feast", 84, new Vector2(-330, 0));
                 Ui.Label(r, $"{MealNames[i]}  {Meta.MealHours[i]:00}:00", 32, Pal.Ink, new Vector2(-100, 0), new Vector2(340, 50), TextAnchor.MiddleLeft, Fonts.Heavy);
                 Ui.Label(r, $"体力 +{Meta.MealStamina}", 28, Pal.GreenDeep, new Vector2(140, 0), new Vector2(200, 44), TextAnchor.MiddleCenter, Fonts.Heavy);
-                Ui.Outlined(r, taken ? "已领" : ready ? "可领" : "未开席", 28, taken ? Pal.Hex("8A7A60") : ready ? Pal.Hex("FFE08A") : Pal.Hex("C8D0DA"),
+                Ui.Outlined(r, taken ? "已领" : ready ? "可领" : "未开席", 28, taken ? Pal.Muted : ready ? Pal.Champagne : Pal.Hex("9BB0C4"),
                     new Vector2(310, 0), new Vector2(160, 44), Pal.Ink, 1.5f);
             }
             int n = Meta.MealsReady(S, hour);
-            var b = Ui.Btn(p, n > 0 ? "开 席" : "还没到饭点", new Vector2(360, 116), new Vector2(0, -400), n > 0 ? Pal.Hex("F2B632") : Pal.Slate, () =>
+            Ui.Btn(p, n > 0 ? "开 席" : "还没到饭点", new Vector2(360, 116), new Vector2(0, -400), n > 0 ? Pal.Gold : Pal.Slate, () =>
             {
                 int got = Meta.EatMeals(S, DateTime.Now.Hour);
                 if (got <= 0) { Ui.Toast("还没到饭点", 200); return; }
@@ -229,7 +247,6 @@ namespace Liangshan
                 Meals(layer);
                 ShowRewards(layer, "聚义宴", new List<Item> { new Item(Cur.Stamina, got) });
             }, 44);
-            if (n > 0) Dot(b, new Vector2(170, 50), n);
         }
 
         // ---------------- 天书 ----------------
@@ -240,15 +257,15 @@ namespace Liangshan
             Modal(layer, "tome", "九天玄女天书", new Vector2(980, ph), out var p, Pal.Hex("5A3A8A"));
             float top = ph * 0.5f;
             var lo = Meta.BuildLoadout(S);
-            Ui.Skin(p, "dark", new Vector2(900, 120), new Vector2(0, top - 116), 1f, Pal.Hex("D8CCF4"));
-            Ui.Outlined(p, $"{Defs.LordSkillName}：每 {lo.LordCd:0.#} 秒 · {lo.LordPct * 100:0}% 攻击力 · 连斩 {lo.LordHits} 道", 30, Pal.Hex("FFE08A"),
+            Ui.Skin(p, "dark", new Vector2(900, 120), new Vector2(0, top - 116), 1f);
+            Ui.Outlined(p, $"{Defs.LordSkillName}：每 {lo.LordCd:0.#} 秒 · {lo.LordPct * 100:0}% 攻击力 · 连斩 {lo.LordHits} 道", 30, Pal.Champagne,
                 new Vector2(0, top - 96), new Vector2(860, 44), Pal.Ink, 2f);
             Ui.Label(p, $"全军伤害 {HeroText.O($"+{(lo.DmgMul - 1f) * 100:0.#}%")}（含杏黄旗）", 24, Pal.Cream, new Vector2(0, top - 140), new Vector2(860, 36), TextAnchor.MiddleCenter, Fonts.Heavy);
 
             // 上卷：残页研读
             float y = top - 250;
             Ui.Label(p, "上卷 · 研读", 32, Pal.Ink, new Vector2(-300, y), new Vector2(300, 44), TextAnchor.MiddleLeft, Fonts.Heavy);
-            Ui.Label(p, $"Lv.{S.PageLv}/{Meta.PageMax}", 30, Pal.Hex("6A3A9A"), new Vector2(340, y), new Vector2(200, 44), TextAnchor.MiddleRight, Fonts.Heavy);
+            Ui.Label(p, $"Lv.{S.PageLv}/{Meta.PageMax}", 30, Pal.Azure, new Vector2(340, y), new Vector2(200, 44), TextAnchor.MiddleRight, Fonts.Heavy);
             var up = Ui.Rect(p, "upper");
             up.anchoredPosition = new Vector2(0, y - 120);
             up.sizeDelta = new Vector2(880, 180);
@@ -256,14 +273,14 @@ namespace Liangshan
             Slot(up, "slot_wood", 130, new Vector2(-360, 10));
             Ui.Icon(up, "ic_page", 110, new Vector2(-360, 12));
             Ui.Label(up, $"每级：{Defs.LordSkillName}伤害 +{Meta.PageLord * 100:0}%，全军伤害 +{Meta.PageDmg * 100:0.#}%", 26, Pal.Ink, new Vector2(-40, 46), new Vector2(520, 40), TextAnchor.MiddleLeft, Fonts.Heavy);
-            Ui.Label(up, $"当前：剑气 +{S.PageLv * Meta.PageLord * 100:0}%，全军 +{S.PageLv * Meta.PageDmg * 100:0.#}%", 24, Pal.Hex("7A5432"), new Vector2(-40, 6), new Vector2(520, 36), TextAnchor.MiddleLeft);
+            Ui.Label(up, $"当前：剑气 +{S.PageLv * Meta.PageLord * 100:0}%，全军 +{S.PageLv * Meta.PageDmg * 100:0.#}%", 24, Pal.SubInk, new Vector2(-40, 6), new Vector2(520, 36), TextAnchor.MiddleLeft);
             if (S.PageLv < Meta.PageMax)
             {
                 int pc = Meta.PageCost(S.PageLv), cc = Meta.PageCopper(S.PageLv);
                 Ui.Label(up, $"天书残页 {Ui.Num(S.Pages)}/{pc}    铜钱 {Ui.Num(S.Copper)}/{Ui.Num(cc)}", 24,
-                    S.Pages >= pc && S.Copper >= cc ? Pal.GreenDeep : Pal.Hex("C0503A"), new Vector2(-40, -40), new Vector2(520, 36), TextAnchor.MiddleLeft, Fonts.Heavy);
+                    S.Pages >= pc && S.Copper >= cc ? Pal.GreenDeep : Pal.Hex("D04848"), new Vector2(-40, -40), new Vector2(520, 36), TextAnchor.MiddleLeft, Fonts.Heavy);
                 bool can = Meta.CanPage(S);
-                var b = Ui.Btn(up, "研读", new Vector2(170, 84), new Vector2(340, -30), can ? Pal.Hex("9A5BD8") : Pal.Slate, () =>
+                var b = Ui.Btn(up, "研读", new Vector2(170, 84), new Vector2(340, -30), can ? Pal.Azure : Pal.Slate, () =>
                 {
                     float before = Meta.TeamPower(S);
                     if (!Meta.LearnPage(S)) { Sfx.Play(Snd.Deny); Ui.Toast(S.Pages < Meta.PageCost(S.PageLv) ? "天书残页不足：主线关卡宝箱获得" : "铜钱不足", 200); return; }
@@ -275,12 +292,12 @@ namespace Liangshan
                 }, 34);
                 if (can) Dot(b, new Vector2(80, 36));
             }
-            else Ui.Outlined(up, "已研读圆满", 30, Pal.Hex("FFE08A"), new Vector2(330, -30), new Vector2(220, 44), Pal.Ink, 2f);
+            else Ui.Outlined(up, "已研读圆满", 30, Pal.Champagne, new Vector2(330, -30), new Vector2(220, 44), Pal.Ink, 2f);
 
             // 下卷：玄女天书参悟
             y -= 300;
             Ui.Label(p, "下卷 · 参悟", 32, Pal.Ink, new Vector2(-300, y), new Vector2(300, 44), TextAnchor.MiddleLeft, Fonts.Heavy);
-            Ui.Label(p, $"玄女天书 {S.Tomes}", 28, Pal.Hex("8A3A9A"), new Vector2(320, y), new Vector2(260, 44), TextAnchor.MiddleRight, Fonts.Heavy);
+            Ui.Label(p, $"玄女天书 {S.Tomes}", 28, Pal.Azure, new Vector2(320, y), new Vector2(260, 44), TextAnchor.MiddleRight, Fonts.Heavy);
             float rowH = Mathf.Min(150, (y + top - 60) / Meta.TomeNodes.Length);
             for (int i = 0; i < Meta.TomeNodes.Length; i++)
             {
@@ -289,15 +306,15 @@ namespace Liangshan
                 var r = Ui.Rect(p, "node" + i);
                 r.anchoredPosition = new Vector2(0, y - 50 - rowH * 0.5f - i * rowH);
                 r.sizeDelta = new Vector2(880, rowH - 12);
-                Ui.Skin(r, "row", new Vector2(880, rowH - 12), Vector2.zero, 1f, on ? Pal.Hex("EADCFF") : next ? Color.white : new Color(0.8f, 0.8f, 0.82f));
+                Ui.Skin(r, "row", new Vector2(880, rowH - 12), Vector2.zero, 1f, on ? Pal.Hex("DCEEFF") : next ? Color.white : new Color(0.82f, 0.85f, 0.88f));
                 var hx = MetaFx.Hex(r, "ic_tome", rowH - 30, new Vector2(-370, 0), !on && !next, on ? 4 : 2);
-                Ui.Label(r, nd.Name, 30, on ? Pal.Hex("6A2A9A") : Pal.Ink, new Vector2(-60, 18), new Vector2(460, 44), TextAnchor.MiddleLeft, Fonts.Heavy);
-                Ui.Label(r, nd.Desc, 24, Pal.Hex("7A5432"), new Vector2(-60, -20), new Vector2(460, 36), TextAnchor.MiddleLeft);
-                if (on) Ui.Outlined(r, "已参悟", 28, Pal.Hex("D8B8FF"), new Vector2(340, 0), new Vector2(180, 44), Pal.Hex("4A2A6A"), 1.5f);
+                Ui.Label(r, nd.Name, 30, on ? Pal.Hex("185A94") : Pal.Ink, new Vector2(-60, 18), new Vector2(460, 44), TextAnchor.MiddleLeft, Fonts.Heavy);
+                Ui.Label(r, nd.Desc, 24, Pal.SubInk, new Vector2(-60, -20), new Vector2(460, 36), TextAnchor.MiddleLeft);
+                if (on) Ui.Outlined(r, "已参悟", 28, Pal.Hex("B8EEFF"), new Vector2(340, 0), new Vector2(180, 44), Pal.Navy, 1.5f);
                 else if (next)
                 {
                     bool can = Meta.CanTome(S);
-                    var b = Ui.Btn(r, $"参悟 {nd.Cost}", new Vector2(190, 80), new Vector2(330, 0), can ? Pal.Hex("E8862A") : Pal.Slate, () =>
+                    var b = Ui.Btn(r, $"参悟 {nd.Cost}", new Vector2(190, 80), new Vector2(330, 0), can ? Pal.Gold : Pal.Slate, () =>
                     {
                         float before = Meta.TeamPower(S);
                         if (!Meta.LearnTome(S)) { Sfx.Play(Snd.Deny); Ui.Toast("玄女天书不足：第 5、10、15…关满血宝箱获得", 200); return; }
@@ -334,7 +351,7 @@ namespace Liangshan
 
             float y = top - 390;
             Ui.Label(p, "旗面词条", 32, Pal.Ink, new Vector2(-300, y), new Vector2(300, 44), TextAnchor.MiddleLeft, Fonts.Heavy);
-            Ui.Label(p, "点锁头锁定，洗练时保留", 22, Pal.Hex("8A6A4A"), new Vector2(240, y), new Vector2(400, 36), TextAnchor.MiddleRight);
+            Ui.Label(p, "点锁头锁定，洗练时保留", 22, Pal.SubInk, new Vector2(240, y), new Vector2(400, 36), TextAnchor.MiddleRight);
             float rowH = Mathf.Min(110, (y + top - 330) / Meta.FlagSlotsMax);
             int slots = Meta.FlagSlots(lv);
             for (int i = 0; i < Meta.FlagSlotsMax; i++)
@@ -343,30 +360,30 @@ namespace Liangshan
                 r.anchoredPosition = new Vector2(0, y - 40 - rowH * 0.5f - i * rowH);
                 r.sizeDelta = new Vector2(880, rowH - 10);
                 bool open = i < slots, has = Meta.AffixOf(S, i, out int kind, out int q);
-                Ui.Skin(r, "row", new Vector2(880, rowH - 10), Vector2.zero, 1f, open ? Color.white : new Color(0.78f, 0.78f, 0.8f));
+                Ui.Skin(r, "row", new Vector2(880, rowH - 10), Vector2.zero, 1f, open ? Color.white : new Color(0.8f, 0.84f, 0.88f));
                 if (open && has)
                 {
                     var qc = QualityColor(q);
                     Ui.Box(r, new Vector2(120, 44), new Vector2(-350, 0), qc, Art.Pill);
-                    Ui.Outlined(r, Meta.QualityName[q], 24, Color.white, new Vector2(-350, 1), new Vector2(120, 44), qc.Mul(0.5f), 1.5f);
-                    Ui.Label(r, Meta.AffixText(kind, q), 30, qc.Mul(q == 0 ? 0.55f : 0.75f), new Vector2(-30, 0), new Vector2(480, 44), TextAnchor.MiddleLeft, Fonts.Heavy);
+                    Ui.Outlined(r, Meta.QualityName[q], 24, Color.white, new Vector2(-350, 1), new Vector2(120, 44), qc.Mul(0.45f), 1.5f);
+                    Ui.Label(r, Meta.AffixText(kind, q), 30, q == 0 ? Pal.Ink : qc.Mul(0.72f), new Vector2(-30, 0), new Vector2(480, 44), TextAnchor.MiddleLeft, Fonts.Heavy);
                     bool locked = (S.FlagLock & (1 << i)) != 0;
                     var lk = Ui.Icon(r, "ic_lock", 64, new Vector2(370, 0));
                     lk.color = locked ? Color.white : new Color(1, 1, 1, 0.3f);
                     int si = i;
                     Ui.Tap(lk, () => { Meta.ToggleLock(S, si); Save(); Flag(layer, changed); });
                 }
-                else Ui.Label(r, $"杏黄旗 Lv.{(i == 0 ? 1 : 2 * i)} 解锁", 26, Pal.Hex("8A8A90"), Vector2.zero, new Vector2(600, 40), TextAnchor.MiddleCenter, Fonts.Heavy);
+                else Ui.Label(r, $"杏黄旗 Lv.{(i == 0 ? 1 : 2 * i)} 解锁", 26, Pal.Muted, Vector2.zero, new Vector2(600, 40), TextAnchor.MiddleCenter, Fonts.Heavy);
             }
 
             float by = -top + 110;
             if (lv < Meta.FlagMax)
             {
                 int mc = Meta.FlagMeteor(lv), cc = Meta.FlagCopper(lv);
-                Ui.Label(p, $"玄铁 {S.Meteor}/{mc}  铜钱 {Ui.Num(S.Copper)}/{Ui.Num(cc)}", 22, S.Meteor >= mc && S.Copper >= cc ? Pal.GreenDeep : Pal.Hex("C0503A"),
+                Ui.Label(p, $"玄铁 {S.Meteor}/{mc}  铜钱 {Ui.Num(S.Copper)}/{Ui.Num(cc)}", 22, S.Meteor >= mc && S.Copper >= cc ? Pal.GreenDeep : Pal.Hex("D04848"),
                     new Vector2(-230, by + 82), new Vector2(420, 32), TextAnchor.MiddleCenter, Fonts.Heavy);
                 bool can = Meta.CanFlagUp(S);
-                var b = Ui.Btn(p, lv <= 0 ? "打造" : "升阶", new Vector2(300, 112), new Vector2(-230, by), can ? Pal.Hex("E8862A") : Pal.Slate, () =>
+                var b = Ui.Btn(p, lv <= 0 ? "打造" : "升阶", new Vector2(300, 112), new Vector2(-230, by), can ? Pal.Green : Pal.Slate, () =>
                 {
                     float before = Meta.TeamPower(S);
                     if (!Meta.FlagUp(S, new Rng(Environment.TickCount))) { Sfx.Play(Snd.Deny); Ui.Toast(S.Meteor < Meta.FlagMeteor(S.FlagLv) ? "玄铁不足：第 5、10、15…关满血宝箱获得" : "铜钱不足", 200); return; }
@@ -378,11 +395,11 @@ namespace Liangshan
                 }, 42, "ic_meteor");
                 if (can) Dot(b, new Vector2(140, 46));
             }
-            else Ui.Outlined(p, "已升到顶阶", 36, Pal.Hex("FFE08A"), new Vector2(-230, by), new Vector2(300, 60), Pal.Ink, 2f);
+            else Ui.Outlined(p, "已升到顶阶", 36, Pal.Champagne, new Vector2(-230, by), new Vector2(300, 60), Pal.Ink, 2f);
             int rc = Meta.RerollCost(S);
-            Ui.Label(p, $"锦缎 {Ui.Num(S.Silk)}/{rc}", 22, S.Silk >= rc ? Pal.GreenDeep : Pal.Hex("C0503A"), new Vector2(230, by + 82), new Vector2(360, 32), TextAnchor.MiddleCenter, Fonts.Heavy);
+            Ui.Label(p, $"锦缎 {Ui.Num(S.Silk)}/{rc}", 22, S.Silk >= rc ? Pal.GreenDeep : Pal.Hex("D04848"), new Vector2(230, by + 82), new Vector2(360, 32), TextAnchor.MiddleCenter, Fonts.Heavy);
             bool cr = Meta.CanReroll(S);
-            Ui.Btn(p, "洗练", new Vector2(300, 112), new Vector2(230, by), cr ? Pal.Hex("9A5BD8") : Pal.Slate, () =>
+            Ui.Btn(p, "洗练", new Vector2(300, 112), new Vector2(230, by), cr ? Pal.Azure : Pal.Slate, () =>
             {
                 float before = Meta.TeamPower(S);
                 if (S.FlagLv <= 0) { Ui.Toast("先打造杏黄旗", 200); return; }
@@ -416,10 +433,10 @@ namespace Liangshan
             Ui.Outlined(p, $"{Meta.QualityName[g.Quality]} · {e.Name}", 46, qc, new Vector2(0, 0), new Vector2(700, 60), Pal.Ink, 3f);
             Ui.Label(p, g.Upgraded ? $"已换上！{e.Name}属性 +{Meta.QualityBonus[g.Quality] * 100:0}%" : $"不如身上的{Meta.QualityName[S.EquipQ[g.Slot]]}{e.Name}，熔成精铁 ×{g.Iron}",
                 30, Pal.Ink, new Vector2(0, -70), new Vector2(780, 50), TextAnchor.MiddleCenter, Fonts.Heavy);
-            Ui.Label(p, "品质：精良 +15% · 史诗 +30% · 传说 +50%（乘在强化属性上）", 22, Pal.Hex("8A6A4A"), new Vector2(0, -130), new Vector2(780, 36));
+            Ui.Label(p, "品质：精良 +15% · 史诗 +30% · 传说 +50%（乘在强化属性上）", 22, Pal.SubInk, new Vector2(0, -130), new Vector2(780, 36));
             if (S.GearBoxes > 0)
-                Ui.Btn(p, $"再开一个（{S.GearBoxes}）", new Vector2(400, 110), new Vector2(0, -260), Pal.Hex("F2B632"), () => GearBox(layer, changed), 38, "ic_gearbox");
-            else Ui.Btn(p, "好的", new Vector2(300, 110), new Vector2(0, -260), Pal.Hex("A08A70"), () => Close((RectTransform)layer.Find("modal_gearbox")), 40);
+                Ui.Btn(p, $"再开一个（{S.GearBoxes}）", new Vector2(400, 110), new Vector2(0, -260), Pal.Gold, () => GearBox(layer, changed), 38, "ic_gearbox");
+            else Ui.Btn(p, "好的", new Vector2(300, 110), new Vector2(0, -260), Pal.Azure, () => Close((RectTransform)layer.Find("modal_gearbox")), 40);
             Sfx.Play(g.Upgraded ? Snd.Unlock : Snd.Coin);
             if (g.Upgraded)
             {

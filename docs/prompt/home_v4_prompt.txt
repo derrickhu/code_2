@@ -1,0 +1,43 @@
+主界面 v4「暖阳梁山」：和 Loading、游戏图标同一套画面
+================================================
+
+色调：朱红漆、金边、墨褐木、纸白、黄昏暖金天光。人物仍是粗描边 Q 版。
+原图：game_assets/code_2/assets/raw/home_v4/
+切图：python3 tools/ui_kit.py（先 Real-ESRGAN 4 倍超分，再抠纯色底 #5F7A92）
+背景：python3 tools/upscale.py <原图> <输出> 1080 1920
+
+一、主界面背景 home_road（参考：loading_key_v4、图标）
+Vertical 9:16 mobile game background, chibi casual cartoon painting style, warm golden-hour lighting.
+The Liangshan fortress gate tower (golden-orange glazed roof, vermilion pillars, red banners) centered at
+8%-33% of image height, stone steps below it with the bottom edge at 34%. A straight clear sandstone road
+runs from the steps down to the bottom, red lacquer fences, stone lanterns, wine jars, red maples and pines
+on both sides, warm amber sky with soft peach clouds. The road center is empty. No characters, no text, no UI.
+
+二、主界面件 home_kit_v4（3x3，纯色底）
+Game UI kit sprite sheet, 3x3 grid of 9 separate blank UI pieces on a SOLID FLAT blue-grey #5F7A92.
+Premium Chinese guochao casual mobile game UI: glossy lacquer, crisp thin GOLD rims with subtle bevel,
+soft white highlight band on top, darker lip at bottom, clean dark-brown outline. NO TEXT.
+1 rounded-square tile: cream rice-paper face, vermilion inner line, thin gold rim, gold cloud corners → h_tile
+2 round medallion: deep ink-brown lacquer disc, thick shiny gold ring → h_round
+3 round arrow button: vermilion disc, gold rim, cream-gold chevron pointing LEFT → h_arrow
+4 active-tab badge: round vermilion seal, thick gold rim, small gold cloud crest on top → h_tab_on
+5 hero pedestal 3/4 view: warm sandstone disc, vermilion side band, gold trim → h_pedestal
+6 square avatar frame: thick gold frame, vermilion corner caps, dark warm-brown inside → h_avatar
+7 wide capsule pill 2.3:1: ink-brown lacquer, thin gold rim → h_capsule
+8 ribbon banner 3:1: vermilion silk, gold edge lines, swallow-tail ends → h_ribbon
+9 name plaque 2.5:1: dark ink-brown wooden board, gold rim, gold rivets → h_plaque
+
+三、宽件 home_wide_v4（纯色底）
+Top: big chunky START button 3.3:1, vermilion lacquer, thick shiny gold rim, glossy highlight band,
+darker red-brown bottom lip, small gold auspicious clouds only at the far left and right ends → h_start
+Bottom: long bottom navigation plank 7:1, ink-brown lacquered wood, thin gold rim on top and sides,
+uniform along its length → h_tabbar
+
+四、好汉页 hall_bg / 寨主页 forge_bg（参考：旧图 + home_bg_v4，保持原构图，只换成暖阳）
+hall_bg: Juyi Hall seen from the front at 10%-33% height, stone stage steps bottom at 38%,
+everything below 40% an empty warm sandstone courtyard.
+forge_bg: armory courtyard under a curved golden-orange roof gallery, forge furnace left, weapon racks right,
+round stone dais bottom edge at 42%, everything below 44% an empty warm sandstone courtyard.
+
+五、山寨 map_fort
+建筑点位按坐标摆，不重画，只调色：顶部蓝天换成暖金，整体略加暖。

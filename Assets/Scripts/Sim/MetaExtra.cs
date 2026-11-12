@@ -314,6 +314,7 @@ namespace Liangshan.Sim
                     default: lo.RoleDmg[kind - 6] += v; break;
                 }
             }
+            ApplyTotemsAndCloak(s, lo);
         }
     }
 }

@@ -1,0 +1,7 @@
+ prompts for 5 chapter battle backgrounds (9:16 portrait, 1080x1920 layout) + 2x2 battle fortress stone kit:
+
+Common layout & style rules (use reference image ONLY for 2.5D top-down oblique camera angle, wide clean central stone-tiled road proportions, top-left & top-right open dark spawn gate archways, crisp painterly material clarity, and high figure-ground contrast; do NOT copy any characters, monsters, or UI from the reference):
+- Top 18% of canvas: Two symmetrical Song-dynasty fortress gatehouses at top-left (around 20% X) and top-right (around 80% X), each with a WIDE, DEEP PITCH-DARK OPEN ARCHWAY DOORWAY leading directly onto the stone road below (no closed doors, no bushes blocking the doorway); connected in the top-center by a sturdy stone-and-timber fortress wall.
+- Central 74% width from top gates all the way to the bottom edge: A WIDE, FLAT, ULTRA-CLEAN PAVED STONE GRID ROAD made of large dressed matte slate/sandstone rectangular slabs with subtle clean mortar lines and soft edge shadows. Completely unobstructed, no clutter, medium-value neutral warm-slate/sandstone tone so colorful chibi sprites and dark foot shadows pop with maximum clarity.
+- Outer 13% left and right margins ONLY: Crisp carved rock cliffs, stone curbs, braziers, and chapter-themed props strictly outside the road curbs.
+- Crisp stylized 2.5D mobile strategy game environment art, clean hand-painted edges, Song-dynasty qinglv & slate palette, NO characters, NO UI, NO TEXT, no labels, no watermarks anywhere.

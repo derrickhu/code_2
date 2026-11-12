@@ -5,7 +5,9 @@ namespace Liangshan
     /// <summary>好汉技能说明：局内信息面板和局外好汉详情共用。传入 Battle 时带上本局强化后的数值。</summary>
     public static class HeroText
     {
-        public static string O(object s) => $"<color=#FF9A3A>{s}</color>";
+        public static string O(object s) => $"<color=#F5C84B>{s}</color>";
+        /// <summary>浅色瓷面底板上的高亮关键字（深霁蓝，避免浅底上黄/橙字发虚刺眼）。</summary>
+        public static string OnLight(string s) => s.Replace("<color=#F5C84B>", "<color=#1874B0>");
         static string P(float v) => $"{v * 100:0.#}%";
         static string Sec(float v) => O(v.ToString("0.#") + "秒");
 
@@ -31,7 +33,7 @@ namespace Liangshan
                     case ShotKind.Beam: t = $"{head}灼烧射线上的敌人，目标受到{dmg}，射线路过的敌人受{O("60%")}"; break;
                     case ShotKind.Lightning: t = $"{head}一道天雷随机劈向前排，造成{dmg}" + (chain > 0 ? $"并连锁{O(chain)}个敌人" : ""); break;
                     case ShotKind.Wind: t = $"{head}在目标处绞杀，对周围敌人造成{dmg}"; break;
-                    default: t = $"{head}祭出金砖砸向敌人，造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次" : ""); break;
+                    default: t = $"{head}在敌人头顶结阵，召金砖从天而降砸下，造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次" : ""); break;
                 }
             }
             else
@@ -73,7 +75,6 @@ namespace Liangshan
             if (d.Shot != ShotKind.Lasso && chance > 0)
                 t += chance >= 1f ? $"，击晕{Sec(stun)}" : $"，{O(P(chance))}几率击晕{Sec(stun)}";
             if (slow > 0) t += $"，减速{Sec(slow)}";
-            if (d.Chan <= 0 && d.Count > 1) t += $"\n1星每轮只出{O(1)}发，每升1星多1发，最多{O(System.Math.Min(d.Count, 4))}发（强化另加）";
             string aura = Aura(d, b);
             if (aura.Length > 0) t += "\n" + aura;
             return t;

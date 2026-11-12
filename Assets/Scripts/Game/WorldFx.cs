@@ -27,6 +27,7 @@ namespace Liangshan
         int _liveTexts;
         Material _lineMat;
         RectTransform _textLayer;
+        CanvasGroup _numbers;
         Transform _cam;
         Vector3 _camBase;
         float _shake, _shakeT;
@@ -36,10 +37,22 @@ namespace Liangshan
         /// <summary>选卡等弹层打开时藏起飘字，免得数字穿进按钮和说明。</summary>
         public void ShowNumbers(bool on)
         {
-            if (_textLayer == null) return;
-            var g = _textLayer.GetComponent<CanvasGroup>() ?? _textLayer.gameObject.AddComponent<CanvasGroup>();
+            var g = Numbers();
+            if (g == null) return;
             g.alpha = on ? 1f : 0f;
-            g.blocksRaycasts = false;
+        }
+
+        /// <summary>Unity 的空对象用 == 判断。缺失组件直接拿去改 alpha，会报 FloatLayer 上没有 CanvasGroup。</summary>
+        CanvasGroup Numbers()
+        {
+            if (_numbers != null) return _numbers;
+            if (_textLayer == null) return null;
+            _numbers = _textLayer.GetComponent<CanvasGroup>();
+            if (_numbers == null) _numbers = _textLayer.gameObject.AddComponent<CanvasGroup>();
+            if (_numbers == null) return null;
+            _numbers.blocksRaycasts = false;
+            _numbers.interactable = false;
+            return _numbers;
         }
 
         public static WorldFx Create(Transform parent, RectTransform textLayer, Transform cam)
@@ -202,6 +215,84 @@ namespace Liangshan
                 sr.transform.localScale = Vector3.one * size * sc;
                 if (spin != 0) sr.transform.localRotation = Quaternion.Euler(0, 0, rot0 + spin * k);
                 sr.color = col.A(col.a * (k < 0.45f ? 1f : 1f - (k - 0.45f) / 0.55f));
+            });
+        }
+
+        /// <summary>刀光：月牙从 fromDeg 扫到 toDeg，先亮后散。外圈一层兵器色的光，内芯是白的。</summary>
+        public void Swing(Vector2 pos, float size, float fromDeg, float toDeg, Color c, float dur = 0.18f, bool flip = false, int order = 9515)
+        {
+            var spr = Art.Img("fx_swing");
+            var tip = Color.Lerp(Color.white, c, 0.35f);
+            var glow = Take(spr, pos, size, order - 1, c.A(0), true);
+            var core = Take(spr, pos, size, order, tip.A(0), true);
+            glow.flipX = core.flipX = flip;
+            void Step(SpriteRenderer sr, float k, Color col, float a, float sc)
+            {
+                float sweep = Tween.OutCubic(Mathf.Min(1f, k * 1.7f));
+                sr.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Lerp(fromDeg, toDeg, sweep));
+                sr.transform.localScale = Vector3.one * size * sc * Mathf.Lerp(0.75f, 1.05f, sweep);
+                float alpha = k < 0.12f ? k / 0.12f : 1f - Mathf.Pow((k - 0.12f) / 0.88f, 1.4f);
+                sr.color = col.A(a * alpha);
+            }
+            Anim(glow.gameObject, dur, k => Step(glow, k, c, 0.5f, 1.1f));
+            Anim(core.gameObject, dur, k => Step(core, k, tip, 0.7f, 0.92f));
+        }
+
+        /// <summary>斩痕：一道细亮线从中间往两头瞬间拉开横过敌人身上，白芯外裹兵器色，随后变细消失。</summary>
+        public void CutLine(Vector2 pos, float deg, float len, Color c, float dur = 0.2f, float thick = 0.09f, int order = 9530)
+        {
+            var glow = Take(Art.Beam, pos, 1f, order - 1, c.A(0), true);
+            var core = Take(Art.Beam, pos, 1f, order, Color.white.A(0), true);
+            var rot = Quaternion.Euler(0, 0, deg);
+            glow.transform.localRotation = core.transform.localRotation = rot;
+            void Step(SpriteRenderer sr, float k, Color col, float w)
+            {
+                float open = Tween.OutCubic(Mathf.Min(1f, k * 4f));
+                float thin = 1f - Tween.InCubic(k);
+                sr.transform.localScale = new Vector3(len * Mathf.Lerp(0.2f, 1f, open), w * thin, 1f);
+                sr.color = col.A(col.a * (k < 0.6f ? 1f : (1f - k) / 0.4f));
+            }
+            Anim(glow.gameObject, dur, k => Step(glow, k, c.A(0.8f), thick * 6f));
+            Anim(core.gameObject, dur, k => Step(core, k, Color.white, thick * 2.2f));
+        }
+
+        /// <summary>两点之间的光束：从 a 一头亮起扫到 b，再从 a 那头收掉，像枪芒捅穿过去。</summary>
+        public void Streak(Vector2 a, Vector2 b, Color c, float width, float dur = 0.18f, int order = 9520)
+        {
+            var d = b - a;
+            float len = d.magnitude;
+            if (len < 0.01f) return;
+            var dir = d / len;
+            var sr = Take(Art.Beam, a, 1f, order, c.A(0), true);
+            sr.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg);
+            Anim(sr.gameObject, dur, k =>
+            {
+                float head = Tween.OutCubic(Mathf.Min(1f, k * 2.2f)) * len;
+                float tail = Tween.InCubic(k) * len;
+                float span = Mathf.Max(0.02f, head - tail);
+                sr.transform.localPosition = a + dir * (tail + span * 0.5f);
+                sr.transform.localScale = new Vector3(span, width * (1f - k * 0.6f), 1f);
+                sr.color = c.A(c.a);
+            });
+        }
+
+        /// <summary>地上的法阵：压扁贴地慢慢转，先张开再淡掉。</summary>
+        public void Rune(Vector2 pos, float size, Color c, float dur, float spin = 60f, int order = 96, float flat = 0.5f)
+        {
+            var holder = new GameObject("rune").transform;
+            holder.SetParent(transform, false);
+            holder.localPosition = pos;
+            holder.localScale = new Vector3(1f, flat, 1f);
+            var sr = Additive(Spr(holder, Art.Img("fx_rune"), Vector2.zero, size, order, c.A(0)));
+            float rot0 = UnityEngine.Random.Range(0f, 360f);
+            Anim(holder.gameObject, dur, k =>
+            {
+                float open = Tween.OutCubic(Mathf.Min(1f, k * dur / 0.25f));
+                sr.transform.localScale = Vector3.one * size * Mathf.Lerp(0.55f, 1f, open);
+                sr.transform.localRotation = Quaternion.Euler(0, 0, rot0 + spin * k * dur);
+                float fadeIn = Mathf.Min(1f, k * dur / 0.1f);
+                float fadeOut = Mathf.Clamp01((1f - k) * dur / 0.3f);
+                sr.color = c.A(c.a * fadeIn * fadeOut);
             });
         }
 
@@ -409,7 +500,7 @@ namespace Liangshan
                 var ground = pos + new Vector2(0, UnityEngine.Random.Range(-0.25f, 0.15f));
                 float spin = UnityEngine.Random.Range(-720f, 720f);
                 var sr = Take(spr, ground, sz, 9350, Pal.Hex("8A7A68"));
-                var sh = Take(Art.SoftDot, ground, sz, 125, new Color(0, 0, 0, 0.3f));
+                var sh = Take(Art.GroundShadow, ground, sz, 125, new Color(0, 0, 0, 0.38f));
                 float d = Mathf.Max(dur, t1 * 1.5f + 0.3f);
                 Anim(sr.gameObject, d, k =>
                 {
@@ -570,7 +661,7 @@ namespace Liangshan
             else
             {
                 t = Ui.Label(_textLayer, "", 40, Color.white, Vector2.zero, new Vector2(500, 120), TextAnchor.MiddleCenter, Fonts.Heavy, "num");
-                Ui.Stroke(t, Pal.Ink, 3f);
+                Ui.Stroke(t, Pal.Hex("101924"), 3.2f);
                 var rt0 = t.rectTransform;
                 rt0.anchorMin = rt0.anchorMax = new Vector2(0.5f, 1f);
             }
@@ -585,9 +676,11 @@ namespace Liangshan
             Anim(t.gameObject, dur, k =>
             {
                 rt.anchoredPosition = p0 + new Vector2(0, rise * 100f * Tween.OutCubic(k));
-                float sc = pop ? (k < 0.25f ? Mathf.Lerp(1.8f, 1f, k / 0.25f) : 1f) : (k < 0.15f ? Mathf.Lerp(0.6f, 1.1f, k / 0.15f) : 1f);
+                float sc = pop
+                    ? (k < 0.22f ? Mathf.Lerp(1.55f, 1f, Tween.OutCubic(k / 0.22f)) : 1f)
+                    : (k < 0.14f ? Mathf.Lerp(0.72f, 1.12f, k / 0.14f) : k < 0.28f ? Mathf.Lerp(1.12f, 1f, (k - 0.14f) / 0.14f) : 1f);
                 rt.localScale = Vector3.one * sc;
-                t.color = c.A(k < 0.6f ? 1f : 1f - (k - 0.6f) / 0.4f);
+                t.color = c.A(k < 0.65f ? 1f : 1f - (k - 0.65f) / 0.35f);
             });
         }
 

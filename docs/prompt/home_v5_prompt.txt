@@ -1,0 +1,32 @@
+主界面与全局 UI v5「青绿水泊 · 霁蓝宋瓷」升级方案
+==================================================
+
+设计目标：
+彻底解决旧版 v4「满屏暖橙 + 朱红框 + 大量红点」导致的视觉疲劳与层次缺失。
+采用业界成熟休闲策略手游 60-30-10 配色体系：
+- 60% 场景层（晴空青绿）：澄澈晴空蓝、苍翠松竹、碧色水泊、冷白青石御道，清爽透气。
+- 30% 结构层（霁蓝深靛 + 青瓷白）：深靛青半透明毛玻璃坞（#142334）、天青宋瓷框（#2B7CA8）、冷白瓷面行条（#EFF4F9）。
+- 10% 焦点层（鎏金琥珀 + 翡翠绿）：全场仅主行动按钮「开始挑战」「十连/领取」使用明亮鎏金黄（#FFD042），升级/确认用翡翠绿（#38C468），红点缩减去重并加纯白描边环。
+
+一、主界面背景 home_road_v5（9:16 竖版）
+Vertical 9:16 mobile game background illustration, clean vibrant Q-version casual strategy cartoon style, clear refreshing sunny morning daylight, Song-dynasty blue-green landscape palette (qinglv shanshui).
+At 8%-33% from the top: the Liangshan mountain fortress gatehouse with deep slate-blue and celadon glazed curved roofs, subtle crimson-wood pillars, green pines and misty azure mountain peaks behind under a bright clear sky-blue sky with soft white clouds. Stone steps below the gatehouse with bottom edge at 34% height.
+From 34% down to the bottom: a wide, clean, cool light grey-ivory limestone paved road leading straight down the center (completely empty in the middle for characters and UI), flanked on the left and right edges by lush green bamboo, emerald grass, grey mossy rocks, stone lanterns, and sparkling turquoise marsh water streams with lotus leaves. Cool, airy, crisp cel-shading, NO sunset orange, NO amber tint, NO characters, NO TEXT, no UI.
+
+二、主界面组件板 home_kit_v5（1:1，3x3 网格）
+Game UI kit sprite sheet, 3x3 grid of 9 separate blank UI pieces evenly spaced in 3 columns and 3 rows on a SOLID FLAT pure white #FFFFFF background.
+Top-tier modern Chinese casual strategy mobile game UI (Song celadon & nocturne slate-azure aesthetic): smooth matte dark slate-navy and luminous celadon-teal surfaces, crisp thin champagne-silver/pale-gold bevel rims, subtle glossy top highlight, clean dark-navy outer outline. NO orange, NO brown wood, NO red fills. NO TEXT, no icons, no numbers.
+Row 1 Col 1 (h_tile): rounded-square card badge, deep slate-azure (#1D354C) glossy face, thin celadon-cyan (#64C2E8) inner line, champagne-silver outer rim.
+Row 1 Col 2 (h_round): circular medallion button base, deep slate-navy (#182B3E) matte disc, crisp celadon-silver metallic ring.
+Row 1 Col 3 (h_arrow): circular arrow button, sky-teal (#2B88B8) glossy disc, thin pale-gold rim, crisp white chevron arrow pointing LEFT.
+Row 2 Col 1 (h_tab_on): active navigation tab emblem, rounded arch shield in luminous azure-teal gradient (#2674A6 to #42B2DC), crisp champagne-gold rim with subtle small cloud crest at top center.
+Row 2 Col 2 (h_pedestal): 3/4 perspective circular hero standing pedestal, carved pale celadon-jade stone top disc, deep teal-slate cylindrical side band, thin champagne-gold base trim.
+Row 2 Col 3 (h_avatar): rounded-square player avatar frame, crisp champagne-gold & celadon metallic border with subtle teal corner accents, deep dark-indigo interior.
+Row 3 Col 1 (h_capsule): wide horizontal capsule pill (2.4:1), deep translucent-look slate-navy (#152536) interior, thin crisp ice-blue & silver metallic rim.
+Row 3 Col 2 (h_ribbon): horizontal stage header ribbon banner (3:1), royal azure-teal (#236FA0) silk face with thin champagne-gold top/bottom lines and neat swallow-tail ends.
+Row 3 Col 3 (h_plaque): horizontal section header plaque (2.5:1), deep slate-indigo (#1A2F45) board with celadon-gold beveled rim and tiny corner studs.
+
+三、主界面宽组件 home_wide_v5（16:9，上下两件）
+Game UI kit sheet with 2 wide blank horizontal UI pieces stacked vertically (top piece and bottom piece) with generous spacing on a SOLID FLAT pure white #FFFFFF background. Top-tier casual strategy mobile game UI, crisp clean bevels, NO TEXT, no icons.
+Top piece (h_start): large heroic primary CTA button (3.3:1 stadium/rounded-pill shape), radiant sunny imperial gold gradient (#FFE066 top to #F5A623 bottom), glossy white specular highlight band along the upper edge, deeper amber-gold 3D bottom lip, crisp champagne-white inner rim and subtle auspicious cloud filigree only at the far left and right ends.
+Bottom piece (h_tabbar): ultra-wide bottom navigation bar plank (7:1), deep nocturne slate-navy (#142232) matte surface, crisp luminous celadon-cyan (#5CC0E8) and pale-gold double trim line along the top edge, uniform clean middle section for 9-slice stretching.

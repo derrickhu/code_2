@@ -22,8 +22,8 @@ namespace Liangshan.Sim
         /// <summary>天书下卷：剑气连斩次数、命中眩晕秒数、对精英首领倍率。</summary>
         public int LordHits = 1;
         public float LordStun, LordBig = 1;
-        /// <summary>杏黄旗词条：全军伤害、对精英、对首领倍率；旗技震慑秒数（0 为未打造）。</summary>
-        public float DmgMul = 1, EliteDmg = 1, BossDmg = 1, FlagStun;
+        /// <summary>杏黄旗与兽魂图腾词条：全军伤害、对精英、对首领、前3波、对受控敌军加成；旗技震慑秒数。</summary>
+        public float DmgMul = 1, EliteDmg = 1, BossDmg = 1, EarlyWaveDmg, ControlDmg, FlagStun;
         public int StartCoins;
         public readonly List<string> StartPerks = new List<string>();
 
@@ -100,9 +100,15 @@ namespace Liangshan.Sim
         public int[] SprintAct = new int[0];
         /// <summary>上次领每日福利的日期序号 + 1。</summary>
         public int WelfareDay;
+        /// <summary>洗炼石、寻宝锤、天罡战氅等级、心愿好汉（0 未选，>0 为 HeroId+1）。</summary>
+        public int RefineStones, Hammers, CloakLv, WishHero;
+        /// <summary>兽魂图腾背包与六部位镶嵌槽（6×4=24）。</summary>
+        public List<TotemData> Totems = new List<TotemData>();
+        public int[] TotemEquipped = new int[0];
+        public int NextTotemId = 1, TotemPity;
     }
 
-    public enum Cur { Ingot, Copper, Iron, Token, Stamina, Shard, Page, Tome, Silk, Meteor, GearBox, AnyShard }
+    public enum Cur { Ingot, Copper, Iron, Token, Stamina, Shard, Page, Tome, Silk, Meteor, GearBox, AnyShard, Refine, Hammer }
 
     public struct Item
     {
@@ -192,9 +198,12 @@ namespace Liangshan.Sim
 
         public static SaveData NewSave(long now)
         {
-            var s = new SaveData { Ingots = 300, Copper = 1500, Tokens = 5, StaminaAt = now, IdleAt = now, Lineup = StarterLineup() };
+            var s = new SaveData { Ingots = 300, Copper = 1500, Tokens = 5, RefineStones = 4, Hammers = 3, StaminaAt = now, IdleAt = now, Lineup = StarterLineup() };
             Normalize(s);
             foreach (var h in Starters) s.HeroLv[(int)h] = 1;
+            var rng = new Rng(20261112);
+            RollTotem(s, 2, rng, 0);
+            RollTotem(s, 1, rng, 1);
             return s;
         }
 
@@ -221,6 +230,14 @@ namespace Liangshan.Sim
             s.LevelChest = Fit(s.LevelChest, Defs.LevelCount);
             s.FlagAffix = Fit(s.FlagAffix, FlagSlotsMax);
             s.EquipQ = Fit(s.EquipQ, Equips.Length);
+            if (s.Totems == null) s.Totems = new List<TotemData>();
+            s.TotemEquipped = Fit(s.TotemEquipped, TotemTotalSockets);
+            if (s.NextTotemId < 1)
+            {
+                int mx = 0;
+                foreach (var t in s.Totems) if (t.Id > mx) mx = t.Id;
+                s.NextTotemId = mx + 1;
+            }
             if (s.Lineup == null || s.Lineup.Length != 4) s.Lineup = StarterLineup();
             if (s.Presets == null || s.Presets.Length != PresetCount * 4)
             {
@@ -270,6 +287,8 @@ namespace Liangshan.Sim
                 case Cur.Silk: return s.Silk;
                 case Cur.Meteor: return s.Meteor;
                 case Cur.GearBox: return s.GearBoxes;
+                case Cur.Refine: return s.RefineStones;
+                case Cur.Hammer: return s.Hammers;
                 default: return 0;
             }
         }
@@ -289,6 +308,8 @@ namespace Liangshan.Sim
                 case Cur.Silk: s.Silk += it.N; break;
                 case Cur.Meteor: s.Meteor += it.N; break;
                 case Cur.GearBox: s.GearBoxes += it.N; break;
+                case Cur.Refine: s.RefineStones += it.N; break;
+                case Cur.Hammer: s.Hammers += it.N; break;
                 case Cur.AnyShard: s.Shards[s.Lineup[(s.Battles + s.Pulls + it.N) % s.Lineup.Length]] += it.N; break;
             }
         }
@@ -510,12 +531,12 @@ namespace Liangshan.Sim
 
         public static readonly EquipDef[] Equips =
         {
-            new EquipDef { Name = "佩剑", Icon = "eq_weapon", Stat = "攻击力", Per = 2f, Cap = 999, Pct = false, Role = Role.Fighter },
-            new EquipDef { Name = "头盔", Icon = "eq_helmet", Stat = "寨墙生命", Per = 0.05f, Cap = 9, Role = Role.Control },
-            new EquipDef { Name = "铠甲", Icon = "eq_armor", Stat = "寨墙减伤", Per = 0.015f, Cap = 0.45f, Role = Role.Bomber },
-            new EquipDef { Name = "战靴", Icon = "eq_boots", Stat = "攻击速度", Per = 0.025f, Cap = 9, Role = Role.Archer },
-            new EquipDef { Name = "玉佩", Icon = "eq_amulet", Stat = "暴击率", Per = 0.003f, Cap = 0.3f, Role = Role.Mage },
-            new EquipDef { Name = "号角", Icon = "eq_horn", Stat = "大招冷却", Per = 0.015f, Cap = 0.4f, Role = Role.Support },
+            new EquipDef { Name = "龙泉剑", Icon = "eq_weapon", Stat = "攻击力", Per = 2f, Cap = 999, Pct = false, Role = Role.Fighter },
+            new EquipDef { Name = "凤翅盔", Icon = "eq_helmet", Stat = "寨墙生命", Per = 0.05f, Cap = 9, Role = Role.Control },
+            new EquipDef { Name = "明光铠", Icon = "eq_armor", Stat = "寨墙减伤", Per = 0.015f, Cap = 0.45f, Role = Role.Bomber },
+            new EquipDef { Name = "踏云靴", Icon = "eq_boots", Stat = "攻击速度", Per = 0.025f, Cap = 9, Role = Role.Archer },
+            new EquipDef { Name = "青玉佩", Icon = "eq_amulet", Stat = "暴击率", Per = 0.003f, Cap = 0.3f, Role = Role.Mage },
+            new EquipDef { Name = "盘龙角", Icon = "eq_horn", Stat = "大招冷却", Per = 0.015f, Cap = 0.4f, Role = Role.Support },
         };
 
         /// <summary>装备每 10 级突破一次，给对应职业 +4% 伤害。</summary>
@@ -703,6 +724,8 @@ namespace Liangshan.Sim
             r.Add(Cur.Ingot, 80 + 60 * k + 20 * chapter);
             r.Add(Cur.Token, 1 + k);
             r.Add(Cur.Iron, 10 * (k + 1) + 5 * chapter);
+            r.Add(Cur.Hammer, 1 + k);
+            if (k >= 1) r.Add(Cur.Refine, 2 * k);
             return r;
         }
 
@@ -730,14 +753,23 @@ namespace Liangshan.Sim
         public static float PurpleRate(SaveData s) => 0.30f + 0.01f * (s.RecruitLv - 1);
         public const int OrangePity = 40;
 
-        static HeroId PickOf(int rarity, Rng rng)
+        public static HeroId? GetWish(SaveData s) =>
+            s.WishHero > 0 && s.WishHero <= Defs.HeroCount ? (HeroId)(s.WishHero - 1) : (HeroId?)null;
+
+        public static void SetWish(SaveData s, HeroId? h) =>
+            s.WishHero = h.HasValue ? (int)h.Value + 1 : 0;
+
+        static HeroId PickOf(SaveData s, int rarity, Rng rng)
         {
+            var wish = GetWish(s);
+            if (wish.HasValue && Defs.Hero(wish.Value).Rarity == rarity && (rarity < 4 || OrangeOpened(s)) && rng.Chance(0.5f))
+                return wish.Value;
             var pool = new List<HeroId>();
             foreach (var d in Defs.Heroes) if (d.Rarity == rarity) pool.Add(d.Id);
             return pool[rng.Int(pool.Count)];
         }
 
-        /// <summary>抽 n 次：十连保底一个紫，四十抽保底橙。没拥有的好汉直接入伙，重复的折成碎片。</summary>
+        /// <summary>抽 n 次：十连保底一个紫，四十抽保底橙；设了心愿单时同品质 50% 必中心愿好汉。</summary>
         public static List<Pull> Recruit(SaveData s, int n, Rng rng)
         {
             var res = new List<Pull>();
@@ -752,7 +784,7 @@ namespace Liangshan.Sim
                 if (n >= 10 && i == n - 1 && !purple && rar < 3) rar = 3;
                 if (rar >= 3) purple = true;
                 if (rar == 4) s.Pity = 0;
-                var h = PickOf(rar, rng);
+                var h = PickOf(s, rar, rng);
                 var p = new Pull { Hero = h };
                 if (s.HeroLv[(int)h] == 0)
                 {
@@ -804,8 +836,8 @@ namespace Liangshan.Sim
             {
                 case 0: return new[] { new Item(Cur.Copper, 2000), new Item(Cur.Iron, 10) };
                 case 1: return new[] { new Item(Cur.Token, 1), new Item(Cur.Ingot, 30) };
-                case 2: return new[] { new Item(Cur.Token, 2), new Item(Cur.Ingot, 50) };
-                case 3: return new[] { new Item(Cur.AnyShard, 10), new Item(Cur.Silk, 200) };
+                case 2: return new[] { new Item(Cur.Token, 2), new Item(Cur.Hammer, 1) };
+                case 3: return new[] { new Item(Cur.AnyShard, 10), new Item(Cur.Refine, 2) };
                 default: return new[] { new Item(Cur.Token, 2), new Item(Cur.Stamina, 30), new Item(Cur.GearBox, 1) };
             }
         }
@@ -949,9 +981,9 @@ namespace Liangshan.Sim
             new ShopDef { Name = "免费体力", Icon = "ic_wine", Get = new Item(Cur.Stamina, 30), Ad = true },
             new ShopDef { Name = "招募令", Icon = "ic_token", Get = new Item(Cur.Token, 1), Price = 150 },
             new ShopDef { Name = "招募令×10", Icon = "ic_token", Get = new Item(Cur.Token, 10), Price = 1350 },
-            new ShopDef { Name = "一袋铜钱", Icon = "ic_coins", Get = new Item(Cur.Copper, 3000 + 300 * s.Cleared), Price = 100 },
+            new ShopDef { Name = "寻宝锤×2", Icon = "ic_hammer", Get = new Item(Cur.Hammer, 2), Price = 200 },
+            new ShopDef { Name = "洗炼石×4", Icon = "ic_refine", Get = new Item(Cur.Refine, 4), Price = 120 },
             new ShopDef { Name = "一箱精铁", Icon = "ic_iron", Get = new Item(Cur.Iron, 30 + s.Cleared), Price = 120 },
-            new ShopDef { Name = "酒坛体力", Icon = "ic_wine", Get = new Item(Cur.Stamina, 60), Price = 80 },
             new ShopDef { Name = "一匹锦缎", Icon = "ic_silk", Get = new Item(Cur.Silk, 400 + 20 * s.Cleared), Price = 100 },
         };
 

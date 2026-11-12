@@ -1,0 +1,10 @@
+Vertical 9:16 2D mobile game stage background illustration of a grand Song-dynasty Liangshan mountaintop martial arts lineup terrace (梁山山巅点将台), matching the bright, crisp cel-shaded cartoon style of the reference courtyard image: clean dark outlines, sunny daylight, saturated harmonious colors, smooth flat-plus-gradient shading.
+
+Crucial composition & perspective rules (so 4 chibi heroes standing in the upper-middle band at 20%–36% from the top have solid stone ground beneath their feet and NEVER overlap any roof):
+- Elevated 30-degree downward camera angle looking across a wide, flat, spacious stone-paved martial terrace platform.
+- Top 0% to 18%: bright clear azure sky with soft white clouds and distant misty green Liangshan mountain peaks across the horizon. NO buildings, NO roofs, NO eaves in the center!
+- At 18% to 21% from the top: a neat horizontal carved white-stone & grey-brick parapet / balustrade railing running across the back edge of the terrace, flanked only at the far left and far right edges by tall wooden flagpoles with blank red-and-gold triangular pennants, bronze braziers, and green pine branches.
+- From 21% all the way down to 65% of the height: a vast, flat, unobstructed light warm-grey & beige Song-dynasty stone-slab courtyard terrace floor with subtle grid stone joints and a decorative carved stone circular emblem inlaid flat into the center floor. Plenty of clean open stone floor across the entire upper-middle horizontal band for four heroes to stand side-by-side naturally!
+- Bottom 65% to 100%: continuation of stone terrace steps fading smoothly downward (this lower area will be covered by a UI drawer).
+
+NO characters, NO people, NO buildings or roofs in the middle, NO TEXT, no Chinese characters on flags or plaques, no labels, no watermark anywhere in the image.

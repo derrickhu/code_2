@@ -1,0 +1,16 @@
+Vertical 9:16 key art for a premium Chinese casual mobile game loading screen, "宋江别慌张". Polished commercial WeChat-minigame quality, bright and clean, the same cel-shaded chibi style as the reference images: thick clean dark outlines, big expressive eyes, warm skin, crisp flat shading, saturated colors, sunny daylight.
+
+Use the references for exact designs, do not redesign them:
+- Landscape reference: bright blue sky, soft white clouds, green grass, dirt road, stone watchtower fort with a red flag on a hill, wooden boats and lotus. Keep that world, that lighting, that color.
+- Wu Song: topknot, blue headband, navy sleeveless tunic, red sash, tiger-skin skirt, wooden staff, confident grin.
+- Lu Zhishen: bald, black beard, orange robe, green sash, prayer beads, blue flower tattoos, huge crescent monk blade, big laugh.
+- Song Jiang: green robe, black official hat with a small gold plaque, neat black beard, friendly slightly nervous smile, one hand raised.
+
+Scene: the three are hurrying up the dirt road toward the fort. Wu Song on the left strides ahead with his staff. Song Jiang in the center trots along, waving, trying to look calm. Lu Zhishen on the right laughs and swings the blade onto his shoulder. Small dust puffs at their feet, a few red maple leaves in the air. Dynamic but readable, characters large, filling the middle band (about 36% to 76% of the height), seen slightly from below.
+
+Layout rules:
+- Top 34% is open luminous blue sky, soft clouds, the fort small and distant to one side, uncluttered, so a big title logo can be placed there later.
+- Bottom 22% fades into a calmer, slightly darker warm ground. No characters, no plants, no rocks, no boats, no lotus in the bottom 15%, so a progress bar and small legal text can sit there later.
+- Top-left corner stays plain sky (a badge goes there).
+
+NO TEXT, no letters, no Chinese characters, no calligraphy, no seals, no logo, no watermark, no signature. The fort flag is blank red cloth.
