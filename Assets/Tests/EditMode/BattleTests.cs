@@ -26,13 +26,13 @@ namespace Liangshan.Tests
         }
 
         [Test]
-        public void OpeningWavesAreFewButToughThenSwell()
+        public void OpeningWavesRampToMowingDensityWithConservedPool()
         {
-            Assert.LessOrEqual(Defs.WaveCount(1), 8);
+            Assert.AreEqual(10, Defs.WaveCount(1));
             for (int w = 2; w <= 10; w++) Assert.Greater(Defs.WaveCount(w), Defs.WaveCount(w - 1));
-            Assert.GreaterOrEqual(Defs.WaveCount(10), Defs.WaveCount(1) * 10);
+            Assert.GreaterOrEqual(Defs.WaveCount(10), 90, "第10波接近百怪割草密度");
             Assert.Greater(Defs.Tough(1), Defs.Tough(6));
-            Assert.GreaterOrEqual(Defs.Tough(6), 2.5f);
+            Assert.That(Defs.Tough(6), Is.InRange(1.1f, 2.0f), "单怪轻快利落，总血池与银两守恒");
         }
 
         [Test]
@@ -41,9 +41,10 @@ namespace Liangshan.Tests
             Assert.AreEqual(1.0f, Defs.StarMul[0], 1e-4f);
             Assert.AreEqual(2.0f, Defs.StarMul[1], 1e-4f, "1→2星整整翻倍，性价比最高");
             Assert.Less(Defs.StarMul[2], Defs.StarMul[1] * 2f, "2→3星边际微敛，靠质变和词条放大");
-            Assert.Greater(Defs.StarMul[3], Defs.StarMul[2] * 1.5f);
+            Assert.That(Defs.StarMul[3], Is.InRange(Defs.StarMul[2] * 1.15f, Defs.StarMul[2] * 1.45f), "4星遵循蔚蓝黄金衰减律，靠免费觉醒词条与大核载体拉开上限");
             var d = Defs.Hero(HeroId.HuaRong);
-            Assert.AreEqual(d.Count, Defs.ShotsAt(d, 1), "1星就有完整职业连射节奏");
+            Assert.AreEqual(1, d.Count, "1星标准单发起步，弹幕靠词条成长");
+            Assert.AreEqual(d.Count, Defs.ShotsAt(d, 1));
 
             var b = new Battle(2, Lineup);
             b.Slots[0].Unit = new Unit { Hero = HeroId.ShiXiu, Star = 1 };
@@ -85,9 +86,9 @@ namespace Liangshan.Tests
         [Test]
         public void SummonAndEnhancePricesFollowTable()
         {
-            CollectionAssert.AreEqual(new[] { 10, 20, 30, 45, 60, 80, 90, 110, 130, 150, 160, 175, 190, 200, 215, 235, 260, 290, 320, 355 },
+            CollectionAssert.AreEqual(new[] { 10, 20, 30, 45, 65, 90, 120, 160, 210, 270, 340, 420, 510, 610, 720, 840, 970, 1110, 1260, 1425 },
                 Enumerable.Range(0, 20).Select(Defs.SummonCost).ToArray());
-            CollectionAssert.AreEqual(new[] { 100, 200, 350, 550, 800 }, Enumerable.Range(0, 5).Select(Defs.EnhanceCost).ToArray());
+            CollectionAssert.AreEqual(new[] { 100, 180, 260, 360, 460 }, Enumerable.Range(0, 5).Select(Defs.EnhanceCost).ToArray());
             Assert.AreEqual(100, new Battle(1, Lineup).Coins);
         }
 
@@ -366,18 +367,23 @@ namespace Liangshan.Tests
         public void CooldownsDifferByRoleAndOnlyLegendsHaveUlts()
         {
             Assert.LessOrEqual(Defs.Hero(HeroId.HuaRong).Interval, 2.5f);
-            Assert.GreaterOrEqual(Defs.Hero(HeroId.GongSun).Interval, 12f);
-            Assert.Greater(Defs.Hero(HeroId.GongSun).Chan, 0);
+            Assert.GreaterOrEqual(Defs.Hero(HeroId.FanRui).Interval, 12f);
+            Assert.Greater(Defs.Hero(HeroId.FanRui).Chan, 0);
             foreach (var d in Defs.Heroes)
             {
-                if (d.Kind == Role.Mage) Assert.GreaterOrEqual(d.Interval, 10f, d.Name);
+                if (d.Kind == Role.Mage && d.Chan > 0) Assert.GreaterOrEqual(d.Interval, 10f, d.Name);
                 if (d.Kind == Role.Support)
                 {
                     Assert.IsTrue(d.Buff.HasValue, d.Name);
                     Assert.AreEqual(0f, d.Coef, d.Name);
                 }
+                else if (d.Id != HeroId.YanQing)
+                {
+                    Assert.AreEqual(1, d.Count, $"{d.Name} 1星基础应为极简1发，把弹幕增长留给强化词条");
+                }
                 Assert.AreEqual(d.Rarity >= 4, Defs.UltPerk(d.Id) != null, d.Name);
             }
+            Assert.AreEqual(3, Defs.Hero(HeroId.YanQing).Count, "仅燕青保留轻弩三连发特色");
         }
 
         static Unit Put(Battle b, int slot, HeroId h, int star = 1)
@@ -395,9 +401,25 @@ namespace Liangshan.Tests
         }
 
         [Test]
-        public void LegendUltUnlocksOnlyFromEnhanceCard()
+        public void LegendUltUnlocksAtLevelFiveFromEnhanceCard()
         {
-            var b = new Battle(4, Lineup);
+            // 1~4 级传说尚未解锁大招卡进池
+            var loLow = Loadout.Plain(Lineup);
+            loLow.Lv[(int)HeroId.GongSun] = Meta.UltLv - 1;
+            var bLow = new Battle(4, Lineup, null, loLow);
+            Put(bLow, 0, HeroId.GongSun);
+            for (int i = 0; i < 20; i++)
+            {
+                bLow.Coins = 1000000;
+                if (!bLow.Enhance()) break;
+                Assert.IsFalse(bLow.Choices.Any(p => p.Ult), "未满5级的传说好汉不出大招卡");
+                bLow.Pick(0);
+            }
+
+            // 升至 5 级后大招卡进入强化池
+            var lo = Loadout.Plain(Lineup);
+            lo.Lv[(int)HeroId.GongSun] = Meta.UltLv;
+            var b = new Battle(4, Lineup, null, lo);
             Put(b, 0, HeroId.GongSun);
             Assert.IsFalse(b.HasUlt(HeroId.GongSun));
             bool seen = false;
@@ -418,8 +440,9 @@ namespace Liangshan.Tests
         [Test]
         public void MageChannelsSeveralTicksPerCast()
         {
-            var b = new Battle(5, Lineup);
-            Put(b, 0, HeroId.GongSun);
+            var lu = new[] { HeroId.HuaRong, HeroId.LingZhen, HeroId.FanRui, HeroId.WuSong };
+            var b = new Battle(5, lu);
+            Put(b, 0, HeroId.FanRui);
             Dummy(b);
             int fires = 0, ticks = 0;
             for (int i = 0; i < 30 * 5; i++)
@@ -428,12 +451,50 @@ namespace Liangshan.Tests
                 foreach (var e in b.Events)
                 {
                     if (e.Type == Ev.Fire && e.Slot == 0) fires++;
-                    if (e.Type == Ev.Hit && e.Hero == HeroId.GongSun) ticks++;
+                    if (e.Type == Ev.Hit && e.Hero == HeroId.FanRui) ticks++;
                 }
                 b.Events.Clear();
             }
-            Assert.AreEqual(1, fires, "法师 5 秒内只出手一次");
+            Assert.AreEqual(1, fires, "持续型法师 5 秒内只出手一次");
             Assert.GreaterOrEqual(ticks, 8, "一次施法持续跳多下");
+        }
+
+        [Test]
+        public void SingleProjectileBaseDoublesCleanlyWithCountPerkAndAwakenVolley()
+        {
+            // 1. 验证孔亮1星仅投掷1枚火雷，选「双响火雷(Count+1)」后变为2枚且单发零暗扣（总伤害实打实翻倍）
+            var lu = new[] { HeroId.KongLiang, HeroId.XieZhen, HeroId.ShiXiu, HeroId.MaLing };
+            var b0 = new Battle(21, lu);
+            Put(b0, 0, HeroId.KongLiang, 1);
+            var foe0 = Dummy(b0, 0, 2.5f);
+            b0.Update(0.05f);
+            Assert.AreEqual(1, b0.Shots.Count(s => s.Hero == HeroId.KongLiang), "孔亮1星0词条每次只投1枚独火雷");
+            float baseShotDmg = b0.Shots.First(s => s.Hero == HeroId.KongLiang).Damage;
+
+            var b1 = new Battle(21, lu);
+            Put(b1, 0, HeroId.KongLiang, 1);
+            Dummy(b1, 0, 2.5f);
+            b1.Choices = new[] { Defs.Perk("kongliang_0") }; // 双响火雷 Count+1
+            b1.Phase = Phase.Choosing;
+            b1.Pick(0);
+            b1.Update(0.05f);
+            var shots1 = b1.Shots.Where(s => s.Hero == HeroId.KongLiang).ToList();
+            Assert.AreEqual(2, shots1.Count, "拿1张双响火雷后投出2枚");
+            Assert.GreaterOrEqual(shots1.Sum(s => s.Damage), baseShotDmg * 1.99f, "废除15%暗扣后，1→2枚真实总伤翻倍");
+
+            // 2. 验证三合一奥义觉醒后第3轮普攻额外迸发流星火雨弹幕
+            b1.Choices = new[] { Defs.Perk("kongliang_morph") };
+            b1.Phase = Phase.Choosing;
+            b1.Pick(0);
+            b1.Choices = new[] { Defs.Perk("kongliang_adv") };
+            b1.Phase = Phase.Choosing;
+            b1.Pick(0);
+            Assert.IsTrue(b1.IsAwakened(HeroId.KongLiang));
+            b1.Shots.Clear();
+            b1.Slots[0].Unit.Casts = 2;
+            b1.Slots[0].Unit.Cd = 0f;
+            b1.Update(0.05f);
+            Assert.GreaterOrEqual(b1.Shots.Count(s => s.Kind == ShotKind.MiniBomb && s.Hero == HeroId.KongLiang), 4, "觉醒后第3轮额外倾泻流星小火雷");
         }
 
         [Test]
@@ -458,8 +519,9 @@ namespace Liangshan.Tests
         [Test]
         public void DaiZongCutsTeammateCooldowns()
         {
-            var b = new Battle(7, Lineup);
-            var mage = Put(b, 1, HeroId.GongSun);
+            var lu = new[] { HeroId.HuaRong, HeroId.LingZhen, HeroId.FanRui, HeroId.WuSong };
+            var b = new Battle(7, lu);
+            var mage = Put(b, 1, HeroId.FanRui);
             Dummy(b);
             b.Update(1f / 30f);
             b.Events.Clear();
@@ -638,6 +700,174 @@ namespace Liangshan.Tests
             early.ForceLose();
             Assert.AreEqual(1, early.Wave);
             Assert.AreEqual(Phase.Defeat, early.Phase);
+        }
+
+        [Test]
+        public void WildcardSupportMergeBonusAndSwapOrderSolveSupportBrick()
+        {
+            var lu = new[] { HeroId.HuaRong, HeroId.WuYong, HeroId.ShiQian, HeroId.WuSong };
+            var b = new Battle(11, lu);
+            // 1. 百搭时迁可与任意同星不同名好汉合成，且辅助参与合成当场爆银两并赋加速
+            b.Slots[0].Unit = new Unit { Id = 1, Hero = HeroId.ShiQian, Star = 1, Wild = true };
+            b.Slots[1].Unit = new Unit { Id = 2, Hero = HeroId.HuaRong, Star = 1 };
+            Assert.IsTrue(b.CanMerge(0, 1));
+            Assert.IsTrue(b.HasMergePartner(0));
+            int coins0 = b.Coins;
+            Assert.IsTrue(b.Drop(0, 1));
+            Assert.AreEqual(2, b.Slots[1].Unit.Star);
+            Assert.Greater(b.Coins, coins0 + 20, "辅助参与合成当场额外爆银两");
+            Assert.AreEqual(4, b.Slots[1].Unit.BlessN, "辅助参与合成赋予新单位加速祝福");
+
+            // 2. 梁山换将令：将场上 3 星辅助当场重随为同星输出好汉，每局仅限 1 次
+            b.Slots[2].Unit = new Unit { Id = 3, Hero = HeroId.WuYong, Star = 3 };
+            Assert.IsTrue(b.CanSwapUnit(2));
+            Assert.IsTrue(b.SwapUnit(2));
+            Assert.AreEqual(3, b.Slots[2].Unit.Star);
+            Assert.IsTrue(b.Slots[2].Unit.Def.Carry, "换将令必出输出位好汉");
+            Assert.IsFalse(b.CanSwapUnit(2), "每局仅可使用 1 次换将令");
+        }
+
+        [Test]
+        public void NearWallEmergencyAndFocusFirePreventBossTunnelVision()
+        {
+            var b = new Battle(12, Lineup);
+            Put(b, 0, HeroId.HuaRong, 1);
+            var farBoss = new Enemy { Id = 101, Def = Defs.Enemy(EnemyKind.Boss), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0, 4.2f) };
+            var wallChewer = new Enemy { Id = 102, Def = Defs.Enemy(EnemyKind.Hound), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0, Layout.StopY), Attacking = true };
+            var manualTarget = new Enemy { Id = 103, Def = Defs.Enemy(EnemyKind.Taoist), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(1.5f, 3.5f) };
+            b.Enemies.AddRange(new[] { farBoss, wallChewer, manualTarget });
+
+            b.Update(0.05f);
+            Assert.IsTrue(b.Shots.Any(s => s.TargetId == wallChewer.Id), "墙根拆家快怪优先级高于远端刚出门的首领");
+
+            b.Shots.Clear();
+            b.Slots[0].Unit.Cd = 0f;
+            b.FocusEnemyId = manualTarget.Id;
+            b.Update(0.05f);
+            Assert.IsTrue(b.Shots.Any(s => s.TargetId == manualTarget.Id), "玩家点击集火目标拥有最高优先级");
+        }
+
+        [Test]
+        public void ThreeInOneAwakeningAndLv20PenaltyRemovalAndAdjacencyWork()
+        {
+            var lo = Loadout.Plain(new[] { HeroId.WuSong, HeroId.LuZhiShen, HeroId.LinChong, HeroId.WuYong });
+            lo.Lv[(int)HeroId.WuSong] = Meta.NoPenaltyLv;
+            var b = new Battle(15, lo.Lineup, Defs.Level(5), lo);
+            Assert.AreEqual(5, b.ReelCount, "逢5首领关升级为5格黄金老虎机");
+            Assert.AreEqual(4, new Battle(15, lo.Lineup, Defs.Level(2), lo).ReelCount);
+
+            Put(b, 0, HeroId.WuSong, 2);
+            Put(b, 1, HeroId.WuYong, 1);
+            Assert.Greater(b.AdjSpeedMul(b.Slots[0]), 1.1f, "吴用相邻格获得攻速加成");
+
+            float spd0 = b.HeroSpeedMul(HeroId.WuSong);
+            // 20级武松拿「千钧之力」不再扣攻速
+            b.Choices = new[] { Defs.Perk("wusong_heavy") };
+            b.Phase = Phase.Choosing;
+            b.Pick(0);
+            Assert.GreaterOrEqual(b.HeroSpeedMul(HeroId.WuSong), spd0 - 1e-4f, "20级抹除取舍卡减速代价");
+
+            // 再拿质变+进阶凑齐 3 张词条，自动免费触发名场面奥义觉醒
+            b.Choices = new[] { Defs.Perk("wusong_morph") };
+            b.Phase = Phase.Choosing;
+            b.Pick(0);
+            Assert.IsFalse(b.IsAwakened(HeroId.WuSong));
+            float dmgBefore = b.HeroDmgMul(HeroId.WuSong);
+            b.Choices = new[] { Defs.Perk("wusong_adv") };
+            b.Phase = Phase.Choosing;
+            b.Pick(0);
+            Assert.IsTrue(b.IsAwakened(HeroId.WuSong), "凑齐质变+进阶+专属共3张词条自动觉醒本命奥义");
+            Assert.IsTrue(b.Events.Any(e => e.Type == Ev.Awaken && e.Hero == HeroId.WuSong));
+            Assert.Greater(b.HeroDmgMul(HeroId.WuSong), dmgBefore * 1.25f);
+        }
+
+        [Test]
+        public void OutOfBattleAndInBattleAttackAndHitDamageMatchExactly()
+        {
+            // 验证局外好汉详情页显示的攻击力/单发伤害 与 局内1星0词条面板及真实命中伤害 100% 同源一致（彻底根除 294 vs 56 割裂）
+            foreach (var n in new[] { 1, 8, 20 })
+            {
+                var s = Meta.ExpectedSave(n);
+                var lo = Meta.BuildLoadout(s);
+                // 使用第1关（无任何职业环境Buff）纯粹核对面板与首击伤害
+                var b = new Battle(42, lo.Lineup, Defs.Level(1), lo);
+                for (int i = 0; i < lo.Lineup.Length; i++)
+                {
+                    var h = lo.Lineup[i];
+                    var d = Defs.Hero(h);
+                    Put(b, i, h, 1);
+                    int outAtk = Meta.HeroDisplayAtk(s, h);
+                    int inAtk = (int)System.Math.Round(b.SlotHeroAtk(b.Slots[i]));
+                    Assert.AreEqual(outAtk, inAtk, $"存档阶段{n} {d.Name} 局外面板攻击({outAtk}) 必须等于局内1星面板攻击({inAtk})");
+
+                    if (d.Carry && d.Chan <= 0)
+                    {
+                        b.Enemies.Clear();
+                        b.Shots.Clear();
+                        var dummy = new Enemy { Id = 800 + i, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(b.Slots[i].Pos.X, Layout.StopY), Attacking = true };
+                        b.Enemies.Add(dummy);
+                        b.Slots[i].Unit.Cd = 0f;
+                        // 暂时清零暴击率以精确比对不暴击单发白字伤害
+                        float savedCrit = lo.Crit;
+                        lo.Crit = 0f;
+                        b.Update(0.02f);
+                        lo.Crit = savedCrit;
+                        var sh = b.Shots.FirstOrDefault(x => x.Hero == h);
+                        Assert.IsNotNull(sh, d.Name);
+                        float rawShotDmg = sh.Crit ? sh.Damage / lo.CritDmg : sh.Damage;
+                        Assert.AreEqual(b.SlotHeroAtk(b.Slots[i]) * d.Coef, rawShotDmg, 0.5f, $"{d.Name} 真实发射伤害必须等于 面板攻击 × 技能系数");
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void OpeningMinionsRequireMultipleHitsAndEnhancesAreMandatoryToClear()
+        {
+            // 1. 杜绝开场一刀秒：在各章节标准养成下，第1波普通官兵面对1星0词条射手需 2.4~4.5 击，面对1星战士/炮手/法师也绝不能满血一击秒杀
+            foreach (var stageNo in new[] { 1, 5, 10, 20, 35 })
+            {
+                var s = Meta.ExpectedSave(stageNo);
+                var lo = Meta.BuildLoadout(s);
+                var st = Defs.Level(stageNo);
+                var b = new Battle(1, lo.Lineup, st, lo);
+                b.Update(0.5f); // 触发第1波刷怪
+                float soldierHp = Defs.Enemy(EnemyKind.Soldier).Hp * Defs.HpScale(1) * Defs.Tough(1) * st.HpMul;
+                foreach (var h in lo.Lineup)
+                {
+                    var d = Defs.Hero(h);
+                    if (!d.Carry || d.Chan > 0) continue;
+                    // 1) 纯白字不暴击单发：任何关卡任何职业1星0词条绝不能满血1下秒杀官兵
+                    float rawHit = Meta.HeroBaseAtk(lo, h) * lo.SkillPow[(int)h] * d.Coef * d.Count;
+                    Assert.GreaterOrEqual(soldierHp / rawHit, d.Kind == Role.Archer ? 2.2f : 1.35f,
+                        $"第{stageNo}关 1星 {d.Name} 绝不能1下秒满血官兵，实际={soldierHp / rawHit:F2}");
+                    // 2) 计入攻速与暴击期望后的单轮等效输出：射手在全50关始终维持 2.2~4.8 轮点杀节奏，不刮痧也不秒杀
+                    if (d.Kind == Role.Archer)
+                    {
+                        float critExp = 1f + System.Math.Min(0.8f, lo.Crit + (lo.Passive[(int)h] && d.PassiveEff == Eff.Crit ? d.PassiveV : 0f)) * (lo.CritDmg - 1f);
+                        float effVolley = rawHit * critExp * lo.AllSpeed * lo.HeroSpeed[(int)h];
+                        Assert.That(soldierHp / effVolley, Is.InRange(2.1f, 4.8f), $"第{stageNo}关 1星射手 {d.Name} 等效轮次应在 2.1~4.8 之间，实际={soldierHp / effVolley:F2}");
+                    }
+                }
+            }
+
+            // 2. 局内策略必要性：如果只召唤+无脑合成（Bot 1，完全不买强化词条），在首领关大概率崩盘失败！
+            int noEnhanceWins = 0;
+            for (int seed = 1; seed <= 10; seed++)
+            {
+                var s = Meta.ExpectedSave(10);
+                var lo = Meta.BuildLoadout(s);
+                var b = new Battle(seed, lo.Lineup, Defs.Level(10), lo);
+                var mergeOnlyBot = new Bot(1);
+                while (b.Phase != Phase.Victory && b.Phase != Phase.Defeat && b.Time < 500)
+                {
+                    mergeOnlyBot.Step(b, 1f / 30f);
+                    b.Update(1f / 30f);
+                    b.Events.Clear();
+                }
+                if (b.Phase == Phase.Victory) noEnhanceWins++;
+            }
+            Assert.LessOrEqual(noEnhanceWins, 2, $"不买局内强化词条光靠铺人合成不该混过首领关，实际胜场={noEnhanceWins}/10");
         }
     }
 }

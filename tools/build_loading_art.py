@@ -5,7 +5,7 @@
 微信封面和游戏内启动页用的都是这一张，进度条填充和状态字由各自叠在槽里。
 
 排版以 720x1280 设计尺寸写（和微信 loadingPageConfig 同一套坐标），合成时乘 1.5。
-微信封面按 showAll 整张显示，长屏上下留边，左右不裁。
+微信封面按 noBorder 铺满，长屏裁掉左右一点边，不再上下留黑边。
 
 图层：game_assets/code_2/assets/raw/loading_key.jpg、loading_logo.jpg。
 主视觉先用 tools/upscale.py 超分成 loading_key_hd.jpg，有高清版就用高清版。

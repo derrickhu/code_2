@@ -203,6 +203,7 @@ namespace Liangshan
             Clear();
             _home = HomeScreen.Create(tab);
             Sfx.PlayMusic(Bgm.Menu);
+            RankService.SubmitIfChanged();
             if (_pendingReveal.HasValue && _autoSkill < 0)
             {
                 var h = _pendingReveal.Value;
@@ -261,7 +262,14 @@ namespace Liangshan
             go();
         }
 
-        public void StartLevel(int no) => Play(Defs.Level(Mathf.Min(no, Profile.S.Cleared + 1)));
+        public void StartLevel(int no, bool bonus2Star = false)
+        {
+            _bonus2Star = bonus2Star;
+            if (!Play(Defs.Level(Mathf.Min(no, Profile.S.Cleared + 1)))) _bonus2Star = false;
+        }
+
+        bool _bonus2Star;
+        bool _spentStaminaThisRun;
 
         public void StartDaily() => Play(Defs.DailyStage(Profile.S.Cleared, Profile.Today));
 
@@ -284,12 +292,36 @@ namespace Liangshan
                 }
                 return false;
             }
+            _spentStaminaThisRun = !auto;
             if (st.Mode == StageMode.Daily) s.DailyTries++;
             if (st.Mode == StageMode.Escort) s.EscortTries++;
             if (st.Mode == StageMode.Main) s.Selected = st.No;
             Profile.Save();
             Launch(st);
             return true;
+        }
+
+        /// <summary>反痛点：前 2 波且寨墙满血时允许无损撤退，100% 返还本局消耗的 5 点体力（每日最多保护 10 次）。</summary>
+        public bool CanRefundStamina()
+        {
+            if (!_spentStaminaThisRun || _settled || _battle == null || _battle.B == null) return false;
+            var b = _battle.B;
+            if (b.Stage.Mode != StageMode.Main) return false;
+            return b.Wave <= 2 && b.Wall >= b.WallMax - 0.5f && Profile.S.FreeRetreats < 10;
+        }
+
+        public void QuitFromPause()
+        {
+            bool refund = CanRefundStamina();
+            if (refund)
+            {
+                Profile.S.FreeRetreats++;
+                Meta.Give(Profile.S, new Item(Cur.Stamina, Meta.BattleStamina));
+                _spentStaminaThisRun = false;
+                Profile.Save();
+            }
+            ShowHome();
+            if (refund) Ui.Toast($"前2波无损撤退 · 已返还体力 +{Meta.BattleStamina}", 220);
         }
 
         /// <summary>重开本关：已经扣过体力，不再扣。</summary>
@@ -324,12 +356,25 @@ namespace Liangshan
             bool tutorial = _autoSkill < 0 && Profile.S.TutorialDone == 0 && st.Mode == StageMode.Main && st.No == 1;
             _seed = _autoSkill >= 0 ? 20261031 + _autoSkill : Environment.TickCount;
             _battle.Begin(_seed, st, lo, tutorial);
+            if (_bonus2Star)
+            {
+                _bonus2Star = false;
+                _battle.B.Coins += 80;
+                _battle.B.Summon(true, 2);
+            }
             if (_autoSkill >= 0)
             {
                 _battle.Auto = new Bot(_autoSkill);
                 _battle.Speed = 2f;
             }
-            else _battle.Speed = Profile.S.Speed15 == 1 && PlayerPrefs.GetInt("speed15", 0) == 1 ? 1.5f : 1f;
+            else
+            {
+                var s = Profile.S;
+                bool fresh = st.Mode == StageMode.Main && st.No > s.Cleared;
+                bool can2 = !fresh && ((st.Mode == StageMode.Main && st.No <= s.Cleared) || s.Speed2Day == Profile.Today);
+                int pref = PlayerPrefs.GetInt("battle_spd", s.Cleared >= 1 || s.Speed15 == 1 ? 1 : 0);
+                _battle.Speed = fresh ? 1f : pref >= 2 && can2 ? 2f : pref >= 1 && (s.Cleared >= 1 || s.Speed15 == 1) ? 1.5f : 1f;
+            }
             _floatLayer.SetAsFirstSibling();
             Sfx.PlayMusic(st.Mode == StageMode.Main && st.IsChapterBoss ? Bgm.Boss : Bgm.Battle);
             string mode = st.Mode == StageMode.Daily ? "daily" : st.Mode == StageMode.Escort ? "escort" : "main";
@@ -420,6 +465,13 @@ namespace Liangshan
         }
 
         /// <summary>按真人路径操作一遍：点召唤、按引导拖拽合成、点强化选卡。指针走 BattleView 的输入代码。</summary>
+        static PerkDef PerkNamed(HeroId hero, string name)
+        {
+            foreach (var p in Defs.Perks)
+                if (p.Hero == hero && p.Name == name) return p;
+            throw new System.InvalidOperationException(hero + " 没有强化「" + name + "」");
+        }
+
         IEnumerator ManualPlay()
         {
             var v = _battle;
@@ -473,6 +525,12 @@ namespace Liangshan
             Shot("02d2_book_guide");
             yield return WaitReal(0.3f);
 
+            v.B.ShotChoices = new[]
+            {
+                PerkNamed(HeroId.ShiXiu, "快如闪电"),
+                PerkNamed(HeroId.KongLiang, "千钧之力"),
+                PerkNamed(HeroId.MaLing, "破冰追击"),
+            };
             v.Hud.PressEnhance();
             yield return WaitReal(1.0f);
             Shot("02e_enhance_cards");
@@ -593,9 +651,12 @@ namespace Liangshan
             s.FlagLock = 1;
             s.EquipQ[0] = 2;
             s.EquipQ[3] = 1;
+            s.EquipQ[5] = 3;
             s.Meals = 1;
             s.HeroLv[(int)HeroId.ZhangQing] = 3;
             s.HeroLv[(int)HeroId.WuYong] = 2;
+            s.HeroLv[(int)HeroId.WuSong] = 4;
+            s.Lineup[3] = (int)HeroId.WuSong;
             foreach (var h in new[] { HeroId.HuSanniang, HeroId.QinMing, HeroId.AnDaoquan, HeroId.ShiXiu, HeroId.ZhuWu, HeroId.SunErniang, HeroId.ShiQian, HeroId.XieZhen })
                 s.HeroLv[(int)h] = Mathf.Max(1, s.HeroLv[(int)h]);
             s.Shards[(int)Meta.Starters[0]] = 30;
@@ -679,6 +740,7 @@ namespace Liangshan
             yield return WaitReal(1.0f);
             yield return Snap("19_heroes");
             yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, HeroId.HuaRong), "20_hero_detail");
+            yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, HeroId.KongLiang), "20a_hero_kongliang");
             yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, HeroId.LinChong), "20b_hero_locked");
             yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, HeroId.HuSanniang), "20c_hero_control");
             yield return ModalShot(() => MetaUi.HeroDetail(_home.Layer, Meta.Starters[0]), "20d_hero_starter");
@@ -695,6 +757,15 @@ namespace Liangshan
             yield return Snap("20g_levelup");
             yield return WaitReal(2.2f);
             yield return Snap("20h_perma");
+            CloseModals();
+            MetaUi.HeroDetail(_home.Layer, HeroId.GongSun);
+            MetaFx.Perma(_home.Layer, HeroId.GongSun, 1);
+            yield return WaitReal(0.75f);
+            yield return Snap("20h2_perma_gongsun");
+            CloseModals();
+            MetaFx.Perma(_home.Layer, HeroId.GongSun, 4);
+            yield return WaitReal(0.75f);
+            yield return Snap("20h3_perma_lv20");
             CloseModals();
             MetaFx.HeroReveal(_home.Layer, HeroId.HuaRong);
             yield return WaitReal(1.6f);
@@ -718,8 +789,10 @@ namespace Liangshan
             _home.SetForgeSubTab(1);
             yield return WaitReal(0.6f);
             yield return Snap("21f_forge_equips");
+            yield return ModalShot(() => MetaUi.EquipSheet(_home.Layer, 0), "21g_equip_sheet");
             yield return ModalShot(() => MetaUi.Cloak(_home.Layer), "21e_cloak");
             yield return ModalShot(() => MetaUi.ForgeSlot(_home.Layer, 0), "22_forge_slot");
+            yield return ModalShot(() => MetaUi.ForgeSlot(_home.Layer, 0, null, true), "22a_forge_wash");
             yield return ModalShot(() => MetaUi.TalentTree(_home.Layer), "22b_talent");
             yield return ModalShot(() => MetaUi.Tome(_home.Layer), "22c_tome");
             yield return ModalShot(() => MetaUi.Flag(_home.Layer), "22d_flag");
@@ -737,9 +810,41 @@ namespace Liangshan
             yield return WaitReal(0.8f);
             yield return Snap("24c_shop_totem");
             _home.SetShopSubTab(0);
+            s.SkipRecruitAnim = 0;
+            s.Tokens = Mathf.Max(s.Tokens, 20);
+            float tRec0 = Time.realtimeSinceStartup;
             _home.DoRecruit(10, false);
-            yield return WaitReal(2.2f);
+            yield return WaitReal(0.52f);
+            yield return Snap("24a_recruit_omen");
+            for (float t = 0f; t < 15f && !GameObject.Find("sealFlat") && !GameObject.Find("fx_recruit_sum"); t += 0.08f)
+                yield return WaitReal(0.08f);
+            yield return WaitReal(0.18f);
             yield return Snap("24b_recruit10");
+            for (float t = 0f; t < 4f && GameObject.Find("sealFlat") && !GameObject.Find("fx_recruit_sum"); t += 0.08f)
+                yield return WaitReal(0.08f);
+            yield return WaitReal(0.28f);
+            yield return Snap("24e_recruit_mid");
+            // 不点屏、不跳过，完整自动跑完 10 连，限时内必须进入累计获得大屏
+            for (float t = 0f; t < 25f && !GameObject.Find("fx_recruit_sum"); t += 0.25f)
+                yield return WaitReal(0.25f);
+            float recDur = Time.realtimeSinceStartup - tRec0;
+            Debug.Log($"[selfcheck] recruit10 total duration = {recDur:F2}s");
+            if (!GameObject.Find("fx_recruit_sum")) Debug.LogError("[selfcheck] recruit stage never reached summary");
+            yield return WaitReal(1.5f);
+            yield return Snap("24d_recruit_sum");
+            CloseModals();
+
+            // 验证单点招募抽出传说（即使勾选了「跳过动画」也必触发全屏天罡封神大戏！）
+            s.SkipRecruitAnim = 1;
+            s.Cleared = Mathf.Max(s.Cleared, Meta.OrangeOpen);
+            s.Pity = Meta.OrangePity;
+            s.Tokens = Mathf.Max(s.Tokens, 5);
+            _home.DoRecruit(1, false);
+            yield return WaitReal(0.55f);
+            yield return Snap("24f_single_legend_omen");
+            yield return WaitReal(1.65f);
+            yield return Snap("24g_single_legend_reveal");
+            s.SkipRecruitAnim = 0;
             CloseModals();
         }
 
@@ -838,6 +943,112 @@ namespace Liangshan
 
         IEnumerator SelfCheck()
         {
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-homeshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                var s = Profile.S;
+                s.Cleared = 7;
+                s.Selected = 7;
+                if (s.LevelChest == null || s.LevelChest.Length < Defs.LevelCount)
+                    s.LevelChest = new int[Defs.LevelCount];
+                s.LevelChest[6] = 7;
+                ShowHome();
+                yield return WaitReal(1.2f);
+                Shot("ui_home_chests");
+                yield return WaitReal(0.35f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-heroshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                ShowHome(1);
+                yield return WaitReal(1.2f);
+                Shot("ui_heroes");
+                yield return WaitReal(0.35f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-bossshots") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                var s = Profile.S;
+                s.Cleared = 10;
+                foreach (var n in new[] { 1, 2, 5, 10 })
+                {
+                    s.Selected = n;
+                    ShowHome();
+                    yield return WaitReal(1.2f);
+                    Shot("ui_home_boss_" + n);
+                    yield return WaitReal(0.2f);
+                }
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-equipshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                var s = Profile.S;
+                s.Cleared = 11;
+                s.Iron = 40;
+                s.Copper = 800;
+                s.RefineStones = 6;
+                if (s.EquipLv == null || s.EquipLv.Length < 6) s.EquipLv = new int[6];
+                s.EquipLv[0] = 10;
+                s.EquipLv[1] = 8;
+                s.Totems.Clear();
+                var rng = new Rng(7);
+                var a = Meta.RollTotem(s, 2, rng, 0);
+                a.Kind = 0;
+                var b = Meta.RollTotem(s, 3, rng, 0);
+                b.Kind = 8;
+                Meta.ToggleInlayTotem(s, a.Id);
+                Meta.ToggleInlayTotem(s, b.Id);
+                ShowHome(HomeScreen.TabForge);
+                yield return WaitReal(0.8f);
+                MetaUi.EquipSheet(_home.Layer, 0);
+                yield return WaitReal(0.7f);
+                Shot("ui_equip_sheet");
+                yield return WaitReal(0.2f);
+                MetaUi.ForgeSlot(_home.Layer, 0);
+                yield return WaitReal(0.7f);
+                Shot("ui_equip_forge");
+                yield return WaitReal(0.2f);
+                MetaUi.ForgeSlot(_home.Layer, 0, null, true);
+                yield return WaitReal(0.5f);
+                Shot("ui_equip_wash");
+                yield return WaitReal(0.3f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-uishots") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                Play(Defs.Level(5));
+                while (_battle == null) yield return null;
+                yield return WaitReal(0.6f);
+                var b = _battle.B;
+                for (int i = 0; i < b.Lineup.Length; i++)
+                    b.DamageBy[(int)b.Lineup[i]] = new[] { 12840f, 6320f, 4100f, 860f }[i % 4];
+                b.LordDamage = 1540f;
+                _battle.Hud.OpenPanel("stats");
+                yield return WaitReal(0.7f);
+                Shot("ui_stats");
+                yield return WaitReal(0.25f);
+                _battle.Hud.ClosePanel();
+                yield return WaitReal(0.25f);
+                _battle.Hud.OpenRoster();
+                yield return WaitReal(0.7f);
+                Shot("ui_roster");
+                yield return WaitReal(0.35f);
+                Application.Quit(0);
+                yield break;
+            }
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-fxshots") >= 0)
             {
                 Sfx.On = false;

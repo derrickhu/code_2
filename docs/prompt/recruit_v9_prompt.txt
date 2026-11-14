@@ -1,0 +1,35 @@
+商城祈愿长卷与擂鼓抽卡演出 v9 全面升级美术提示词
+==================================================================
+生图工具：Cursor 内置 GenerateImage（默认管线）
+原图目录：/Users/huyi/dk_proj/game_assets/code_2/assets/raw/recruit_v9/
+切图/抠图/成品目录：split|nobg|final/recruit_v9/
+运行时目录：/Users/huyi/dk_proj/code_2/Assets/Resources/Art/
+
+一、recruit_banner_v9（16:9 横版卡池主视觉，替换 recruit_banner.jpg）
+16:9 wide horizontal 2D mobile strategy game gacha banner illustration, vibrant Q-version Chinese Water Margin (Liangshan) heroic cartoon style, crisp cel-shading with rich painterly lighting.
+Scene: Grand sunlit courtyard in front of the majestic Liangshan Assembly Hall (Juyiting) with golden glazed curved roofs and crimson pillars under a bright azure sky with auspicious golden clouds.
+Centerpiece: Raised on a carved white-jade and bronze stone dais in the center sits a magnificent, oversized ceremonial crimson-and-gold Chinese war drum (Tanggu) with ornate golden dragon-cloud reliefs, brass studs, and red silk ribbons fluttering from two crossed golden drumsticks poised beside it. Radiant beams of warm imperial golden light and sparkling golden ginkgo leaves burst upward behind the drum.
+Left and right sides: Fluttering apricot-gold and crimson battle banners, lush green pines, leaving clean uncluttered space on the far right for a UI hero card overlay and along the bottom edge for info text.
+STRICT RULES: NO characters, NO UI frames, NO buttons, NO TEXT, NO Chinese characters, NO numbers anywhere in the image.
+
+二、totem_banner_v9（16:9 横版寻宝主视觉，新增 totem_banner.jpg）
+16:9 wide horizontal 2D mobile strategy game treasure-hunt gacha banner illustration, vibrant Q-version Chinese fantasy cartoon style, matching crisp outlines and polished game art quality.
+Scene: An ancient mystical celestial stone altar on Liangshan Peak under a twilight starry indigo-azure sky with glowing constellations.
+Centerpiece: Floating above a carved jade-and-gold ritual pedestal in the center is a large radiant purple-and-gold Astral Spirit Stone crystal pulsing with golden-cyan divine energy, with ethereal golden starlight rings and floating spirit runes swirling around it.
+Left and right sides: Ancient carved stone totem pillars (subtle white tiger and qilin silhouettes in warm moonlight), glowing cyan spirit lanterns, and pine silhouettes, leaving clean uncluttered space at the bottom for UI overlay.
+STRICT RULES: NO UI frames, NO buttons, NO TEXT, NO Chinese characters, NO numbers anywhere in the image.
+
+三、recruit_stage_bg_v9（9:16 竖版抽卡演出御道场景，新增 recruit_stage_bg.jpg）
+Use the reference image ONLY for camera perspective and spatial composition (a wide ceremonial red carpet path leading from a grand fortress gatehouse in the upper background down toward the foreground viewer). Do NOT copy the snow, western castle, characters, drum, or any UI/text from the reference.
+9:16 vertical 2D mobile strategy game summon-animation stage background, vibrant Chinese Song-dynasty Water Margin (Liangshan) Q-version cartoon style, sunny celebratory morning lighting.
+Top 28%: The magnificent Liangshan Assembly Hall fortress gatehouse with gleaming golden-and-celadon curved roofs, crimson pillars, and misty emerald-azure mountain peaks under a bright sky with warm golden sunbeams shining down on the open grand entrance.
+From 28% down to the bottom: A wide, grand crimson ceremonial royal carpet with woven golden cloud-diamond patterns running straight down the center of a clean pale limestone courtyard road toward the bottom foreground. Flanked on the left and right sides of the road by neat carved stone balustrades, lush green pine and bamboo trees, stone lanterns, and tall fluttering crimson-and-gold flags. Keep the red carpet path and left foreground stone terrace completely EMPTY for animated characters and war drum sprites.
+STRICT RULES: NO characters, NO drum, NO UI panels, NO TEXT, NO Chinese characters, NO numbers anywhere in the image.
+
+四、recruit_drum_kit_v9（1:1，2x2 网格组件图，纯白底 #FFFFFF 抠图）
+Game 2D sprite sheet, 2x2 grid of 4 separate isolated game props/character sprites evenly spaced in 2 columns and 2 rows on a SOLID FLAT pure white #FFFFFF background, vibrant Q-version Chinese Water Margin (Liangshan) cartoon style with clean dark-brown outlines and rich glossy shading.
+Top-left cell (stage_drum): Large ceremonial Chinese red-lacquer war drum (Tanggu) tilted slightly at a 3/4 angle on a sturdy dark-wood and gold-trimmed stand, glossy taut cream-tan drumhead facing upper-right, crimson body painted with golden auspicious clouds and brass rivets. No drumsticks attached.
+Top-right cell (stage_mallet): A single heavy wooden ceremonial drumstick with a round red-silk-wrapped padded head, golden ferrule ring, and a flowing red silk ribbon tail, angled diagonally.
+Bottom-left cell (stage_herald): Cute heroic 2.3-head chibi Chinese Liangshan herald drummer boy in festive crimson-and-gold armored vest, red headband, joyful excited expression, dynamic 3/4 pose facing right with arms raised ready to cheer/strike the drum.
+Bottom-right cell (ic_credit): Ornate hexagonal-shield golden brotherhood token medallion (Juyi Token) with a carved crimson jade emblem and red silk tassel at the bottom, gleaming metallic gold bevels, isolated icon.
+STRICT RULES: Completely separate items in 4 quadrants, SOLID FLAT #FFFFFF white background, NO ground shadows touching cell borders, NO TEXT, NO Chinese characters, NO letters, NO numbers anywhere.

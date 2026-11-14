@@ -1,0 +1,12 @@
+A 2x2 grid of four treasure-chest game icons, equal square cells, wide even gaps, each chest centered and the same size. Three-quarter front view, identical camera and scale in every cell.
+
+Style: premium chibi mobile-game icon, slightly Q. Match the reference character and sword: clean thick ink outlines, soft airbrushed color, glossy gold metal, jewel highlights, Song-dynasty Chinese fantasy, cute and chunky, not realistic wood, not European medieval, not flat vector, not photoreal.
+
+Shared silhouette: chubby rounded body, short stubby feet, oversized domed lid, small cute lock, cloud-shaped metal clasps. Friendly, toy-like, high-end.
+
+Top-left: common chest. Warm camphor-wood body, simple bronze bands, a small round keyhole. Plain and friendly.
+Top-right: rare chest. Song porcelain azure lacquer panels, bright silver cloud fittings, a small silver clasp. Cleaner and more precious.
+Bottom-left: legendary chest. Imperial gold body, deep cinnabar-red panels, one large faceted ruby on the clasp, extra cloud scrolls. The richest of the three.
+Bottom-right: the same legendary gold chest opened. Lid tilted up, warm inner glow, a pile of chunky gold coins and one blue gem. Same angle and scale as the closed chests.
+
+Plain light gray background. No floor, no cast shadow connecting the cells, no text, no numbers, no labels, no watermarks. NO TEXT.

@@ -29,7 +29,7 @@ namespace Liangshan.Sim
         public static readonly string[] BeastNames = { "白虎图腾", "玄熊图腾", "苍狼图腾", "金雕图腾", "玄武图腾", "麒麟图腾" };
         public static readonly string[] BeastIcons = { "totem_tiger", "totem_bear", "totem_wolf", "totem_hawk", "totem_turtle", "totem_qilin" };
         public static readonly string[] TotemRarityNames = { "普通", "稀有", "史诗", "传说", "绝世" };
-        public static readonly int[] TotemBaseAtk = { 0, 6, 16, 36, 72 };
+        public static readonly int[] TotemBaseAtk = { 0, 2, 5, 11, 22 };
 
         public const int TotemKindCount = 8 + Defs.RoleCount;
 

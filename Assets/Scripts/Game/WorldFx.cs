@@ -42,6 +42,27 @@ namespace Liangshan
             g.alpha = on ? 1f : 0f;
         }
 
+        /// <summary>任何命中掉血统一附赠利落受击十字爆芒（白金内核 + 暖金边晕，瞬间点亮打击点）。</summary>
+        public void HitPop(Vector2 pos, float scale, bool crit)
+        {
+            float sz = (crit ? 0.95f : 0.62f) * scale;
+            var glow = Take(Art.Img("fx_hit"), pos, sz * 0.5f, 9545, crit ? Pal.Hex("FF9638").A(0.95f) : Pal.Hex("FFC266").A(0.82f), true);
+            var core = Take(Art.Sparkle, pos, sz * 0.6f, 9546, Color.white, true);
+            float rot = UnityEngine.Random.Range(0f, 90f);
+            glow.transform.localRotation = Quaternion.Euler(0, 0, rot);
+            core.transform.localRotation = Quaternion.Euler(0, 0, rot + 45f);
+            Anim(glow.gameObject, 0.14f, k =>
+            {
+                glow.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.45f, 1.18f, Tween.OutCubic(k));
+                glow.color = glow.color.A((crit ? 0.95f : 0.82f) * (1f - k * k));
+            });
+            Anim(core.gameObject, 0.12f, k =>
+            {
+                core.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.5f, 1.05f, Tween.OutCubic(k));
+                core.color = Color.white.A(1f - k);
+            });
+        }
+
         /// <summary>Unity 的空对象用 == 判断。缺失组件直接拿去改 alpha，会报 FloatLayer 上没有 CanvasGroup。</summary>
         CanvasGroup Numbers()
         {
@@ -649,6 +670,11 @@ namespace Liangshan
 
         // ---------- 漂字 ----------
 
+        float _lastNumTime;
+        Vector2 _lastNumWorld;
+        int _numCluster;
+        static readonly float[] ClusterOffsets = { 0f, -0.34f, 0.34f, -0.58f, 0.58f, -0.18f, 0.18f };
+
         public void Number(Vector2 world, string s, Color c, int size, float rise = 0.6f, float dur = 0.65f, bool pop = false)
         {
             Text t;
@@ -661,37 +687,59 @@ namespace Liangshan
             else
             {
                 t = Ui.Label(_textLayer, "", 40, Color.white, Vector2.zero, new Vector2(500, 120), TextAnchor.MiddleCenter, Fonts.Heavy, "num");
-                Ui.Stroke(t, Pal.Hex("101924"), 3.2f);
+                Ui.Stroke(t, Pal.Hex("0E1620"), 3.4f);
                 var rt0 = t.rectTransform;
                 rt0.anchorMin = rt0.anchorMax = new Vector2(0.5f, 1f);
             }
             _liveTexts++;
+
+            // 同一区域短时间内多段跳字自动按高度阶梯+扇形排开，彻底杜绝数字上下叠字
+            float now = Time.time;
+            float driftX;
+            if (now - _lastNumTime < 0.35f && (world - _lastNumWorld).sqrMagnitude < 0.95f)
+            {
+                _numCluster = (_numCluster + 1) % ClusterOffsets.Length;
+                driftX = ClusterOffsets[_numCluster] * 1.45f;
+                world.y += (_numCluster % 4) * 0.28f;
+            }
+            else
+            {
+                _numCluster = 0;
+                driftX = UnityEngine.Random.Range(-0.18f, 0.18f);
+                _lastNumWorld = world;
+            }
+            _lastNumTime = now;
+
             t.text = s;
             t.fontSize = size;
             t.color = c;
             var rt = t.rectTransform;
-            var p0 = new Vector2(world.x * 100f, -Ui.FromTop(world.y));
+            var p0 = new Vector2((world.x + driftX * 0.65f) * 100f, -Ui.FromTop(world.y));
+            float arcX = driftX * 56f;
+            float peakY = rise * 100f;
             rt.anchoredPosition = p0;
             rt.localScale = Vector3.one;
             Anim(t.gameObject, dur, k =>
             {
-                rt.anchoredPosition = p0 + new Vector2(0, rise * 100f * Tween.OutCubic(k));
+                // 轻快弹跳抛物线：初段冲顶微悬停，尾段利落消散
+                float yCurve = k < 0.58f ? Tween.OutCubic(k / 0.58f) : 1f - 0.10f * Tween.InCubic((k - 0.58f) / 0.42f);
+                rt.anchoredPosition = p0 + new Vector2(arcX * Tween.OutCubic(k), peakY * yCurve);
                 float sc = pop
-                    ? (k < 0.22f ? Mathf.Lerp(1.55f, 1f, Tween.OutCubic(k / 0.22f)) : 1f)
-                    : (k < 0.14f ? Mathf.Lerp(0.72f, 1.12f, k / 0.14f) : k < 0.28f ? Mathf.Lerp(1.12f, 1f, (k - 0.14f) / 0.14f) : 1f);
+                    ? (k < 0.14f ? Mathf.Lerp(1.68f, 0.96f, Tween.OutCubic(k / 0.14f)) : k < 0.26f ? Mathf.Lerp(0.96f, 1.04f, (k - 0.14f) / 0.12f) : 1f)
+                    : (k < 0.11f ? Mathf.Lerp(0.68f, 1.16f, Tween.OutCubic(k / 0.11f)) : k < 0.24f ? Mathf.Lerp(1.16f, 1f, (k - 0.11f) / 0.13f) : 1f);
                 rt.localScale = Vector3.one * sc;
-                t.color = c.A(k < 0.65f ? 1f : 1f - (k - 0.65f) / 0.35f);
+                t.color = c.A(k < 0.68f ? 1f : 1f - (k - 0.68f) / 0.32f);
             });
         }
 
-        /// <summary>跟随世界坐标的常驻小字（精英血条层数），调用方每帧 Place、用完自己 Destroy。</summary>
-        public Text Pinned(int size, Color c)
+        /// <summary>跟随世界坐标的常驻小字（精英/首领头顶血条层数），调用方每帧 Place、用完自己 Destroy。</summary>
+        public Text Pinned(int size, Color c, TextAnchor align = TextAnchor.MiddleLeft)
         {
-            var t = Ui.Label(_textLayer, "", size, c, Vector2.zero, new Vector2(160, 60), TextAnchor.MiddleLeft, Fonts.Heavy, "pin");
-            Ui.Stroke(t, Pal.Ink, 2.5f);
+            var t = Ui.Label(_textLayer, "", size, c, Vector2.zero, new Vector2(180, 56), align, Fonts.Heavy, "pin");
+            Ui.Stroke(t, Pal.Hex("121010"), 2.8f);
             var rt = t.rectTransform;
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
-            rt.pivot = new Vector2(0f, 0.5f);
+            rt.pivot = align == TextAnchor.MiddleCenter ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
             return t;
         }
 

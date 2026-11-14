@@ -1,0 +1,21 @@
+装备强化与洗炼页 v8 全面系统性升级方案（对标《永远的蔚蓝星球》铁匠铺视觉与排版）
+==================================================================================
+
+设计目标：
+1. 解决旧版 `forge_scene` 远景小棚空洞、铁砧偏小且砧面有锤子遮挡装备、缺少铁匠人物氛围的问题：重绘近景特写【梁山神兵铁匠铺】背景（中央大型拱形烈焰锻炉 + 宽阔平整的青石铜边铁砧台，右侧站立梁山铁匠总管「金钱豹子·汤隆」，左侧陈列刀剑架与赤红战旗，冷灰青石墙与暖橙炉火冷暖交映）。
+2. 解决旧版下半屏中间 400px 空白荒漠、底部 6 件装备格被深蓝底栏切掉一半、SafeBottom 漏米白边的三大排版硬伤：
+   - 面板采用 `offsetMin / offsetMax` 原生上下拉伸锚定，底边 100% 贴齐底栏顶沿，底栏向下延伸覆盖 `SafeBottom`；
+   - 面板内部采用「拱冠顶饰 + 内嵌暖灰石纹属性大卡（`+Lv ▶▶ +Lv+1`、主属性条、虚线分割、多档突破预览行）+ 蓝底框材料槽 `CostTile` + 高清 3D 鎏金强化大按钮 + 六部位品质角标切换带 + 铁砧/晶石图标底栏页签」，视觉密度饱满协调。
+
+Prompt: forge_scene_v8 (4:3, 1080x810)
+--------------------------------------
+4:3 horizontal 2D mobile strategy game background illustration for an Equipment Forge & Blacksmith screen.
+Use the first reference image ONLY for the dramatic close-up camera framing, lighting contrast (cool dark stone workshop walls vs warm glowing orange furnace hearth in the center), and spatial layout (large empty flat-topped stone-and-iron anvil centered at the bottom-center directly in front of the roaring arched furnace mouth, with a friendly sturdy blacksmith standing on the right side). Do NOT copy the floating blue necklace, any UI icons, numbers, or text from reference 1.
+Use the second reference image ONLY for the exact Chinese Water Margin (Liangshan) Master Blacksmith character Tang Long (汤隆) standing on the right side: muscular 2.3-head chibi Chinese master smith with a brown cloth headband, neat black beard and cheerful confident grin, leopard-spot tattoo on his shoulder, dark leather smith's apron over a slate tunic, holding his heavy iron forging hammer over his right shoulder, warm orange firelight rim-lighting his left side.
+
+Scene details (Song-dynasty Liangshan Fortress Smithy):
+- Center background: A grand heavy carved bluestone arched forge furnace with bronze rivets, roaring with bright warm golden-amber and orange flames inside the hearth opening (leaving a clean luminous golden fire glow in the upper-center space behind the anvil so a game item icon can be overlaid cleanly in UI).
+- Bottom-center foreground: A wide, monumental, completely EMPTY flat-topped dark-iron and carved bluestone anvil set on a bronze-trimmed stone pedestal block — NOTHING resting or floating on top of the anvil, completely clear anvil top surface and clear front stone face.
+- Left background: Cool slate-blue stone smithy wall hung with crimson-and-gold Liangshan banners, hanging iron tongs, and a wooden weapon rack holding gleaming Song broadswords and spears in soft shadow.
+- Crisp bold dark-brown cel-shaded outlines, rich painterly casual game lighting, harmonious cool-slate and warm-hearth palette.
+STRICT RULES: NO floating items above the anvil, NO hammer lying on the anvil, NO UI bars, NO TEXT, NO Chinese characters, NO numbers anywhere in the image.

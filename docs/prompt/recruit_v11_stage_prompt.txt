@@ -1,0 +1,13 @@
+商城祈愿长卷与天罡点将台抽卡演出 v11 美术提示词
+==================================================================
+生图工具：Cursor 内置 GenerateImage（默认管线）
+原图目录：/Users/huyi/dk_proj/game_assets/code_2/assets/raw/recruit_v9/
+运行时目录：/Users/huyi/dk_proj/code_2/Assets/Resources/Art/
+
+一、recruit_stage_bg_v11（9:16 竖版抽卡演出·梁山天罡聚义点将台近景舞台，替换 recruit_stage_bg.jpg）
+9:16 vertical 2D mobile game gacha summon stage background illustration, vibrant high-tier Chinese Song-dynasty Water Margin (Liangshan) eastern fantasy cartoon style, rich cel-shading with cinematic warm golden-and-celestial lighting.
+Camera & Composition: Close-up heroic low-angle view of a grand circular Celestial Summoning Altar Terrace (Pointing-Generals Platform) in front of a magnificent golden-roofed Chinese palace silhouette bathed in radiant skybeams.
+Center-right focal stage (occupying 45%-78% from top): A wide, monumental, flat circular white-jade and dark-bluestone ritual platform inlaid with subtle recessed golden cloud-and-star patterns, completely EMPTY on top so summoned hero portraits can land dramatically in the center.
+Left foreground terrace: Flat stone space on the lower-left beside the circular platform for a ceremonial war drum and drummer sprite.
+Background & Atmosphere: Dramatic golden sunbeams and soft starry celestial light pouring down from an azure-and-amber sky onto the center of the circular platform, flanked by glowing bronze dragon braziers, green pines, and blank crimson silk banners without any symbols or writing.
+STRICT RULES: Completely EMPTY platform center, NO characters, NO drum, NO floating rings, NO UI, NO plaques with writing, NO crowns, NO TEXT, NO Chinese characters, NO letters, NO numbers anywhere in the image.

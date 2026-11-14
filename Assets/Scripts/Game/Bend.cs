@@ -23,6 +23,8 @@ namespace Liangshan
         static readonly int LegRId = Shader.PropertyToID("_LegR");
         static readonly int LegTopId = Shader.PropertyToID("_LegTop");
         static readonly int LegCxId = Shader.PropertyToID("_LegCx");
+        static readonly int FlashId = Shader.PropertyToID("_Flash");
+        static readonly int FlashColorId = Shader.PropertyToID("_FlashColor");
 
         static Material Make(bool add)
         {
@@ -41,9 +43,10 @@ namespace Liangshan
 
         /// <summary>
         /// bob：胯部以上抬起多少（占身体高）；shear：头顶横移多少（占身体高）；sx/sy：以脚底为锚的缩放；
-        /// legL/legR：左右靴子抬起多少（占身体高，按贴图左右算）。
+        /// legL/legR：左右靴子抬起多少（占身体高，按贴图左右算）；flash：受击实心闪白强度 0..1。
         /// </summary>
-        public static void Set(SpriteRenderer sr, in Info m, float bob, float shear, float sx, float sy, float legL = 0f, float legR = 0f)
+        public static void Set(SpriteRenderer sr, in Info m, float bob, float shear, float sx, float sy,
+            float legL = 0f, float legR = 0f, float flash = 0f, Color? flashColor = null)
         {
             _mpb ??= new MaterialPropertyBlock();
             sr.GetPropertyBlock(_mpb);
@@ -57,6 +60,8 @@ namespace Liangshan
             _mpb.SetFloat(LegRId, legR * m.Body);
             _mpb.SetFloat(LegTopId, m.LegTop);
             _mpb.SetFloat(LegCxId, m.LegCx);
+            _mpb.SetFloat(FlashId, flash);
+            _mpb.SetColor(FlashColorId, flashColor ?? Color.white);
             sr.SetPropertyBlock(_mpb);
         }
 

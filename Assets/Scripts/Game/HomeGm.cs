@@ -34,7 +34,7 @@ namespace Liangshan
         }
     }
 
-    /// <summary>主界面 GM：跳过还没打的关，或把本地和云端一起换成新档。</summary>
+    /// <summary>主界面 GM：跳过还没打的关，发元宝等物资，或把本地和云端一起换成新档。</summary>
     public sealed partial class HomeScreen
     {
         Text _gmStatus;
@@ -50,16 +50,73 @@ namespace Liangshan
 
         public void ShowGm()
         {
-            MetaUi.Modal(Layer, "gm", "GM", new Vector2(820, 980), out var card, Pal.Slate);
-            _gmStatus = Ui.Label(card, GmFrontier(), 40, Pal.Ink, new Vector2(0, 340), new Vector2(720, 70), TextAnchor.MiddleCenter, Fonts.Heavy);
-            Ui.Label(card, "只在编辑器和微信开发者工具里出现。\n跳过按三星通关结算，首通奖励和好汉照常给。", 30, Pal.SubInk, new Vector2(0, 230), new Vector2(700, 110));
-            Ui.Btn(card, "跳过本关", new Vector2(560, 110), new Vector2(0, 80), Pal.Azure, () => GmSkip(1), 46);
-            Ui.Btn(card, "连跳五关", new Vector2(560, 110), new Vector2(0, -50), Pal.Teal, () => GmSkip(5), 46);
-            Ui.Btn(card, "关卡全开", new Vector2(560, 110), new Vector2(0, -180), Pal.Green, () => GmSkip(Defs.LevelCount), 46);
-            Ui.Btn(card, "清档", new Vector2(560, 110), new Vector2(0, -310), Pal.Red, () =>
+            const float H = 1520f;
+            MetaUi.Modal(Layer, "gm", "GM", new Vector2(860, H), out var card, Pal.Slate);
+            float y = H * 0.5f - 118f;
+            _gmStatus = Ui.Label(card, GmFrontier(), 36, Pal.Ink, new Vector2(0, y), new Vector2(740, 56), TextAnchor.MiddleCenter, Fonts.Heavy);
+            y -= 64f;
+            Ui.Label(card, "只在编辑器和微信开发者工具里出现。跳过按三星通关结算。", 26, Pal.SubInk, new Vector2(0, y), new Vector2(740, 44));
+            y -= 92f;
+            void Big(string name, Color c, Action act)
             {
-                MetaUi.Confirm(Layer, "本地和云端都换成新档\n铜钱、进度、好汉都没了，不能恢复", WipeAll);
-            }, 46);
+                Ui.Btn(card, name, new Vector2(560, 100), new Vector2(0, y), c, act, 40);
+                y -= 114f;
+            }
+            Big("跳过本关", Pal.Azure, () => GmSkip(1));
+            Big("连跳五关", Pal.Teal, () => GmSkip(5));
+            Big("关卡全开", Pal.Green, () => GmSkip(Defs.LevelCount));
+            Big("清档", Pal.Red, () => MetaUi.Confirm(Layer, "本地和云端都换成新档\n铜钱、进度、好汉都没了，不能恢复", WipeAll));
+            y -= 6f;
+            Ui.Label(card, "发物资，直接写进存档", 26, Pal.SubInk, new Vector2(0, y), new Vector2(740, 40));
+            y -= 72f;
+            Ui.Btn(card, "发一套常用", new Vector2(560, 88), new Vector2(0, y), Pal.Gold, GmPack, 36);
+            y -= 96f;
+            var grants = new (string name, Cur cur, int n)[]
+            {
+                ("元宝", Cur.Ingot, 1000),
+                ("铜钱", Cur.Copper, 10000),
+                ("精铁", Cur.Iron, 500),
+                ("招募令", Cur.Token, 20),
+                ("洗炼石", Cur.Refine, 20),
+                ("寻宝锤", Cur.Hammer, 20),
+                ("体力", Cur.Stamina, 60),
+                ("锦缎", Cur.Silk, 100),
+                ("玄铁", Cur.Meteor, 20),
+                ("天书残页", Cur.Page, 50),
+                ("玄女天书", Cur.Tome, 10),
+                ("装备箱", Cur.GearBox, 5),
+            };
+            for (int i = 0; i < grants.Length; i++)
+            {
+                var g = grants[i];
+                Cur cur = g.cur;
+                int n = g.n;
+                string name = g.name;
+                Ui.Btn(card, $"{name} +{n}", new Vector2(360, 76), new Vector2(i % 2 == 0 ? -190f : 190f, y - (i / 2) * 86f), Pal.Slate,
+                    () => GmGive(cur, n, name), 30);
+            }
+        }
+
+        void GmGive(Cur c, int n, string name)
+        {
+            Meta.Give(S, new Item(c, n));
+            Profile.Save();
+            if (_gmStatus) _gmStatus.text = $"{name} +{n}　现有 {Meta.Have(S, c)}";
+            Ui.Toast($"{name} +{n}", 880);
+        }
+
+        void GmPack()
+        {
+            (Cur c, int n)[] pack =
+            {
+                (Cur.Ingot, 5000), (Cur.Copper, 50000), (Cur.Iron, 2000), (Cur.Token, 50),
+                (Cur.Refine, 30), (Cur.Hammer, 30), (Cur.Stamina, 120), (Cur.Silk, 200),
+                (Cur.Meteor, 30), (Cur.Page, 50), (Cur.Tome, 10), (Cur.GearBox, 10),
+            };
+            foreach (var p in pack) Meta.Give(S, new Item(p.c, p.n));
+            Profile.Save();
+            if (_gmStatus) _gmStatus.text = "已发一套：元宝 铜钱 精铁 招募令等";
+            Ui.Toast("已发一套常用物资", 880);
         }
 
         void WipeAll()
@@ -67,7 +124,7 @@ namespace Liangshan
             Profile.Reset();
             CloudSync.FlushNow("wipe");
             Game.I.ShowHome();
-            Ui.Toast("已换成新档，云端一起盖掉", 520);
+            Ui.Toast("已换成新档，云端一起盖掉", 880);
         }
 
         public void GmSkip(int count)
@@ -75,7 +132,7 @@ namespace Liangshan
             int from = S.Cleared + 1;
             if (from > Defs.LevelCount)
             {
-                Ui.Toast("已经全部通关", 520);
+                Ui.Toast("已经全部通关", 880);
                 return;
             }
             int n = Mathf.Min(count, Defs.LevelCount - S.Cleared);
@@ -92,7 +149,7 @@ namespace Liangshan
             if (_gmStatus) _gmStatus.text = GmFrontier();
             string who = names.Count > 0 ? "，" + string.Join("、", names) + "入伙" : "";
             string where = S.Cleared >= Defs.LevelCount ? "已全部通关" : "现在第 " + (S.Cleared + 1) + " 关";
-            Ui.Toast($"跳过 {n} 关，{where}{who}", 520);
+            Ui.Toast($"跳过 {n} 关，{where}{who}", 880);
         }
 
         static string GmFrontier()

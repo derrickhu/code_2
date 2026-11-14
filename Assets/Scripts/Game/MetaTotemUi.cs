@@ -9,14 +9,14 @@ namespace Liangshan
 {
     public static partial class MetaUi
     {
-        public static Color TotemRarityColor(int r) =>
-            r >= 4 ? Pal.Hex("DF4E38") : r == 3 ? Pal.Hex("E5A428") : r == 2 ? Pal.Hex("8A62E0") : Pal.Hex("549CE0");
+        // 全游统一五阶品质映射：0=普通(玄铁银灰) 1=稀有(霁海晶蓝) 2=史诗(紫微星辉) 3=传说(替天鎏金) 4=绝世(赤焰神品)
+        public static Color TotemRarityColor(int r) => QualColor(r);
 
-        public static Color TotemTileBg(int r) =>
-            r >= 4 ? Pal.Hex("F5B89E") : r == 3 ? Pal.Hex("F4D688") : r == 2 ? Pal.Hex("B8A8EA") : Pal.Hex("A2C8EA");
+        public static Color TotemTileBg(int r) => Color.Lerp(QualColor(r), Color.white, 0.35f);
 
-        public static Color TotemTileRim(int r) =>
-            r >= 4 ? Pal.Hex("C84A32") : r == 3 ? Pal.Hex("C4881C") : r == 2 ? Pal.Hex("6D4EC0") : Pal.Hex("3E7CB8");
+        public static Color TotemTileRim(int r) => QualInk(r);
+
+        public static string TotemSlot(int r) => QualSlot(r);
 
         /// <summary>对标参考图4「熊王图腾·皇冠」双栏对照浮层：左卡洗炼/镶嵌，右列展示该部位 4 个镶嵌槽实时状态。</summary>
         public static void TotemDetail(Transform layer, int totemId, Action changed = null)
@@ -42,21 +42,24 @@ namespace Liangshan
             var left = Ui.Rect(wrap, "left");
             left.sizeDelta = new Vector2(lw, lh);
             left.anchoredPosition = new Vector2(-248, 0);
-            var rc = TotemRarityColor(t.Rarity);
+            var rc = QualBanner(t.Rarity);
+            var rStroke = QualStroke(t.Rarity);
             Ui.Box(left, new Vector2(lw + 10, lh + 10), new Vector2(0, -8), new Color(0, 0, 0, 0.35f), Art.Rounded);
             var lface = Ui.Box(left, new Vector2(lw, lh), Vector2.zero, Pal.Hex("FAF8F2"), Art.Rounded);
             lface.raycastTarget = true;
-            Ui.Box(left, new Vector2(lw, 152), new Vector2(0, lh * 0.5f - 76), rc, Art.Rounded);
-            Ui.Box(left, new Vector2(lw, 32), new Vector2(0, lh * 0.5f - 136), rc, Art.White);
-            Ui.Box(left, new Vector2(lw - 6, lh - 154), new Vector2(0, -76), Pal.Hex("F8F6F0"), Art.Rounded);
-            Ui.Box(left, new Vector2(lw - 6, 24), new Vector2(0, lh * 0.5f - 162), Pal.Hex("F8F6F0"), Art.White);
+            Ui.Box(left, new Vector2(lw, 156), new Vector2(0, lh * 0.5f - 78), rc, Art.Rounded);
+            Ui.Box(left, new Vector2(lw, 32), new Vector2(0, lh * 0.5f - 140), rc, Art.White);
+            Ui.Box(left, new Vector2(lw - 6, lh - 158), new Vector2(0, -78), Pal.Hex("F8F6F0"), Art.Rounded);
+            Ui.Box(left, new Vector2(lw - 6, 24), new Vector2(0, lh * 0.5f - 166), Pal.Hex("F8F6F0"), Art.White);
+            Ui.Box(left, new Vector2(lw - 6, 3), new Vector2(0, lh * 0.5f - 156), QualGlow(t.Rarity).A(0.75f), Art.White);
 
-            // 兽首大图标 + 品质角标
-            Ui.Icon(left, Meta.TotemIcon(t), 132, new Vector2(-156, lh * 0.5f - 62));
-            var rTag = Ui.Box(left, new Vector2(96, 36), new Vector2(-156, lh * 0.5f - 126), rc.Mul(0.75f), Art.RoundedSmall);
-            Ui.Outlined(rTag.transform, Meta.TotemRarityNames[t.Rarity], 23, Color.white, new Vector2(0, 1), new Vector2(96, 36), Pal.Ink, 1.5f);
+            // 兽首大图标（嵌于对应品质雕花方框内）+ 品质角标
+            Slot(left, TotemSlot(t.Rarity), 116, new Vector2(-156, lh * 0.5f - 74));
+            Ui.Icon(left, Meta.TotemIcon(t), 96, new Vector2(-156, lh * 0.5f - 72));
+            var rTag = Ui.Box(left, new Vector2(96, 34), new Vector2(-156, lh * 0.5f - 132), rStroke.A(0.88f), Art.Pill);
+            Ui.Outlined(rTag.transform, Meta.TotemRarityNames[t.Rarity], 22, QualGlow(t.Rarity), new Vector2(0, 1), new Vector2(96, 34), Pal.Ink, 1.4f);
 
-            Ui.Outlined(left, Meta.TotemFullName(t), 33, Color.white, new Vector2(42, lh * 0.5f - 48), new Vector2(280, 46), rc.Mul(0.38f), 2.2f, TextAnchor.MiddleLeft);
+            Ui.Outlined(left, Meta.TotemFullName(t), 33, Color.white, new Vector2(44, lh * 0.5f - 48), new Vector2(280, 46), rStroke, 2.2f, TextAnchor.MiddleLeft);
 
             // 锁头按钮
             var lockBg = Ui.Box(left, new Vector2(54, 54), new Vector2(lw * 0.5f - 42, lh * 0.5f - 48), new Color(0, 0, 0, 0.22f), Art.Circle, "lock");
@@ -157,11 +160,11 @@ namespace Liangshan
                 }
                 else if (eqT != null)
                 {
-                    Ui.Box(row, new Vector2(82, 82), new Vector2(-176, 0), TotemTileBg(eqT.Rarity), Art.RoundedSmall);
-                    Ui.Icon(row, Meta.TotemIcon(eqT), 74, new Vector2(-176, 2));
+                    Slot(row, TotemSlot(eqT.Rarity), 88, new Vector2(-176, 0));
+                    Ui.Icon(row, Meta.TotemIcon(eqT), 70, new Vector2(-176, 2));
                     Ui.Label(row, Meta.TotemEffectText(eqT, true), 26, Pal.Hex("2B343E"),
                         new Vector2(36, 12), new Vector2(326, 64), TextAnchor.MiddleLeft, Fonts.Heavy);
-                    Ui.Label(row, $"{Meta.TotemRarityNames[eqT.Rarity]} · 攻击 +{Meta.TotemAtk(eqT)}", 21, TotemRarityColor(eqT.Rarity),
+                    Ui.Label(row, $"{Meta.TotemRarityNames[eqT.Rarity]} · 攻击 +{Meta.TotemAtk(eqT)}", 21, QualInk(eqT.Rarity),
                         new Vector2(36, -32), new Vector2(326, 30), TextAnchor.MiddleLeft, Fonts.Heavy);
                 }
                 else
@@ -227,26 +230,28 @@ namespace Liangshan
         public static void LordStats(Transform layer)
         {
             var lo = Meta.BuildLoadout(S);
-            Modal(layer, "lordStats", "统帅属性总览", new Vector2(860, 920), out var p);
-            string[] lines =
+            Modal(layer, "lordStats", "统帅属性总览", new Vector2(860, 940), out var p);
+            (string k, string v)[] lines =
             {
-                $"统帅基础攻击力：<color=#1874B0>{lo.Atk:0}</color>",
-                $"全军最终增伤：<color=#1E9438>+{(lo.DmgMul - 1f) * 100:0.#}%</color>",
-                $"全军攻击速度：<color=#1E9438>+{(lo.AllSpeed - 1f) * 100:0.#}%</color>",
-                $"全军暴击率 / 暴伤：<color=#1874B0>{lo.Crit * 100:0.#}%</color> / <color=#1874B0>{lo.CritDmg * 100:0}%</color>",
-                $"寨墙生命 / 减伤：<color=#1E9438>+{(lo.WallMul - 1f) * 100:0.#}%</color> / <color=#1E9438>{lo.WallResist * 100:0.#}%</color>",
-                $"替天行道剑气：<color=#D67418>{lo.LordPct * 100:0}%</color> × {lo.LordHits}道（冷却 {lo.LordCd:0.#}s）",
-                $"对精英 / 首领加成：<color=#1E9438>+{(lo.EliteDmg - 1f) * 100:0.#}%</color> / <color=#1E9438>+{(lo.BossDmg - 1f) * 100:0.#}%</color>",
-                $"前3波 / 受控敌军加成：<color=#1E9438>+{lo.EarlyWaveDmg * 100:0.#}%</color> / <color=#1E9438>+{lo.ControlDmg * 100:0.#}%</color>",
-                $"开局额外银两：<color=#D67418>+{lo.StartCoins}</color>",
+                ("统帅基础攻击力", $"<color=#1874B0>{lo.Atk:0}</color>"),
+                ("全军最终增伤", $"<color=#1E9438>+{(lo.DmgMul - 1f) * 100:0.#}%</color>"),
+                ("全军攻击速度", $"<color=#1E9438>+{(lo.AllSpeed - 1f) * 100:0.#}%</color>"),
+                ("全军暴击率 / 暴伤", $"<color=#1874B0>{lo.Crit * 100:0.#}%</color> / <color=#1874B0>{lo.CritDmg * 100:0}%</color>"),
+                ("寨墙生命 / 减伤", $"<color=#1E9438>+{(lo.WallMul - 1f) * 100:0.#}%</color> / <color=#1E9438>{lo.WallResist * 100:0.#}%</color>"),
+                ("替天行道剑气", $"<color=#C85A14>{lo.LordPct * 100:0}% × {lo.LordHits}道（冷却 {lo.LordCd:0.#}s）</color>"),
+                ("对精英 / 首领加成", $"<color=#1E9438>+{(lo.EliteDmg - 1f) * 100:0.#}%</color> / <color=#1E9438>+{(lo.BossDmg - 1f) * 100:0.#}%</color>"),
+                ("前3波 / 受控敌军加成", $"<color=#1E9438>+{lo.EarlyWaveDmg * 100:0.#}%</color> / <color=#1E9438>+{lo.ControlDmg * 100:0.#}%</color>"),
+                ("开局额外银两", $"<color=#C85A14>+{lo.StartCoins}</color>"),
             };
+            Ui.Skin(p, "modal_well", new Vector2(784, 680), new Vector2(0, 32), 1f);
             for (int i = 0; i < lines.Length; i++)
             {
-                float y = 320 - i * 74;
-                Ui.Skin(p, "row", new Vector2(760, 62), new Vector2(0, y), 0.55f);
-                Ui.Label(p, lines[i], 28, Pal.Ink, new Vector2(0, y), new Vector2(700, 56), TextAnchor.MiddleLeft, Fonts.Heavy);
+                float y = 328 - i * 74;
+                Ui.Skin(p, "row", new Vector2(756, 64), new Vector2(0, y), 0.50f);
+                Ui.Label(p, lines[i].k, 26, WarmTitle, new Vector2(-148, y), new Vector2(400, 52), TextAnchor.MiddleLeft, Fonts.Heavy);
+                Ui.Label(p, lines[i].v, 27, WarmTitle, new Vector2(148, y), new Vector2(400, 52), TextAnchor.MiddleRight, Fonts.Heavy);
             }
-            Ui.Btn(p, "确定", new Vector2(280, 100), new Vector2(0, -370), Pal.Azure, () => Close((RectTransform)layer.Find("modal_lordStats")), 38);
+            Ui.Btn(p, "确定", new Vector2(280, 96), new Vector2(0, -376), Pal.Teal, () => Close((RectTransform)layer.Find("modal_lordStats")), 36);
         }
 
         // ---------------- 心愿好汉选择（50% 定向 UP） ----------------
@@ -299,39 +304,71 @@ namespace Liangshan
         public static void TotemPullResult(Transform layer, List<TotemData> pulls, Action again)
         {
             int n = pulls.Count;
-            var root = MetaFx.Overlay(layer, "totemPulls", 0.82f, null);
-            MetaFx.Band(root, 40, n > 1 ? 820 : 540);
-            MetaFx.GoldBanner(root, n > 1 ? "十连寻宝" : "兽魂寻宝", new Vector2(0, n > 1 ? 540 : 410), 660);
-            Sfx.Play(Snd.Jackpot, 0.75f);
+            RectTransform root = null;
+            root = MetaFx.Overlay(layer, "totemPulls", 0.95f, () => MetaFx.Dismiss(root), 0.42f);
+            var nightTint = Ui.Fill(root, new Color(0.05f, 0.04f, 0.14f, 0.92f), false, "nightTint");
+            nightTint.SetSiblingIndex(1);
+            Ui.Box(root, new Vector2(1280, 1120), new Vector2(0, 120), Pal.Hex("9B5CE8").A(0.24f), Art.SoftDot, "halo");
+            MetaFx.Confetti(root, n > 1 ? 38 : 20);
+            MetaFx.GoldBanner(root, n > 1 ? "累计寻宝" : "兽魂寻宝", new Vector2(0, n > 1 ? 580 : 450), 700);
+            Ui.Outlined(root, n >= 10 ? $"本轮敲开 <color=#58F27E>{n}</color> 枚灵石 · 额外获赠 <color=#FFE066>洗炼石 ×1</color>" : "星宿灵石开启 · 获得兽魂图腾",
+                26, Pal.Hex("EEF5FC"), new Vector2(0, (n > 1 ? 580 : 450) - 92), new Vector2(860, 40), Pal.Ink, 1.8f);
+            Sfx.Play(Snd.Jackpot, 0.78f);
+
+            int maxPerRow = n <= 4 ? Mathf.Max(1, n) : 5;
+            int rows = (n + maxPerRow - 1) / maxPerRow;
+            float sz = n == 1 ? 236f : 164f;
+            float stepX = n == 1 ? 0f : 196f;
+            float stepY = 256f;
+            float cy = n == 1 ? 70f : 130f;
 
             for (int i = 0; i < n; i++)
             {
                 var t = pulls[i];
-                var pos = n == 1 ? new Vector2(0, 60) : new Vector2(((i % 5) - 2) * 196, 210 - (i / 5) * 330);
-                float sz = n == 1 ? 240f : 168f;
+                int r = i / maxPerRow, col = i % maxPerRow;
+                int inRow = Mathf.Min(maxPerRow, n - r * maxPerRow);
+                var pos = n == 1 ? new Vector2(0, cy) : new Vector2((col - (inRow - 1) * 0.5f) * stepX, cy + ((rows - 1) * 0.5f - r) * stepY);
                 var cell = Ui.Rect(root, "tp" + i);
                 cell.anchoredPosition = pos;
                 cell.sizeDelta = new Vector2(sz, sz + 66);
                 if (t.Rarity >= 2)
-                    Ui.Box(cell, new Vector2(sz * 1.45f, sz * 1.45f), new Vector2(0, 20), TotemRarityColor(t.Rarity).A(0.45f), Art.SoftDot);
-                string slotSkin = t.Rarity >= 3 ? "slot_orange" : t.Rarity == 2 ? "slot_purple" : "slot_blue";
-                Slot(cell, slotSkin, sz, new Vector2(0, 20));
+                    Ui.Box(cell, new Vector2(sz * 1.45f, sz * 1.45f), new Vector2(0, 20), TotemRarityColor(t.Rarity).A(0.48f), Art.SoftDot);
+                string slotSkin = TotemSlot(t.Rarity);
+                var sFace = Slot(cell, slotSkin, sz, new Vector2(0, 20));
                 Ui.Icon(cell, Meta.TotemIcon(t), sz * 0.78f, new Vector2(0, 22));
                 Badge(cell, Meta.TotemRarityNames[t.Rarity], TotemRarityColor(t.Rarity), new Vector2(88, 34), new Vector2(0, 20 + sz * 0.5f - 10), 20);
-                Ui.Outlined(cell, Meta.TotemFullName(t), n == 1 ? 30 : 22, Color.white, new Vector2(0, -sz * 0.5f - 6), new Vector2(sz + 30, 34), Pal.Ink, 1.8f);
+                Ui.Outlined(cell, Meta.TotemFullName(t), n == 1 ? 30 : 21, Color.white, new Vector2(0, -sz * 0.5f - 6), new Vector2(sz + 34, 34), Pal.Ink, 1.8f);
                 if (n == 1)
-                    Ui.Outlined(cell, Meta.TotemEffectText(t), 26, Pal.Hex("FFE488"), new Vector2(0, -sz * 0.5f - 46), new Vector2(680, 40), Pal.Ink, 1.8f);
-                Tween.Pop(cell, 0.28f, 0.08f + i * 0.05f);
+                    Ui.Outlined(cell, Meta.TotemEffectText(t), 26, Pal.Hex("FFE488"), new Vector2(0, -sz * 0.5f - 48), new Vector2(680, 40), Pal.Ink, 1.8f);
+                var tCopy = t;
+                Ui.Tap(sFace, () => Ui.Hint(cell, Meta.TotemFullName(tCopy), Meta.TotemEffectText(tCopy)), cell);
+                Tween.Pop(cell, 0.28f, 0.06f + i * 0.045f);
             }
 
+            float btnY = n > 1 ? -460f : -330f;
             var btns = Ui.Rect(root, "btns");
-            btns.anchoredPosition = new Vector2(0, n > 1 ? -460 : -320);
-            Ui.Btn(btns, "收入囊中", new Vector2(280, 110), new Vector2(-180, 0), Pal.Azure, () => MetaFx.Dismiss(root), 40);
-            Ui.Btn(btns, n > 1 ? "再寻十次" : "再寻一次", new Vector2(300, 110), new Vector2(180, 0), Pal.Gold, () =>
+            btns.anchoredPosition = new Vector2(0, btnY);
+            if (again != null)
             {
-                MetaFx.Dismiss(root);
-                again?.Invoke();
-            }, 38, "ic_hammer");
+                Ui.Btn(btns, "收入囊中", new Vector2(296, 114), new Vector2(-176, 0), Pal.Azure, () => MetaFx.Dismiss(root), 38);
+                bool hasHam = S.Hammers >= n;
+                string costIcon = hasHam ? "ic_hammer" : "ic_ingot";
+                string costStr = hasHam ? $"{S.Hammers}/{n}" : (n >= 10 ? $"{Meta.TotemPullIngot10}（九折）" : Meta.TotemPullIngot1.ToString());
+                Ui.SubBtn(btns, n > 1 ? "再寻十次" : "再寻一次", costIcon, costStr,
+                    new Vector2(320, 114), new Vector2(174, 0), Pal.Gold, () =>
+                    {
+                        MetaFx.Dismiss(root);
+                        again.Invoke();
+                    }, 36, 22);
+            }
+            else
+            {
+                Ui.Btn(btns, "收入囊中", new Vector2(320, 114), Vector2.zero, Pal.Gold, () => MetaFx.Dismiss(root), 40);
+            }
+
+            var hintTxt = Ui.Outlined(root, "点击空白处关闭", 25, Pal.Hex("C8DCF0").A(0.8f),
+                new Vector2(0, btnY - 88f), new Vector2(500, 36), Pal.Ink, 1.5f);
+            Tween.Run(hintTxt, 999f, k => hintTxt.color = Pal.Hex("C8DCF0").A(0.45f + 0.35f * Mathf.Sin(k * 999f * 3f)));
         }
     }
 }

@@ -1,0 +1,15 @@
+视频奖励图标 ic_ad（GenerateImage，1:1，单枚）
+参考：ic_token.png、ic_chest_gold.png 只做画风；用户截图只说明它要放在薄荷绿「免费」胶囊按钮左侧、小尺寸仍要一眼认出是「看视频」。不要照抄现在那枚廉价的金边圆角方块播放键。
+
+A single premium mobile-game reward icon, perfectly centered, filling most of the square with a little padding. NO TEXT, no letters, no numbers, no captions, no watermark.
+
+Match the reference icons exactly: cute slightly-Q casual cartoon, chunky rounded forms, thick gouache paint, soft cel shading, warm honey highlights, thin warm cocoa-brown outline. Not photoreal, not flat vector, not glossy plastic, not a generic app-store play button.
+
+Subject — a bold lacquered video clapper toy, readable as "watch a video" at 48 pixels:
+- A plump hinged clapper stick cocked open on top, lacquered cinnabar red with three thick honey-gold stripes.
+- The slate is a chubby rounded rectangle, warm ivory face, heavy honey-gold rim, soft inner shadow.
+- Center of the slate: one huge raised gold play triangle, chunky and bright, the first thing the eye hits.
+- A small cinnabar Chinese knot and a short red tassel hanging under the slate, same family as the tiger token.
+- One painted sparkle on the gold rim. No lens flare.
+
+Background: SOLID FLAT #5F7A92 blue-grey, no gradient, no floor, no cast shadow.

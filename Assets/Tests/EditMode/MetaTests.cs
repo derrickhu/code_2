@@ -36,7 +36,7 @@ namespace Liangshan.Tests
                 last = r;
                 if (r == 4 && firstLegend == 0) firstLegend = n;
             }
-            Assert.GreaterOrEqual(firstLegend, 21);
+            Assert.That(firstLegend, Is.InRange(12, 20), "传说首通保送提前，配合第6关招募池首日即可体验大招");
 
             var s = Meta.NewSave(0);
             for (int seed = 1; seed <= 20; seed++)
@@ -133,13 +133,18 @@ namespace Liangshan.Tests
                 orange = Meta.Recruit(s, 1, new Rng(1000 + i)).Any(p => Defs.Hero(p.Hero).Rarity == 4);
             Assert.IsTrue(orange);
 
-            for (int seed = 1; seed <= 30; seed++)
+            for (int seed = 1; seed <= 60; seed++)
             {
                 var t = Meta.NewSave(0);
+                if (seed > 30) Meta.SetWish(t, HeroId.WuSong);
                 var res = Meta.Recruit(t, 10, new Rng(seed));
                 Assert.AreEqual(10, res.Count);
                 Assert.IsTrue(res.Any(p => Defs.Hero(p.Hero).Rarity >= 3));
                 foreach (var p in res) Assert.IsTrue(p.New || p.Shards > 0);
+                int maxCount = res.GroupBy(p => p.Hero).Max(g => g.Count());
+                Assert.LessOrEqual(maxCount, seed > 30 ? 3 : 2, "十连防同人扎堆连刷");
+                int maxRar = res.Max(p => Defs.Hero(p.Hero).Rarity);
+                Assert.AreEqual(maxRar, Defs.Hero(res[9].Hero).Rarity, "十连最高稀有度压轴收官");
             }
         }
 
@@ -277,6 +282,8 @@ namespace Liangshan.Tests
                 Assert.AreNotEqual(Defs.Chapters[c].Boss, Defs.Chapters[c].MidBoss);
                 Assert.IsTrue(Defs.Enemy(mid.BossKind).IsBoss);
             }
+            for (int n = 2; n <= Defs.LevelCount; n++)
+                Assert.AreNotEqual(Defs.Level(n - 1).BossKind, Defs.Level(n).BossKind, "第" + n + "关首领不该跟上关一样");
             Assert.AreEqual(10, Defs.Enemies.Count(e => e.IsBoss));
             Assert.GreaterOrEqual(Defs.Enemies.Count(e => e.Rank == EnemyRank.Minion && e.Kind != EnemyKind.Porter), 17);
             for (int k = 0; k < Defs.Enemies.Length; k++) Assert.AreEqual(k, (int)Defs.Enemies[k].Kind);
@@ -342,14 +349,14 @@ namespace Liangshan.Tests
             }
         }
 
-        static int Wins(int level, SaveData s)
+        static int Wins(int level, SaveData s, int botSkill = 2, int trials = 8)
         {
             int w = 0;
-            for (int seed = 1; seed <= 8; seed++)
+            for (int seed = 1; seed <= trials; seed++)
             {
                 var lo = Meta.BuildLoadout(s);
                 var b = new Battle(seed, lo.Lineup, Defs.Level(level), lo);
-                var bot = new Bot(2);
+                var bot = new Bot(botSkill);
                 while (b.Phase != Phase.Victory && b.Phase != Phase.Defeat && b.Time < 600)
                 {
                     bot.Step(b, 1f / 30f);
@@ -364,11 +371,60 @@ namespace Liangshan.Tests
         [Test]
         public void ExpectedGrowthClearsKeyLevelsButSkippingGrowthFails()
         {
-            foreach (var n in new[] { 10, 25, 40, 50 })
+            // 打印全段关卡梯度与胜率遥测，核验对标《永远的蔚蓝星球》的节奏闭环
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("=== BALANCE TELEMETRY ===");
+            for (int lv = 1; lv <= 6; lv++)
+                sb.AppendLine($"NewSave Stage {lv}: wins={Wins(lv, Meta.NewSave(0), 2, 10)}/10, StageHp={Defs.Level(lv).HpMul:F2}");
+            foreach (var n in new[] { 1, 3, 5, 8, 10, 15, 20, 25, 30, 40, 50 })
+            {
+                int wExp = Wins(n, Meta.ExpectedSave(n), 2, 8);
+                int wLag4 = n > 4 ? Wins(n, Meta.ExpectedSave(n - 4), 2, 8) : -1;
+                int wNoPerk = Wins(n, Meta.ExpectedSave(n), 1, 8);
+                sb.AppendLine($"Stage {n,2}: HpMul={Defs.Level(n).HpMul,7:F2} | ExpWins={wExp}/8 | Lag4Wins={wLag4}/8 | MergeOnlyNoPerk={wNoPerk}/8");
+            }
+            UnityEngine.Debug.Log(sb.ToString());
+
+            foreach (var n in new[] { 5, 10, 15, 25, 40, 50 })
             {
                 Assert.GreaterOrEqual(Wins(n, Meta.ExpectedSave(n)), 5, $"第{n}关按标准养成应能过");
-                Assert.LessOrEqual(Wins(n, Meta.ExpectedSave(n - 8)), 2, $"第{n}关落后8关的养成不该轻松过");
+                if (n >= 6)
+                    Assert.LessOrEqual(Wins(n, Meta.ExpectedSave(n - 4)), 3, $"第{n}关落后4关的局外养成应明显卡关");
             }
+        }
+
+        [Test]
+        public void NewSaveHitsEarlyMetaGateAndInterStageSlopeNeverPlateaus()
+        {
+            // 1. 关间难度斜率铁律：第1~5关每关至少涨18%，第6~15关至少涨12%，全50关严格递增绝无水关
+            for (int n = 2; n <= Defs.LevelCount; n++)
+            {
+                float ratio = Defs.Level(n).HpMul / Defs.Level(n - 1).HpMul;
+                float minRatio = n <= 5 ? 1.179f : n <= 15 ? 1.119f : 1.074f;
+                Assert.GreaterOrEqual(ratio, minRatio, $"第{n}关相比第{n - 1}关难度涨幅不足 ({ratio:F3})");
+            }
+
+            // 2. 局外促进局内铁律：纯1级白板存档能过第1关建立信心，但不做局外养成打到第4~5关必受阻卡墙
+            var fresh = Meta.NewSave(0);
+            Assert.GreaterOrEqual(Wins(1, fresh, 2, 10), 7, "新手首战按正确策略应稳过");
+            Assert.LessOrEqual(Wins(4, fresh, 2, 10), 2, "完全不搞局外养成的1级白板不应轻松平推第4关");
+            Assert.LessOrEqual(Wins(5, fresh, 2, 10), 1, "完全不搞局外养成的1级白板绝不能平推第5关首领");
+            Assert.GreaterOrEqual(Wins(5, Meta.ExpectedSave(5), 2, 10), 6, "完成前4关正常局外养成后可攻克第5关首领");
+        }
+
+        [Test]
+        public void MonsterResistanceRedlinesAndCounterplayHold()
+        {
+            // P-8 数值红线：抗性封顶50%，严禁恶心锁流派，同时保留鲜明克制策略
+            foreach (var e in Defs.Enemies)
+            {
+                Assert.LessOrEqual(e.PhysResist, 0.50f, $"{e.Name} 物理抗性不得超过50%红线");
+                Assert.GreaterOrEqual(e.MagicWeak, 0f, e.Name);
+                Assert.GreaterOrEqual(e.ArcherWeak, 0f, e.Name);
+            }
+            Assert.Greater(Defs.Enemy(EnemyKind.Shield).PhysResist, 0.15f, "盾兵具备物理减伤，体现法师/火药破盾策略");
+            Assert.Greater(Defs.Enemy(EnemyKind.Armored).MagicWeak, 0.30f, "铁甲兵怕法术，体现元素克制");
+            Assert.Greater(Defs.Enemy(EnemyKind.Hawk).ArcherWeak, 0.35f, "飞行怪被射手显著克制");
         }
 
         [Test]
@@ -604,6 +660,69 @@ namespace Liangshan.Tests
                 }
             }
             Assert.AreEqual(0, missing.Count, "子集字体缺字（需运行 python3 tools/build_font.py）：" + new string(missing.ToArray()));
+        }
+
+        [Test]
+        public void TavernHalfPriceShardsFirstOrangePityAndFreeResetWork()
+        {
+            var s = Meta.NewSave(0);
+            s.Cleared = Meta.OrangeOpen;
+            // 首张传说享受 15 抽新手破冰保底
+            bool gotOrange = false;
+            for (int i = 0; i < Meta.FirstOrangePity; i++)
+                if (Meta.Recruit(s, 1, new Rng(300 + i)).Any(p => Defs.Hero(p.Hero).Rarity == 4)) gotOrange = true;
+            Assert.IsTrue(gotOrange, "第6关开放传说池后15抽内必破冰首张传说");
+            Assert.AreEqual(Meta.FirstOrangePity * Meta.CreditsPerPull, Meta.RecruitCredits(s));
+
+            // 酒馆半价兑换已拥有好汉碎片
+            var starter = Meta.Starters[0];
+            int sh0 = s.Shards[(int)starter];
+            int halfPrice = Meta.BaseShardCreditPrice(Defs.Hero(starter).Rarity) / 2;
+            Assert.AreEqual(halfPrice, Meta.NextShardCreditPrice(s, starter));
+            Assert.IsTrue(Meta.BuyHeroShardWithCredits(s, starter, 5));
+            Assert.AreEqual(sh0 + 5, s.Shards[(int)starter]);
+            Assert.AreEqual(Meta.WeeklyHalfLimit - 5, Meta.HalfLeft(s, starter));
+
+            // 免费无损传功重置：100% 退回铜钱与碎片
+            s.Shards[(int)starter] += 30;
+            s.Copper = 50000;
+            int totalShards = s.Shards[(int)starter], totalCopper = s.Copper;
+            Assert.IsTrue(Meta.LevelUp(s, starter));
+            Assert.IsTrue(Meta.LevelUp(s, starter));
+            Assert.AreEqual(3, s.HeroLv[(int)starter]);
+            Assert.IsTrue(Meta.ResetHero(s, starter, out int rc, out int rs));
+            Assert.AreEqual(1, s.HeroLv[(int)starter]);
+            Assert.AreEqual(totalCopper, s.Copper, "铜钱 100% 全额退还");
+            Assert.AreEqual(totalShards, s.Shards[(int)starter], "碎片 100% 全额退还");
+            Assert.Greater(rc, 0);
+            Assert.Greater(rs, 0);
+        }
+
+        [Test]
+        public void RankMilestonesHonorTitlesAndDailyResetWork()
+        {
+            var s = Meta.NewSave(0);
+            Assert.AreEqual(0, Meta.RankRewardBadge(s));
+            s.Cleared = 10;
+            Assert.AreEqual(3, Meta.RankRewardBadge(s)); // 第 2、5、10 关三档可领
+            int ingot0 = s.Ingots;
+            var got1 = Meta.ClaimRankMilestone(s, 0);
+            Assert.IsNotEmpty(got1);
+            Assert.IsFalse(Meta.CanClaimRankMilestone(s, 0));
+            Assert.AreEqual(2, Meta.RankRewardBadge(s));
+
+            var gotRest = Meta.ClaimAllRankMilestones(s);
+            Assert.IsNotEmpty(gotRest);
+            Assert.AreEqual(0, Meta.RankRewardBadge(s));
+            Assert.Greater(s.Ingots, ingot0 + 250);
+
+            Assert.AreEqual(("替天魁首", 1), Meta.HonorTitle(1, 48, 22000));
+            Assert.AreEqual(("天罡统领", 2), Meta.HonorTitle(2, 45, 20000));
+            Assert.AreEqual(("镇山先锋", 3), Meta.HonorTitle(3, 40, 18000));
+
+            s.RankLikes = 3;
+            Meta.RollDay(s, s.Day + 1);
+            Assert.AreEqual(0, s.RankLikes, "跨天自动重置每日排行榜点赞奖励次数");
         }
     }
 }

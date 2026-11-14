@@ -283,20 +283,37 @@ namespace Liangshan
         /// <summary>八向等距真圆描边（替代 Unity 四角对角线 Outline 的重影分叉）；字号越小描边自动收细。</summary>
         public static Text Stroke(Text t, Color c, float d)
         {
-            float eff = Mathf.Clamp(d * 0.64f, 1.05f, Mathf.Min(2.5f, t.fontSize * 0.056f));
-            var cs = t.gameObject.GetComponent<CrispStroke>() ?? t.gameObject.AddComponent<CrispStroke>();
+            float eff = Mathf.Clamp(d * 0.64f, 1.05f, Mathf.Min(3.4f, t.fontSize * 0.068f));
+            var cs = t.gameObject.GetComponent<CrispStroke>();
+            if (!cs) cs = t.gameObject.AddComponent<CrispStroke>();
             cs.Color = c;
             cs.Radius = eff;
+            return t;
+        }
+
+        /// <summary>上下双色金属/琥珀立体渐变描边大字（参考图名次大字、牌匾主标题同款）。</summary>
+        public static Text GradOutlined(Transform parent, string s, int size, Color topCol, Color botCol, Vector2 pos, Vector2 box,
+            Color edge, float thick = 3.2f, TextAnchor align = TextAnchor.MiddleCenter, string name = "glabel")
+        {
+            var t = Label(parent, s, size, Color.white, pos, box, align, Fonts.Heavy, name);
+            var cs = t.gameObject.AddComponent<CrispStroke>();
+            cs.Color = edge;
+            cs.Radius = Mathf.Clamp(thick * 0.68f, 1.2f, Mathf.Min(3.6f, t.fontSize * 0.072f));
+            cs.UseGradient = true;
+            cs.TopColor = topCol;
+            cs.BottomColor = botCol;
             return t;
         }
 
         public static void Tap(Graphic g, Action onClick, Transform punch = null, bool sound = true, float sink = 0f)
         {
             g.raycastTarget = true;
-            var b = g.gameObject.GetComponent<Button>() ?? g.gameObject.AddComponent<Button>();
+            var b = g.gameObject.GetComponent<Button>();
+            if (!b) b = g.gameObject.AddComponent<Button>();
             b.transition = Selectable.Transition.None;
             var t = punch ? punch : g.transform;
-            var fx = g.gameObject.GetComponent<PressFx>() ?? g.gameObject.AddComponent<PressFx>();
+            var fx = g.gameObject.GetComponent<PressFx>();
+            if (!fx) fx = g.gameObject.AddComponent<PressFx>();
             fx.Setup(t, sink);
             b.onClick.AddListener(() =>
             {
@@ -315,32 +332,36 @@ namespace Liangshan
             return img;
         }
 
-        /// <summary>按面色挑最接近的手绘按钮。</summary>
+        /// <summary>按面色挑最匹配的高清 3D 亮泽圆角按钮皮肤（含金/天蓝/青玉/翠绿/星愿紫/暖橙/朱红/石板灰 8 色）。</summary>
         public static string BtnSkin(Color c)
         {
             Color.RGBToHSV(c, out float h, out float s, out _);
             if (s < 0.35f) return "btn_grey";
-            if (h < 0.03f || h > 0.9f) return "btn_red";
-            if (h < 0.1f) return "btn_orange";
+            if (h < 0.03f || h > 0.90f) return "btn_red";
+            if (h < 0.10f) return "btn_orange";
             if (h < 0.18f) return "btn_gold";
-            if (h < 0.45f) return "btn_green";
-            return "btn_teal";
+            if (h < 0.43f) return "btn_green";
+            if (h < 0.53f) return "btn_teal";
+            if (h < 0.68f) return "btn_blue";
+            return "btn_purple";
         }
 
-        static (Color outer, Color lip, Color stroke) BtnTheme(string skin)
+        static Color BtnStroke(string skin)
         {
             switch (skin)
             {
-                case "btn_gold": return (Pal.Hex("664610"), Pal.Hex("C48C1C"), Pal.Hex("5E3A0A"));
-                case "btn_green": return (Pal.Hex("18522B"), Pal.Hex("20863C"), Pal.Hex("134423"));
-                case "btn_teal": return (Pal.Hex("15465C"), Pal.Hex("1B6E90"), Pal.Hex("103A4D"));
-                case "btn_orange": return (Pal.Hex("69300E"), Pal.Hex("B25012"), Pal.Hex("5C2709"));
-                case "btn_red": return (Pal.Hex("63171C"), Pal.Hex("9E2226"), Pal.Hex("561217"));
-                default: return (Pal.Hex("344250"), Pal.Hex("4F5F70"), Pal.Hex("24303C"));
+                case "btn_gold": return Pal.Hex("5E3606");
+                case "btn_green": return Pal.Hex("124422");
+                case "btn_teal": return Pal.Hex("0E4246");
+                case "btn_blue": return Pal.Hex("143B5E");
+                case "btn_purple": return Pal.Hex("3D1666");
+                case "btn_orange": return Pal.Hex("5C2406");
+                case "btn_red": return Pal.Hex("561016");
+                default: return Pal.Hex("2C3C4C");
             }
         }
 
-        /// <summary>高清厚涂按钮，可选左侧图标。亮金按钮采用深棕无糊边字，深色按钮采用八向锐利白字。</summary>
+        /// <summary>高清 4x 抗锯齿 3D 亮泽圆角按钮（对标《永远的蔚蓝星球》同曲率立体底沿 + 左上玻璃高光点）。</summary>
         public static RectTransform Btn(Transform parent, string text, Vector2 size, Vector2 pos, Color face, Action onClick,
             int fontSize = 52, string icon = null, Color? fg = null)
         {
@@ -348,37 +369,113 @@ namespace Liangshan
             holder.sizeDelta = size;
             holder.anchoredPosition = pos;
             string skin = BtnSkin(face);
-            var th = BtnTheme(skin);
-            float sink = Mathf.Clamp(size.y * 0.068f, 5f, 9f);
-            // 干净的实心立体底沿（不重复叠整张带框贴图，彻底消除双层描边发虚）
-            Box(holder, size - new Vector2(4, 4), new Vector2(0, -sink), th.outer, Art.RoundedSmall, "lipRim");
-            Box(holder, size - new Vector2(9, 9), new Vector2(0, -sink), th.lip, Art.RoundedSmall, "lip");
+            Color stroke = BtnStroke(skin);
+            float sink = Mathf.Clamp(size.y * 0.068f, 5f, 8.5f);
+            float bScale = Mathf.Min(1f, size.y / 100f);
+
+            // 同曲率 3D 立体底沿 + 柔和自然环境投影（四周外扩 8*bScale 承接羽化投影，圆角与上表面 100% 严丝合缝）
+            float lipPad = 8f * bScale;
+            var lip = Skin(holder, skin + "_lip", size + new Vector2(lipPad * 2f, lipPad * 2f), new Vector2(0, -sink), bScale, null, "lip");
+            lip.raycastTarget = false;
+
             var body = Rect(holder, "body");
             body.sizeDelta = size;
-            Skin(body, skin, size, Vector2.zero, Mathf.Min(1f, size.y / 84f), null, "face");
-            float iconW = icon != null ? size.y * 0.66f : 0f;
-            Color textCol = fg ?? (skin == "btn_gold" ? Pal.Hex("56340C") : Color.white);
+            var faceImg = Skin(body, skin, size, Vector2.zero, bScale, null, "face");
+            faceImg.raycastTarget = false;
+
+            float iconW = icon != null ? Mathf.Min(size.y * 0.62f, 64f) : 0f;
+            Color textCol = fg ?? (skin == "btn_gold" ? Pal.Hex("542F06") : Color.white);
             float lum = textCol.r * 0.299f + textCol.g * 0.587f + textCol.b * 0.114f;
+            float textOffX = icon != null ? iconW * 0.44f : 0f;
             Text label;
             if (lum < 0.45f)
             {
-                // 亮底深字（如琥珀金「强化」按钮）：绝不叠深色描边，仅加 1px 暖白微高光，笔锋如刀刻般清晰
-                label = Label(body, text, fontSize, textCol, new Vector2(iconW * 0.48f, 1), new Vector2(size.x - iconW, size.y),
+                label = Label(body, text, fontSize, textCol, new Vector2(textOffX, 2), new Vector2(size.x - iconW - 16f, size.y),
                     TextAnchor.MiddleCenter, Fonts.Heavy, "text");
                 var sheen = label.gameObject.AddComponent<Shadow>();
-                sheen.effectColor = new Color(1f, 0.97f, 0.86f, 0.55f);
-                sheen.effectDistance = new Vector2(0f, -1.2f);
+                sheen.effectColor = new Color(1f, 0.98f, 0.88f, 0.65f);
+                sheen.effectDistance = new Vector2(0f, -1.4f);
             }
             else
             {
-                label = Outlined(body, text, fontSize, textCol, new Vector2(iconW * 0.48f, 2), new Vector2(size.x - iconW, size.y),
-                    th.stroke, 2.2f, TextAnchor.MiddleCenter, "text");
+                label = Outlined(body, text, fontSize, textCol, new Vector2(textOffX, 2), new Vector2(size.x - iconW - 16f, size.y),
+                    stroke, 2.3f, TextAnchor.MiddleCenter, "text");
             }
+            label.resizeTextForBestFit = false;
             if (icon != null)
             {
-                float tw = Mathf.Min(size.x - iconW - 20, label.preferredWidth);
-                Icon(body, icon, iconW, new Vector2(-tw * 0.5f - iconW * 0.14f, 1), "btnIcon");
+                float tw = Mathf.Min(size.x - iconW - 24f, label.preferredWidth);
+                Icon(body, icon, iconW, new Vector2(textOffX - tw * 0.5f - iconW * 0.54f, 2), "btnIcon");
             }
+            var hit = Box(holder, size, Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
+            Tap(hit, onClick, body, true, sink);
+            return holder;
+        }
+
+        /// <summary>双行主行动按钮（对标《永远的蔚蓝星球》开始挑战/招募/寻宝：上层大字标题，下层同色系干净内嵌消耗槽 + 图标数值，彻底根除脏黑半透明阴影）。</summary>
+        public static RectTransform SubBtn(Transform parent, string title, string subIcon, string subText, Vector2 size, Vector2 pos,
+            Color face, Action onClick, int titleSize = 42, int subSize = 25, bool ornateStart = false)
+        {
+            var holder = Rect(parent, ornateStart ? "start" : "subBtn");
+            holder.sizeDelta = size;
+            holder.anchoredPosition = pos;
+            string skin = ornateStart ? "h_start" : BtnSkin(face);
+            string baseSkin = ornateStart ? "btn_gold" : skin;
+            Color stroke = BtnStroke(baseSkin);
+            float sink = ornateStart ? 8.5f : Mathf.Clamp(size.y * 0.068f, 5.5f, 8f);
+            float bScale = ornateStart ? 1f : Mathf.Min(1f, size.y / 112f);
+            float lipPad = 8f * bScale;
+
+            var lip = Skin(holder, skin + "_lip", size + new Vector2(lipPad * 2f, lipPad * 2f), new Vector2(0, -sink), bScale, null, "lip");
+            lip.raycastTarget = false;
+
+            var body = Rect(holder, "body");
+            body.sizeDelta = size;
+            var faceImg = Skin(body, skin, size, Vector2.zero, bScale, null, "face");
+            faceImg.raycastTarget = false;
+
+            bool goldFace = baseSkin == "btn_gold";
+            float titleY = size.y * 0.20f;
+            Text lbl;
+            if (goldFace)
+            {
+                lbl = Label(body, title, titleSize, Pal.Hex("542F06"), new Vector2(0, titleY), new Vector2(size.x - 40f, size.y * 0.54f),
+                    TextAnchor.MiddleCenter, Fonts.Heavy, "text");
+                var sheen = lbl.gameObject.AddComponent<Shadow>();
+                sheen.effectColor = new Color(1f, 0.98f, 0.88f, 0.68f);
+                sheen.effectDistance = new Vector2(0f, -1.5f);
+            }
+            else
+            {
+                lbl = Outlined(body, title, titleSize, Color.white, new Vector2(0, titleY), new Vector2(size.x - 40f, size.y * 0.54f),
+                    stroke, 2.5f, TextAnchor.MiddleCenter, "text");
+            }
+            lbl.resizeTextForBestFit = false;
+
+            // 下半部干净同色系内嵌凹槽（0% 脏黑阴影）
+            float wellH = Mathf.Clamp(size.y * 0.31f, 34f, 44f);
+            float wellY = -size.y * 0.24f;
+            var dummy = Outlined(body, subText, subSize, Color.white, Vector2.zero, new Vector2(size.x - 32f, wellH), stroke, 2.0f, TextAnchor.MiddleCenter, "costText");
+            dummy.resizeTextForBestFit = false;
+            float tw = dummy.preferredWidth;
+            float icSz = subIcon != null ? wellH * 0.92f : 0f;
+            float contentW = tw + (subIcon != null ? icSz + 8f : 0f);
+            float wellW = Mathf.Clamp(contentW + 44f, 128f, size.x - 36f);
+
+            var well = Skin(body, baseSkin + "_well", new Vector2(wellW, wellH), new Vector2(0, wellY), Mathf.Min(1f, wellH / 46f), null, "well");
+            well.raycastTarget = false;
+            dummy.transform.SetAsLastSibling();
+            if (subIcon != null)
+            {
+                float startX = -contentW * 0.5f;
+                Icon(body, subIcon, icSz, new Vector2(startX + icSz * 0.5f, wellY + 1f), "costIcon");
+                dummy.rectTransform.anchoredPosition = new Vector2(startX + icSz + 8f + tw * 0.5f, wellY + 1f);
+            }
+            else
+            {
+                dummy.rectTransform.anchoredPosition = new Vector2(0, wellY + 1f);
+            }
+
             var hit = Box(holder, size, Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
             Tap(hit, onClick, body, true, sink);
             return holder;
@@ -390,32 +487,126 @@ namespace Liangshan
             t.GetComponent<Text>().text = s;
         }
 
-        /// <summary>弹窗面板：宋瓷青釉双线框 + 清爽白瓷纸面。</summary>
+        /// <summary>弹窗面板：双层立体石青蓝厚框 + 温润奶油白内页纸面（panel.png 自带立体唇边与柔和环境投影）。</summary>
         public static RectTransform Panel(Transform parent, Vector2 size, Vector2 pos, string name = "panel")
         {
             var holder = Rect(parent, name);
             holder.sizeDelta = size;
             holder.anchoredPosition = pos;
-            Box(holder, size + new Vector2(36, 36), new Vector2(0, -14), new Color(0.03f, 0.08f, 0.14f, 0.34f), Art.Rounded, "shadow");
-            Skin(holder, "panel", size + new Vector2(26, 26), Vector2.zero, 1f, null, "frame");
+            var frame = Skin(holder, "panel", size + new Vector2(44, 48), new Vector2(0, -2), 1f, null, "frame");
+            frame.raycastTarget = true;
             return holder;
         }
 
-        /// <summary>霁蓝绶带标题；传入灰色调时换灰绶带（失败等场合）。</summary>
-        public static RectTransform Ribbon(Transform parent, string s, Vector2 pos, float width = 560, Color? color = null)
+        /// <summary>双折耳立体卷轴标题：支持石青霁蓝（默认）、皇室暖金（传入橙金调）、冷灰蓝（失败等）。</summary>
+        public static RectTransform Ribbon(Transform parent, string s, Vector2 pos, float width = 520, Color? color = null)
         {
-            bool grey = false;
+            bool grey = false, warm = false;
             if (color.HasValue)
             {
-                Color.RGBToHSV(color.Value, out _, out float sat, out _);
-                grey = sat < 0.3f;
+                Color.RGBToHSV(color.Value, out float h, out float sat, out _);
+                grey = sat < 0.25f;
+                warm = !grey && h >= 0.04f && h <= 0.17f;
             }
+            string skin = grey ? "banner_grey" : warm ? "banner_warm" : "banner";
+            Color stroke = grey ? Pal.Hex("2C3A48") : warm ? Pal.Hex("5E3408") : Pal.Hex("1D3C56");
+            Color botCol = grey ? Pal.Hex("E8F0F8") : warm ? Pal.Hex("FFEFA8") : Pal.Hex("E6F6FF");
+
+            float rw = Mathf.Clamp(width, 380f, 640f);
             var holder = Rect(parent, "ribbon");
             holder.anchoredPosition = pos;
-            holder.sizeDelta = new Vector2(width, 110);
-            Skin(holder, grey ? "banner_grey" : "banner", new Vector2(width + 170, 132), new Vector2(0, -6), -1f, null, "face");
-            Outlined(holder, s, 56, Color.white, new Vector2(0, 10), new Vector2(width, 100), grey ? Pal.Hex("4E5C6A") : Pal.Hex("103454"), 3.2f);
+            holder.sizeDelta = new Vector2(rw, 118);
+            Skin(holder, skin, new Vector2(rw + 136f, 128f), new Vector2(0, -4f), -1f, null, "face");
+            int fsz = s != null && s.Length >= 8 ? 42 : s != null && s.Length >= 6 ? 46 : 50;
+            GradOutlined(holder, s, fsz, Color.white, botCol, new Vector2(0, 7f), new Vector2(rw - 24f, 88f), stroke, 3.0f);
             return holder;
+        }
+
+        /// <summary>说明卡片：标题居中，细线隔开，正文居中。数字用橙色突出。全游戏的短说明都走这里。</summary>
+        public static void Hint(Transform anchor, string text) => Hint(anchor, null, text);
+
+        public static void Hint(Transform anchor, string title, string body)
+        {
+            var old = Root.Find("hint");
+            if (old) UnityEngine.Object.DestroyImmediate(old.gameObject);
+            var root = Rect(Root, "hint");
+            root.anchorMin = Vector2.zero;
+            root.anchorMax = Vector2.one;
+            root.offsetMin = root.offsetMax = Vector2.zero;
+            var hit = Fill(root, new Color(0, 0, 0, 0.001f), true, "hit");
+            var keep = root;
+            Tap(hit.GetComponent<Image>(), () => { if (keep) UnityEngine.Object.Destroy(keep.gameObject); }, null, false);
+
+            bool titled = !string.IsNullOrEmpty(title);
+            string shown = TintNums(body ?? "");
+            float widest = 40f;
+            if (titled)
+            {
+                var tp = Label(root, title, 40, Color.white, Vector2.zero, new Vector2(640, 56), TextAnchor.MiddleCenter, Fonts.Heavy, "probe");
+                Canvas.ForceUpdateCanvases();
+                widest = Mathf.Max(widest, tp.preferredWidth);
+                UnityEngine.Object.DestroyImmediate(tp.gameObject);
+            }
+            foreach (var line in shown.Split('\n'))
+            {
+                var lp = Label(root, line, 32, Color.white, Vector2.zero, new Vector2(640, 48), TextAnchor.MiddleCenter, Fonts.Heavy, "probe");
+                Canvas.ForceUpdateCanvases();
+                widest = Mathf.Max(widest, lp.preferredWidth);
+                UnityEngine.Object.DestroyImmediate(lp.gameObject);
+            }
+            float tw = Mathf.Clamp(widest + 128f, 520f, 680f);
+            float inner = tw - 88f;
+            var probe = Label(root, shown, 32, Color.white, Vector2.zero, new Vector2(inner, 220), TextAnchor.MiddleCenter, Fonts.Heavy, "probe");
+            probe.lineSpacing = 1.15f;
+            Canvas.ForceUpdateCanvases();
+            float bodyH = Mathf.Max(48f, probe.preferredHeight);
+            UnityEngine.Object.DestroyImmediate(probe.gameObject);
+
+            const float padT = 36f, padB = 42f, titleH = 54f;
+            float th = padT + (titled ? titleH + 18f + 2f + 26f : 0f) + bodyH + padB;
+
+            var layer = (RectTransform)Root;
+            Vector2 at = layer.InverseTransformPoint(anchor.position);
+            float limit = layer.rect.width * 0.5f - 24f;
+            float cx = Mathf.Clamp(at.x, -limit + tw * 0.5f, limit - tw * 0.5f);
+            float floor = -layer.rect.height * 0.5f + 36f;
+            const float gapY = 16f;
+            bool flip = at.y - gapY - th < floor;
+            float cy = flip ? at.y + gapY + th * 0.5f : at.y - gapY - th * 0.5f;
+
+            var card = Rect(root, "card");
+            card.sizeDelta = new Vector2(tw, th);
+            card.anchoredPosition = new Vector2(cx, cy);
+            Box(card, new Vector2(tw - 8f, th - 8f), new Vector2(0, -8f), new Color(0.02f, 0.05f, 0.1f, 0.28f), Art.Rounded, "shadow");
+            Skin(card, "hint", new Vector2(tw, th), Vector2.zero, 1f, null, "face");
+            float bodyTop = th * 0.5f - padT;
+            if (titled)
+            {
+                float titleY = th * 0.5f - padT - titleH * 0.5f;
+                Label(card, title, 40, Color.white, new Vector2(0, titleY), new Vector2(inner, titleH), TextAnchor.MiddleCenter, Fonts.Heavy, "title");
+                float ruleY = titleY - titleH * 0.5f - 16f;
+                var rule = Box(card, new Vector2(tw - 64f, 2f), new Vector2(0, ruleY), Pal.Hex("D7E6F4"), Art.White, "rule");
+                rule.color = Pal.Hex("D7E6F4").A(0.72f);
+                bodyTop = ruleY - 26f;
+            }
+            var bodyText = Label(card, shown, 32, Pal.Hex("E7F1FA"), new Vector2(0, bodyTop - bodyH * 0.5f), new Vector2(inner, bodyH),
+                TextAnchor.MiddleCenter, Fonts.Heavy, "text");
+            bodyText.lineSpacing = 1.15f;
+            root.SetAsLastSibling();
+            card.localScale = Vector3.one * 0.94f;
+            var c = card;
+            Tween.Run(c, 0.16f, k => { if (c) c.localScale = Vector3.one * Mathf.Lerp(0.94f, 1f, Tween.OutBack(k)); });
+        }
+
+        static string TintNums(string s) =>
+            System.Text.RegularExpressions.Regex.Replace(s ?? "", @"[+\-]?\d+(?:\.\d+)?%?", m => "<color=#FF9A2E>" + m.Value + "</color>");
+
+        /// <summary>可升级角标原地上下轻轻呼吸，所有升级箭头共用这一下。</summary>
+        public static void Breathe(Graphic g, float amp = 5f)
+        {
+            var rt = g.rectTransform;
+            var origin = rt.anchoredPosition;
+            Tween.Run(g, 999f, k => rt.anchoredPosition = origin + new Vector2(0f, amp * Mathf.Sin(k * 999f * 4.2f)));
         }
 
         public static void Toast(string s, float y = 0)
@@ -477,10 +668,20 @@ namespace Liangshan
                 if (j.Delay > 0) { j.Delay -= dt; continue; }
                 j.T += dt;
                 float k = Mathf.Clamp01(j.T / j.Dur);
-                j.Step(k);
+                try
+                {
+                    j.Step(k);
+                }
+                catch (Exception e)
+                {
+                    _jobs.RemoveAt(i);
+                    Debug.LogException(e);
+                    continue;
+                }
                 if (k < 1f) continue;
                 _jobs.RemoveAt(i);
-                j.Done?.Invoke();
+                try { j.Done?.Invoke(); }
+                catch (Exception e) { Debug.LogException(e); }
             }
         }
 
@@ -652,6 +853,11 @@ namespace Liangshan
     {
         public Color Color = new Color(0.08f, 0.14f, 0.22f, 1f);
         public float Radius = 1.4f;
+        /// <summary>同色扩边，用来加粗。富文本每个字保持自己的颜色。</summary>
+        public bool KeepColor;
+        public bool UseGradient;
+        public Color TopColor = Color.white;
+        public Color BottomColor = new Color(1f, 0.78f, 0.22f, 1f);
 
         static readonly Vector2[] Dirs8 =
         {
@@ -677,22 +883,48 @@ namespace Liangshan
             if (Dst.Capacity < need) Dst.Capacity = need;
 
             Color32 c32 = Color;
-            // 1. 紧致微下沉底边（仅 0.88x 半径，增强立体感而不拖泥带水）
-            AppendOffset(Src, n, c32, 0f, -Radius * 0.88f);
+            // 1. 紧致微下沉底边（增强立体感而不拖泥带水）
+            AppendOffset(Src, n, c32, 0f, -Radius * 1.05f, KeepColor);
             // 2. 八向圆周描边
             for (int d = 0; d < dirs; d++)
             {
                 var dir = Dirs8[d];
-                AppendOffset(Src, n, c32, dir.x * Radius, dir.y * Radius);
+                AppendOffset(Src, n, c32, dir.x * Radius, dir.y * Radius, KeepColor);
             }
-            // 3. 最上层原字面
-            for (int i = 0; i < n; i++) Dst.Add(Src[i]);
+            // 3. 最上层原字面（可选逐字形上下双色金属高光渐变）
+            if (UseGradient)
+            {
+                for (int i = 0; i + 5 < n; i += 6)
+                {
+                    float minY = Src[i].position.y, maxY = minY;
+                    for (int k = 1; k < 6; k++)
+                    {
+                        float py = Src[i + k].position.y;
+                        if (py < minY) minY = py;
+                        if (py > maxY) maxY = py;
+                    }
+                    float span = Mathf.Max(0.01f, maxY - minY);
+                    for (int k = 0; k < 6; k++)
+                    {
+                        var v = Src[i + k];
+                        float t = Mathf.Clamp01((v.position.y - minY) / span);
+                        Color gc = Color.Lerp(BottomColor, TopColor, t);
+                        gc.a *= v.color.a / 255f;
+                        v.color = (Color32)gc;
+                        Dst.Add(v);
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < n; i++) Dst.Add(Src[i]);
+            }
 
             vh.Clear();
             vh.AddUIVertexTriangleStream(Dst);
         }
 
-        static void AppendOffset(List<UIVertex> src, int count, Color32 col, float dx, float dy)
+        static void AppendOffset(List<UIVertex> src, int count, Color32 col, float dx, float dy, bool keepColor)
         {
             for (int i = 0; i < count; i++)
             {
@@ -701,9 +933,12 @@ namespace Liangshan
                 p.x += dx;
                 p.y += dy;
                 v.position = p;
-                var c = col;
-                c.a = (byte)((c.a * v.color.a) / 255);
-                v.color = c;
+                if (!keepColor)
+                {
+                    var c = col;
+                    c.a = (byte)((c.a * v.color.a) / 255);
+                    v.color = c;
+                }
                 Dst.Add(v);
             }
         }

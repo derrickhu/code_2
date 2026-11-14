@@ -1,0 +1,6 @@
+敌情绸标 tag_intel（GenerateImage，1:1）
+参考 tag.png 的厚涂绸带，不要做成圆角按钮。不要文字。
+
+A single small game UI pennant, centered, generous padding. NO TEXT, no letters, no numbers.
+Cute slightly-Q thick gouache, matching the green ribbon reference but this one is a short cinnabar-red silk command tag: rolled cloth on the left, a notched swallowtail on the right, honey-gold stitched edge, thin warm cocoa outline, soft painted highlight. Not a pill, not a glossy app button, not a circle.
+Background: SOLID FLAT #5F7A92.

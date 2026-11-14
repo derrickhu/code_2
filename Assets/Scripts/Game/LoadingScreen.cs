@@ -83,7 +83,7 @@ namespace Liangshan
             nightImg.color = Pal.Hex("140D09");
             nightImg.raycastTarget = true;
 
-            // 整张图等比放进屏幕，不裁左右。多出来的地方用底色垫上。
+            // 整张图等比铺满屏幕。长屏裁掉左右一点边，不再上下留黑边。
             _frame = Ui.Rect(_root, "frame");
             _frame.anchorMin = Vector2.zero;
             _frame.anchorMax = Vector2.one;
@@ -133,7 +133,7 @@ namespace Liangshan
             if (_frame == null || _stage == null) return;
             var size = _frame.rect.size;
             if (size.x < 1f || size.y < 1f) return;
-            float k = Mathf.Min(size.x / ArtW, size.y / ArtH);
+            float k = Mathf.Max(size.x / ArtW, size.y / ArtH);
             _stage.localScale = new Vector3(k, k, 1f);
         }
 

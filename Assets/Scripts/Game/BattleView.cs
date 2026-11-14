@@ -175,7 +175,7 @@ namespace Liangshan
             // 墙后玄青石板校场：与青灰石城墙、石垛底座材质浑然一体。
             float floorTop = -5.85f;
             float floorBottom = Bottom - 0.5f;
-            WorldFx.Block(_world, Art.White, new Vector2(0, (floorTop + floorBottom) * 0.5f), new Vector2(camW + 1, floorTop - floorBottom), 40, Pal.Hex("2B3744"), "floor");
+            WorldFx.Block(_world, Art.White, new Vector2(0, (floorTop + floorBottom) * 0.5f), new Vector2(camW + 1, floorTop - floorBottom), 40, Pal.Hex("34424F"), "floor");
             var rng = new System.Random(7);
             int row = 0;
             for (float y = floorTop - 0.45f; y > floorBottom - 0.6f; y -= 1.02f, row++)
@@ -184,8 +184,8 @@ namespace Liangshan
                 for (float x = -camW * 0.5f - 1.4f + off; x < camW * 0.5f + 1.4f; x += 1.44f)
                 {
                     float v = 0.93f + (float)rng.NextDouble() * 0.12f;
-                    WorldFx.Block(_world, Art.RoundedSmall, new Vector2(x, y), new Vector2(1.36f, 0.94f), 41, Pal.Hex("3F4F60").Mul(v), "stone");
-                    WorldFx.Block(_world, Art.RoundedSmall, new Vector2(x, y + 0.39f), new Vector2(1.24f, 0.08f), 41, Pal.Hex("53667A").Mul(v), "stoneLit");
+                    WorldFx.Block(_world, Art.RoundedSmall, new Vector2(x, y), new Vector2(1.36f, 0.94f), 41, Pal.Hex("4A5B6C").Mul(v), "stone");
+                    WorldFx.Block(_world, Art.RoundedSmall, new Vector2(x, y + 0.39f), new Vector2(1.24f, 0.08f), 41, Pal.Hex("62768A").Mul(v), "stoneLit");
                 }
             }
             var shade = WorldFx.Block(_world, Art.VGrad, new Vector2(0, floorTop - 0.65f), new Vector2(camW + 1, 1.3f), 42, new Color(0, 0, 0, 0.0f), "shade");
@@ -197,18 +197,21 @@ namespace Liangshan
             _wall = WorldFx.Spr(_world, Art.Img("wall"), new Vector2(0, -5.22f), WallW, 100, null, "wall");
             WorldFx.Block(_world, Art.GroundShadow, new Vector2(0, -6.12f), new Vector2(WallW * 1.04f, 0.72f), 95, new Color(0.03f, 0.06f, 0.1f, 0.48f), "wallShadow");
 
-            // 底座三件：左强化石坛、中点将石台、右召唤石坛，严格镜像对称。
+            // 底座三件：左天书兵法坛、中青石凹槽点将碉台（宋江 Q 版坐镇台心，头顶严控在血条底线以下）、右聚义战鼓营寨。
             float py = PropY;
-            Pedestal(new Vector2(-3.00f, py - 0.56f), 2.16f);
-            Pedestal(new Vector2(3.00f, py - 0.56f), 2.16f);
-            WorldFx.Spr(_world, Art.GroundShadow, new Vector2(0, py - 0.92f), 1f, 58, new Color(0.02f, 0.05f, 0.09f, 0.55f), "throneShadow")
-                .transform.localScale = new Vector3(2.9f, 1.05f, 1f);
-            WorldFx.Spr(_world, Art.Img("b_throne_base"), new Vector2(0, py - 0.48f), 2.52f, 62, null, "throneBase");
-            WorldFx.Spr(_world, Art.GroundShadow, new Vector2(0, py - 0.56f), 1f, 298, new Color(0.03f, 0.06f, 0.1f, 0.44f), "leaderShadow")
-                .transform.localScale = new Vector3(1.12f, 0.34f, 1f);
-            Book = WorldFx.Spr(_world, Art.Img("prop_book"), new Vector2(-3.00f, py + 0.08f), 1.68f, 300, null, "book").transform;
-            Leader = WorldFx.Spr(_world, Art.Img("lord_songjiang"), new Vector2(0, py + 0.34f), 1.92f, 301, null, "songjiang").transform;
-            Drum = WorldFx.Spr(_world, Art.Img("prop_drum"), new Vector2(3.00f, py + 0.10f), 1.72f, 300, null, "drum").transform;
+            WorldFx.Spr(_world, Art.GroundShadow, new Vector2(-3.04f, py - 0.88f), 1f, 58, new Color(0.02f, 0.05f, 0.09f, 0.50f), "bookShadow")
+                .transform.localScale = new Vector3(2.35f, 0.82f, 1f);
+            WorldFx.Spr(_world, Art.GroundShadow, new Vector2(3.04f, py - 0.88f), 1f, 58, new Color(0.02f, 0.05f, 0.09f, 0.50f), "drumShadow")
+                .transform.localScale = new Vector3(2.45f, 0.85f, 1f);
+            WorldFx.Spr(_world, Art.GroundShadow, new Vector2(0, py - 0.96f), 1f, 58, new Color(0.02f, 0.05f, 0.09f, 0.56f), "throneShadow")
+                .transform.localScale = new Vector3(2.95f, 1.02f, 1f);
+            WorldFx.Spr(_world, Art.Img("b_throne_base"), new Vector2(0, py - 0.34f), 2.56f, 62, null, "throneBase");
+            const float feetY = -0.26f;
+            WorldFx.Spr(_world, Art.GroundShadow, new Vector2(0, py + feetY + 0.03f), 1f, 298, new Color(0.06f, 0.10f, 0.16f, 0.42f), "leaderShadow")
+                .transform.localScale = new Vector3(0.84f, 0.24f, 1f);
+            Book = WorldFx.Spr(_world, Art.Img("prop_book"), new Vector2(-3.04f, py - 0.18f), 2.16f, 300, null, "book").transform;
+            Leader = WorldFx.Spr(_world, Art.Img("prop_songjiang"), new Vector2(0, py + feetY + 0.62f), 1.28f, 301, null, "songjiang").transform;
+            Drum = WorldFx.Spr(_world, Art.Img("prop_drum"), new Vector2(3.04f, py - 0.14f), 2.26f, 300, null, "drum").transform;
         }
 
         SpriteRenderer _range;
@@ -609,6 +612,13 @@ namespace Liangshan
                     case Ev.Enhance:
                         Sfx.Play(Snd.Merge, 0.5f, 1.2f);
                         break;
+                    case Ev.Awaken:
+                        fx.Rise(Art.Img("fx_pillar"), p + new Vector2(0, -0.45f), 2.8f, 0.9f, Pal.Gold, 9050, true, 0.45f);
+                        fx.Sparks(Art.Img("fx_star"), p + new Vector2(0, 0.6f), 8, 0.26f, 2.8f, Pal.Gold, 0.65f, 9450, 5f, true);
+                        Sfx.Play(Snd.Reveal, 0.7f);
+                        Hud.Banner($"{Defs.Hero(e.Hero).Name} · {Defs.AwakenName(e.Hero)}",
+                            "三词条奥义觉醒！终伤 +32% · 每3轮迸发终极弹幕", Pal.Gold, Defs.Hero(e.Hero).Art, true);
+                        break;
                     case Ev.Revive:
                         fx.Ring(new Vector2(0, -4.5f), 6f, Pal.Gold, 0.7f);
                         fx.Shake(0.15f, 0.3f);
@@ -688,45 +698,52 @@ namespace Liangshan
             switch (e.Shot)
             {
                 case ShotKind.Qi:
-                    fx.Burst(Art.Sparkle, p + new Vector2(0, 0.5f), 0.9f, 0.2f, 9500, Pal.Hex("FFE0B0"), 90f, 0.35f, true);
+                    fx.Burst(Art.Sparkle, p + new Vector2(0, 0.5f), 1.0f, 0.2f, 9500, Pal.Hex("FFE8B8"), 90f, 0.35f, true);
+                    fx.Sparks(Art.SoftDot, p + new Vector2(0, 0.45f), 3, 0.08f, 3.0f, Pal.Hex("FFE29A"), 0.24f, 9515, 6f, true);
+                    Jolt(p, 0.48f, e.Crit ? 0.65f : 0.40f, Away(p));
                     return;
                 case ShotKind.Slash:
-                    fx.Burst(Art.Sparkle, p + new Vector2(0, 0.5f), e.Crit ? 1.5f : 1.1f, 0.22f, 9500, Pal.Hex("FFE08A"), 90f, 0.4f, true);
+                    fx.Burst(Art.Sparkle, p + new Vector2(0, 0.5f), e.Crit ? 1.55f : 1.15f, 0.22f, 9500, Pal.Hex("FFE08A"), 90f, 0.4f, true);
                     fx.Arc(p + new Vector2(-0.45f, 0.15f), p + new Vector2(0.45f, 0.85f), Pal.Hex("FFF2C0"), 0.1f, 0.16f);
+                    fx.Sparks(Art.SoftDot, p + new Vector2(0, 0.45f), 4, 0.09f, 3.2f, Pal.Hex("FFE89A"), 0.26f, 9515, 6f, true);
+                    Jolt(p, 0.65f, e.Crit ? 1.15f : 0.82f, Vector2.up);
                     if (_hitSfxGap <= 0) { Sfx.Play(Snd.ArrowHit, 0.3f, 0.8f); _hitSfxGap = 0.05f; }
                     return;
                 case ShotKind.Arrow:
                 {
-                    // 参考：箭命中只有一颗干净的白色星闪 + 敌人整身泛红；偶尔有箭落地插在土里。
+                    // 箭命中：清脆四芒白金星闪 + 飞溅木铁微屑 + 干脆顿帧后仰；偶尔有箭落地插在土里。
                     var hp = p + new Vector2(Random.Range(-0.1f, 0.1f), 0.45f);
-                    fx.Burst(Art.Sparkle, hp, e.Crit ? 1.2f : 0.75f, 0.18f, 9500, e.Crit ? Pal.Hex("FFC54A") : Pal.Hex("FFF6DA"), 45f, 0.3f, true);
+                    fx.Burst(Art.Sparkle, hp, e.Crit ? 1.28f : 0.86f, 0.18f, 9500, e.Crit ? Pal.Hex("FFC54A") : Pal.Hex("FFF6DA"), 45f, 0.3f, true);
+                    fx.Sparks(Art.SoftDot, hp, e.Crit ? 5 : 2, 0.07f, 3.0f, e.Crit ? Pal.Hex("FFD26A") : Pal.Hex("FFF4D8"), 0.22f, 9515, 7f, true);
                     if (e.Crit)
                     {
-                        fx.Burst(Art.Img("fx_hit"), hp, 1.0f, 0.18f, 9490, Pal.Hex("FF9A4A"), 0, 0.4f, true);
-                        fx.Flash(hp, 1.2f, Pal.Hex("FFB050").A(0.4f));
+                        fx.Burst(Art.Img("fx_hit"), hp, 1.05f, 0.18f, 9490, Pal.Hex("FF9A4A"), 0, 0.4f, true);
+                        fx.Flash(hp, 1.25f, Pal.Hex("FFB050").A(0.45f));
                     }
                     if (Random.value < 0.3f)
                         fx.Linger(Art.Img("fx_arrow_stuck"), p + new Vector2(Random.Range(-0.35f, 0.35f), Random.Range(-0.25f, 0.05f)), 0.42f, 1.1f, Random.value < 0.5f);
-                    Jolt(p, 0.3f, e.Crit ? 0.6f : 0.3f, Away(p));
+                    Jolt(p, 0.36f, e.Crit ? 0.72f : 0.42f, Away(p));
                     HitSfx(e, 0.06f);
                     break;
                 }
                 case ShotKind.Beam:
                 {
                     var c = Pal.Hex(Defs.Hero(e.Hero).Tint ?? "FF8A2A");
-                    fx.Burst(Art.Sparkle, p + new Vector2(Random.Range(-0.12f, 0.12f), 0.4f), e.Crit ? 0.9f : 0.55f, 0.16f, 9500, c, 60f, 0.3f, true);
-                    if (Random.value < 0.35f) fx.Sparks(Art.SoftDot, p + new Vector2(0, 0.35f), 2, 0.1f, 2.6f, c, 0.3f, 9520, 5f, true);
+                    fx.Burst(Art.Sparkle, p + new Vector2(Random.Range(-0.12f, 0.12f), 0.4f), e.Crit ? 0.95f : 0.62f, 0.16f, 9500, c, 60f, 0.3f, true);
+                    if (Random.value < 0.45f) fx.Sparks(Art.SoftDot, p + new Vector2(0, 0.35f), 3, 0.09f, 2.8f, c, 0.28f, 9520, 5f, true);
+                    Jolt(p, 0.32f, e.Crit ? 0.50f : 0.28f, Away(p));
                     HitSfx(e, 0.18f);
                     break;
                 }
                 case ShotKind.Bomb:
                     Explosion(p, e.Radius, 1f);
-                    Jolt(p, e.Radius, 1.1f);
+                    Jolt(p, e.Radius, 1.2f);
                     fx.Shake(0.06f, 0.12f);
                     HeroSfx.Hit(Defs.Hero(e.Hero), false);
                     break;
                 case ShotKind.MiniBomb:
                     Explosion(p, 0.55f, 0.55f);
+                    Jolt(p, 0.6f, 0.65f);
                     HitSfx(e, 0.08f);
                     break;
                 case ShotKind.Lightning:
@@ -825,8 +842,9 @@ namespace Liangshan
                     break;
                 }
                 case ShotKind.Stone:
-                    fx.Burst(Art.Img("fx_hit"), p + new Vector2(0, 0.45f), e.Crit ? 1.1f : 0.65f, 0.16f, 9510, Pal.Hex("EDE4D2"), 0, 0.4f, true);
-                    fx.Sparks(Art.Img("fx_rock2"), p + new Vector2(0, 0.4f), 2, 0.12f, 2.2f, Color.white, 0.4f, 9520, 7f);
+                    fx.Burst(Art.Img("fx_hit"), p + new Vector2(0, 0.45f), e.Crit ? 1.15f : 0.72f, 0.16f, 9510, Pal.Hex("EDE4D2"), 0, 0.4f, true);
+                    fx.Sparks(Art.Img("fx_rock2"), p + new Vector2(0, 0.4f), e.Crit ? 4 : 2, 0.12f, 2.4f, Color.white, 0.4f, 9520, 7f);
+                    Jolt(p, 0.38f, e.Crit ? 0.95f : 0.58f, Away(p));
                     HitSfx(e, 0.05f);
                     break;
                 case ShotKind.Wind:
@@ -988,15 +1006,38 @@ namespace Liangshan
             if (scale >= 2f) fx.Debris(p, 5, 0.26f, 3f);
         }
 
+        float _hitPopGap;
+
         void ShowDamage(BattleEvent e, Vector2 p)
         {
             var fx = WorldFx.I;
-            if (!e.Crit && fx.LiveTexts > 36) return;
+            // 直接把真实受击反馈钉在掉血的这名官军身上（连溅射、弹射、贯穿都不会漏掉白闪、形变与受击爆芒！）
+            float unitScale = 1f;
+            float hOff = 0.72f;
+            if (e.EnemyId > 0)
+            {
+                foreach (var kv in _enemies)
+                {
+                    if (kv.Key.Id != e.EnemyId || kv.Key.Dead) continue;
+                    kv.Value.OnDamaged(e.Crit, Away(p));
+                    unitScale = kv.Key.Def.IsBoss ? 1.45f : kv.Key.Big ? 1.2f : 1f;
+                    hOff = kv.Key.Def.Size * 0.42f + 0.08f;
+                    break;
+                }
+            }
+            if (e.Crit || Time.unscaledTime - _hitPopGap > 0.035f)
+            {
+                _hitPopGap = Time.unscaledTime;
+                fx.HitPop(p + new Vector2(Random.Range(-0.14f, 0.14f), hOff * 0.55f), unitScale, e.Crit);
+            }
+            if (!e.Crit && fx.LiveTexts > 42) return;
             if (e.Crit && e.Hero >= 0) Sfx.Play(Snd.Crit, 0.3f);
-            var at = p + new Vector2(Random.Range(-0.24f, 0.24f), 0.82f + Random.Range(0f, 0.22f));
-            if (e.Shot == ShotKind.Slash) fx.Number(at, Ui.Num(e.Value), Pal.Hex("FFE36A"), e.Crit ? 58 : 48, 0.72f, 0.78f, true);
-            else if (e.Crit) fx.Number(at, Ui.Num(e.Value), Pal.Hex("FFBA38"), 56, 0.72f, 0.78f, true);
-            else fx.Number(at, Ui.Num(e.Value), Color.white, 42, 0.48f, 0.62f);
+            // 跳字锚在胸腹受击点并向两侧短弧弹开，上升高度严控在头顶血条下方，绝不挡脸或盖住血条
+            float riseH = e.Crit || e.Shot == ShotKind.Slash ? 0.36f : 0.26f;
+            var at = p + new Vector2(0f, hOff);
+            if (e.Shot == ShotKind.Slash) fx.Number(at, Ui.Num(e.Value), Pal.Hex("FFE36A"), e.Crit ? 54 : 46, riseH, 0.68f, true);
+            else if (e.Crit) fx.Number(at, Ui.Num(e.Value), Pal.Hex("FFBE36"), 52, riseH, 0.68f, true);
+            else fx.Number(at, Ui.Num(e.Value), Color.white, 40, riseH, 0.52f);
         }
 
         void OnKill(BattleEvent e, Vector2 p)
@@ -1137,6 +1178,8 @@ namespace Liangshan
                         if (e.Pos.X <= 0.5f) _doors[0]?.Open(1.4f);
                         if (e.Pos.X >= -0.5f) _doors[1]?.Open(1.4f);
                     }
+                    if (e.Def.Kind != EnemyKind.Soldier && Profile.S != null && (int)e.Def.Kind < Profile.S.Seen.Length && Profile.S.Seen[(int)e.Def.Kind] == 0)
+                        Hud?.NotifyNewEnemy(e.Def);
                 }
                 v.Tick(B.Rage);
             }
@@ -1227,7 +1270,7 @@ namespace Liangshan
             return best;
         }
 
-        SpriteRenderer _mark;
+        SpriteRenderer _mark, _focusRing;
         int _markId = -1;
         float _markT;
 
@@ -1240,6 +1283,22 @@ namespace Liangshan
 
         void TickMark()
         {
+            // 持续显示玩家手动集火准星圈（直到该目标阵亡）
+            Enemy focused = null;
+            if (B.FocusEnemyId > 0)
+                foreach (var x in B.Enemies) if (x.Id == B.FocusEnemyId && !x.Dead) { focused = x; break; }
+            if (focused != null)
+            {
+                if (_focusRing == null) _focusRing = WorldFx.Spr(_world, Art.Ring, Vector2.zero, 1f, 147, Color.white, "focusRing");
+                _focusRing.gameObject.SetActive(true);
+                float fs = focused.Def.Size * 1.18f * (1f + 0.08f * Mathf.Sin(Time.unscaledTime * 9f));
+                _focusRing.transform.localPosition = focused.Pos.ToV() + new Vector2(0, -0.02f);
+                _focusRing.transform.localScale = new Vector3(fs, fs * 0.45f, 1f);
+                _focusRing.color = Pal.Hex("FF3B30").A(0.88f);
+                _focusRing.sortingOrder = WorldFx.Order(focused.Pos.Y) - 1;
+            }
+            else if (_focusRing) _focusRing.gameObject.SetActive(false);
+
             Enemy e = null;
             if (_markId >= 0 && (_markT -= Time.unscaledDeltaTime) > 0)
                 foreach (var x in B.Enemies) if (x.Id == _markId && !x.Dead) { e = x; break; }
@@ -1301,6 +1360,7 @@ namespace Liangshan
                     if (en != null)
                     {
                         Sfx.Play(Snd.Tap, 0.5f);
+                        B.FocusEnemyId = en.Id;
                         Hud.EnemyInfo(en);
                     }
                     else Hud.CloseInfo();
@@ -1314,6 +1374,10 @@ namespace Liangshan
                 int over = SlotAt(p);
                 for (int i = 0; i < _slots.Count; i++)
                     _slots[i].Highlight(i == _dragFrom ? 0 : B.CanMerge(_dragFrom, i) ? (i == over ? 3 : 2) : (i == over && sv.Dragging ? 1 : 0));
+                if (sv.Dragging && over >= 0 && over != _dragFrom && B.CanMerge(_dragFrom, over))
+                    Hud.ShowMergePreview(B.Slots[_dragFrom], B.Slots[over]);
+                else
+                    Hud.HideMergePreview();
             }
             if (_pressing && ptr.Up)
             {
@@ -1322,6 +1386,7 @@ namespace Liangshan
                 int to = SlotAt(p);
                 bool wasDrag = _slots[from].Dragging;
                 CancelDrag();
+                Hud.HideMergePreview();
                 if (!wasDrag && Time.unscaledTime - _pressTime < 0.4f)
                 {
                     Hud.SlotInfo(B.Slots[from]);
@@ -1341,6 +1406,7 @@ namespace Liangshan
             if (_dragFrom >= 0 && _dragFrom < _slots.Count) _slots[_dragFrom].EndDrag();
             _dragFrom = -1;
             foreach (var s in _slots) s.Highlight(0);
+            Hud?.HideMergePreview();
         }
 
         /// <summary>引导用：找一对能合成的格子。</summary>
@@ -1390,7 +1456,20 @@ namespace Liangshan
             public bool Selected;
 
             static readonly Color FrameColor = Color.white;
-            static readonly Color InnerColor = new Color(0.08f, 0.14f, 0.22f, 0.22f);
+            static readonly Color InnerColor = new Color(0.08f, 0.14f, 0.22f, 0f);
+            static readonly Color SelColor = Pal.Hex("FFD45A");
+
+            /// <summary>校正个别画布里人物重心偏左/偏右的视觉偏移，让好汉双脚正对石格中心。</summary>
+            float HeroXBias(string art)
+            {
+                if (art == "hero_huarong") return 0.045f;
+                if (art == "hero_shixiu") return 0.070f;
+                if (art == "hero_husanniang") return 0.022f;
+                if (art == "hero_qiaodaoqing") return -0.022f;
+                if (_anim != null && _anim.Length > 1 && AnimMeta.Info.TryGetValue(art, out var m))
+                    return Mathf.Clamp(0.5f - m.LegCx, -0.06f, 0.06f);
+                return 0f;
+            }
 
             public SlotView(BattleView v, Slot s, Transform parent)
             {
@@ -1402,14 +1481,15 @@ namespace Liangshan
                 Root.localPosition = s.Pos.ToV();
                 bool front = s.Pos.Y > Layout.WallRowY + 0.5f;
                 if (front) WorldFx.Block(Root, Art.GroundShadow, new Vector2(0, -0.52f), new Vector2(1.52f, 0.54f), 140, new Color(0.02f, 0.05f, 0.09f, 0.5f), "shadow");
-                // 立体雕凿玄青石垛 + 细铜金内线 + 凹槽深石底。
-                _selGlow = WorldFx.Additive(WorldFx.Block(Root, Art.RoundedSmall, new Vector2(0, -0.02f), TileSize + new Vector2(0.26f, 0.26f), 149, new Color(0.3f, 0.85f, 1f, 0f), "selGlow"));
-                _frame = WorldFx.Spr(Root, Art.Img("b_slot"), new Vector2(0, -0.02f), 1.36f, 151, FrameColor, "frame");
-                _inner = WorldFx.Block(Root, Art.RoundedSmall, new Vector2(0, 0.04f), TileSize - new Vector2(0.28f, 0.34f), 152, InnerColor, "inner");
-                _glow = WorldFx.Spr(Root, Art.SoftDot, new Vector2(0, -0.22f), 1.3f, 157, new Color(1, 1, 1, 0), "glow");
-                _glow.transform.localScale = new Vector3(1.3f, 0.6f, 1);
-                _ring = WorldFx.Spr(Root, Art.SoftDot, new Vector2(0, -0.3f), 1f, 158, new Color(1, 1, 1, 0), "ring");
-                _ring.transform.localScale = new Vector3(1.0f, 0.42f, 1);
+                // 石垛几何锚点：b_slot 顶面蓝色凹槽中心在纹理 +0.115 高度处；将 frame 下沉到 -0.10，使好汉双脚稳稳踩在凹槽石面正中。
+                _selGlow = WorldFx.Additive(WorldFx.Spr(Root, Art.SoftDot, new Vector2(0, -0.06f), 1f, 149, SelColor.A(0f), "selGlow"));
+                _selGlow.transform.localScale = new Vector3(TileSize.x * 1.55f, TileSize.y * 1.45f, 1f);
+                _frame = WorldFx.Spr(Root, Art.Img("b_slot"), new Vector2(0, -0.10f), 1.38f, 151, FrameColor, "frame");
+                _inner = WorldFx.Block(Root, Art.RoundedSmall, new Vector2(0, 0.05f), TileSize - new Vector2(0.32f, 0.40f), 152, InnerColor, "inner");
+                _glow = WorldFx.Spr(Root, Art.SoftDot, new Vector2(0, 0.04f), 1.3f, 157, new Color(1, 1, 1, 0), "glow");
+                _glow.transform.localScale = new Vector3(0.98f, 0.44f, 1);
+                _ring = WorldFx.Spr(Root, Art.SoftDot, new Vector2(0, 0.02f), 1f, 158, new Color(1, 1, 1, 0), "ring");
+                _ring.transform.localScale = new Vector3(0.84f, 0.34f, 1);
                 _figs = new GameObject("figs").transform;
                 _figs.SetParent(Root, false);
             }
@@ -1439,28 +1519,38 @@ namespace Liangshan
                 if (!ArtPack.Ready(u.Def.Art))
                 {
                     string art = u.Def.Art;
-                    Art.Late(Root, art, () => { if (_shownId == id) _anim = Art.Frames(art); });
+                    Art.Late(Root, art, () =>
+                    {
+                        if (_shownId != id) return;
+                        _shownId = -1; // 4帧图包到达后重排一次，确保 FrameBox 从静态紧裁图平滑切到帧画布锚点
+                        Sync(false);
+                    });
                 }
                 var sprite = _anim[0];
                 Vector2[] pos;
                 float size;
                 switch (u.Star)
                 {
-                    case 1: pos = new[] { new Vector2(0, 0) }; size = 0.98f; break;
-                    case 2: pos = new[] { new Vector2(-0.27f, 0.05f), new Vector2(0.27f, -0.03f) }; size = 0.86f; break;
-                    case 3: pos = new[] { new Vector2(0, 0.2f), new Vector2(-0.3f, -0.05f), new Vector2(0.3f, -0.07f) }; size = 0.78f; break;
-                    default: pos = new[] { new Vector2(0, 0) }; size = 1.3f; break;
+                    case 1: pos = new[] { new Vector2(0, 0) }; size = 1.02f; break;
+                    case 2: pos = new[] { new Vector2(-0.22f, 0.02f), new Vector2(0.22f, -0.02f) }; size = 0.86f; break;
+                    case 3: pos = new[] { new Vector2(0, 0.13f), new Vector2(-0.23f, -0.05f), new Vector2(0.23f, -0.07f) }; size = 0.76f; break;
+                    default: pos = new[] { new Vector2(0, 0) }; size = 1.28f; break;
                 }
-                float feet = -0.46f;
+                // 对齐石垛顶面凹槽正中（frame 在 -0.10 时顶面凹槽从 y=-0.22 到 y=+0.34，中心 +0.06；feet=-0.06 让鞋底稳踩在凹槽石心 y=1014，绝不压前沿蓝线）。
+                float feet = -0.06f;
                 for (int i = 0; i < pos.Length; i++)
                 {
                     var box = Art.FrameBox(u.Def.Art, size);
-                    var home = new Vector2(pos[i].x, feet + pos[i].y + box.CenterY);
-                    var sh = WorldFx.Spr(_figs, Art.GroundShadow, new Vector2(pos[i].x, feet + pos[i].y + 0.02f), size * 0.7f, 0, new Color(0.02f, 0.05f, 0.1f, 0.52f), "sh");
+                    // AnimMeta.Info 按 ArtCdn 4帧画布测算；若当前回退的是 Resources Tight 静态单图，按原图高计算避免偏北悬浮。
+                    if (_anim.Length <= 1) box = (size, size * 0.5f);
+                    float cx = pos[i].x + HeroXBias(u.Def.Art) * size;
+                    var home = new Vector2(cx, feet + pos[i].y + box.CenterY);
+                    var sh = WorldFx.Spr(_figs, Art.GroundShadow, new Vector2(pos[i].x, feet + pos[i].y + 0.01f), size * 0.7f, 0, new Color(0.06f, 0.09f, 0.14f, 0.46f), "sh");
                     sh.transform.localScale = new Vector3(size * 0.68f, size * 0.21f, 1);
                     var body = Bend.Use(WorldFx.Spr(_figs, sprite, home, box.Size, 0, null, "fig"));
                     _bend = Bend.Meta(u.Def.Art);
-                    body.flipX = pos[i].x > 0.01f;
+                    // 对标《永远的蔚蓝星球》实机：2星双人、3星三人保持同一朝向整齐列队，绝不镜像翻转导致兵器对撞糊成一团。
+                    body.flipX = false;
                     _bodies.Add(body);
                     _home.Add(home);
                     _sizes.Add(box.Size);
@@ -1474,10 +1564,10 @@ namespace Liangshan
                 }
                 if (u.Star >= 4)
                 {
-                    _crown = WorldFx.Spr(_figs, Art.Img("ic_crown"), new Vector2(0, feet + size + 0.05f), 0.42f, 0, null, "crown");
+                    _crown = WorldFx.Spr(_figs, Art.Img("ic_crown"), new Vector2(0, feet + size + 0.05f), 0.44f, 0, null, "crown");
                 }
                 var c = Pal.Star[u.Star - 1];
-                _ring.color = c.A(u.Star == 1 ? 0.0f : 0.75f);
+                _ring.color = c.A(u.Star == 1 ? 0.0f : 0.5f);
                 ApplyOrder(false);
             }
 
@@ -1541,16 +1631,20 @@ namespace Liangshan
                     Object.Destroy(_stunStar.gameObject);
                     _stunStar = null;
                 }
+                bool canMergeIdle = u != null && _hl == 0 && !Dragging && _v._dragFrom < 0 && _v.B.HasMergePartner(Slot.Index);
+                // 只用脚下一团柔光提示状态，不再叠圈、叠框。
                 float glowA = 0;
                 Color glowC = Color.white;
                 if (u != null && u.Burst) { glowA = 0.55f + 0.25f * Mathf.Sin(Time.unscaledTime * 10f); glowC = Pal.Gold; }
-                else if (u != null && u.Star >= 4) { glowA = 0.45f + 0.15f * Mathf.Sin(t * 3f); glowC = Pal.Gold; }
+                else if (u != null && u.Star >= 4) { glowA = 0.42f + 0.14f * Mathf.Sin(t * 3.5f); glowC = Pal.Gold; }
+                else if (u != null && u.Wild && !Dragging) { glowA = 0.40f + 0.14f * Mathf.Sin(Time.unscaledTime * 5f + _phase); glowC = Pal.Hex("6FE8F0"); }
+                else if (canMergeIdle) { glowA = 0.34f + 0.14f * Mathf.Sin(Time.unscaledTime * 4.2f + _phase); glowC = Pal.Hex("FFD84D"); }
                 if (_hl >= 2) { glowA = _hl == 3 ? 0.95f : 0.55f + 0.3f * Mathf.Sin(Time.unscaledTime * 8f); glowC = Pal.Hex("7CFF6A"); }
                 _glow.color = glowC.A(glowA);
-                float selPulse = 0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 6f);
-                _frame.color = _hl >= 2 ? Pal.Hex("FFE16A") : _hl == 1 ? Pal.Hex("FFF0D8") : Selected ? Pal.Hex("7FE4FF") : FrameColor;
-                _selGlow.color = new Color(0.3f, 0.85f, 1f, Selected ? 0.75f * selPulse : 0f);
-                _inner.color = source && Dragging ? InnerColor.Mul(0.75f) : Selected ? new Color(0.25f, 0.6f, 1f, 0.5f * selPulse) : InnerColor;
+                float selPulse = 0.85f + 0.15f * Mathf.Sin(Time.unscaledTime * 5f);
+                _frame.color = _hl >= 2 ? Pal.Hex("FFF1B8") : _hl == 1 ? Pal.Hex("FFF8EC") : Selected ? Pal.Hex("FFE7A0") : FrameColor;
+                _selGlow.color = SelColor.A(Selected ? 0.8f * selPulse : 0f);
+                _inner.color = source && Dragging ? new Color(0.08f, 0.14f, 0.22f, 0.16f) : Selected ? SelColor.A(0.22f * selPulse) : InnerColor;
             }
 
             /// <summary>出手：身子一压一弹。lunge 大于 0 时还往目标方向扑出这么远再收回，近战挥刀、捅枪用。</summary>
@@ -1600,7 +1694,7 @@ namespace Liangshan
         {
             readonly Enemy _e;
             readonly Transform _root;
-            readonly SpriteRenderer _body, _shadow, _aura, _flash;
+            readonly SpriteRenderer _body, _shadow, _aura;
             readonly SpriteRenderer _barBg, _bar;
             readonly Transform _barRoot;
             SpriteRenderer _stun, _tag, _shield;
@@ -1608,34 +1702,54 @@ namespace Liangshan
             Sprite[] _frames, _walk, _fly;
             readonly SpriteRenderer _barGhost, _barHi, _barTrack;
             const int EliteLayers = 10;
+            const int BossLayers = 25;
             const float WalkFpsMin = 3.2f;
             const float WalkFpsCap = 12.5f;
             readonly UnityEngine.UI.Text _layerText;
             int _layer;
-            readonly float _bw, _bh;
+            readonly float _bw, _bh, _barBaseY;
             readonly Bend.Info _bend;
             readonly bool _fromGate;
             float _redT, _step, _walkPhase, _walkW, _ghostFrac = 1f;
             Vector2 _lastWorld;
-            float _stopT, _knockT, _knockPow, _whiteT;
+            float _stopT, _knockT, _knockPow, _whiteT, _squashT, _barShakeT;
             Vector2 _knockDir;
 
             const float BarK = 0.22f;
-            const float KnockBack = 0.22f;
+            const float KnockBack = 0.24f;
 
             /// <summary>
-            /// 被实打实地揍了一下：先顿住几帧（身子被打偏、发白），再往 dir 方向弹开、慢慢回位。
-            /// pow 约 0.3 是箭，1 是刀斧，1.5 以上是重锤暴击。大个子只晃一小半。
+            /// 被实打实地揍了一下：先顿住几帧（身子被打偏、纯白实心闪光、Q弹受压），再往 dir 方向弹开回位。
+            /// pow 约 0.4 是箭，1 是刀斧，1.5 以上是重锤暴击。大个子受压稳重但不木桩。
             /// </summary>
             public void Jolt(Vector2 dir, float pow)
             {
-                float p = _e.Big ? pow * 0.4f : pow;
+                float p = _e.Def.IsBoss ? pow * 0.36f : _e.Big ? pow * 0.55f : pow;
+                _whiteT = Mathf.Max(_whiteT, 0.085f + 0.03f * Mathf.Min(1.6f, pow));
+                _squashT = Mathf.Max(_squashT, 0.16f);
+                _barShakeT = Mathf.Max(_barShakeT, 0.14f);
+                _redT = Mathf.Max(_redT, 0.24f);
                 if ((_stopT > 0 || _knockT > KnockBack * 0.5f) && p < _knockPow) return;
                 _knockDir = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector2.up;
                 _knockPow = p;
-                _stopT = 0.03f + 0.04f * Mathf.Min(1.5f, pow);
+                _stopT = 0.035f + 0.045f * Mathf.Min(1.5f, pow);
                 _knockT = KnockBack;
-                _whiteT = 0.05f + 0.02f * Mathf.Min(1.5f, pow);
+            }
+
+            /// <summary>掉血必触发反馈：哪怕是弹射、溅射、连斩或首领硬霸体，也保证有清脆实心白闪与受击弹性。</summary>
+            public void OnDamaged(bool crit, Vector2 dir)
+            {
+                _whiteT = Mathf.Max(_whiteT, crit ? 0.125f : 0.095f);
+                _squashT = Mathf.Max(_squashT, crit ? 0.19f : 0.15f);
+                _barShakeT = Mathf.Max(_barShakeT, crit ? 0.16f : 0.11f);
+                _redT = Mathf.Max(_redT, 0.24f);
+                if (_knockT <= 0.02f)
+                {
+                    _knockDir = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector2.up;
+                    _knockPow = (_e.Def.IsBoss ? 0.22f : _e.Big ? 0.34f : 0.48f) * (crit ? 1.35f : 1f);
+                    _stopT = Mathf.Max(_stopT, 0.025f);
+                    _knockT = KnockBack * 0.85f;
+                }
             }
             /// <summary>飞行单位离地高度：影子留在地上，身体悬空。</summary>
             const float FlyH = 0.75f;
@@ -1648,19 +1762,19 @@ namespace Liangshan
                 return Mathf.Lerp(-reach, reach, k - 1f);
             }
 
-            /// <summary>圆角九宫格条，按 BarK 缩小后圆角半径刚好配细血条。</summary>
+            /// <summary>紧致微圆角扁框血条（对标参考图利落矩形黑边暖橙条，彻底告别臃肿长药丸）。</summary>
             SpriteRenderer BarPiece(string name, float w, float h, Color c)
             {
-                var sr = WorldFx.Spr(_barRoot, Art.RoundedSmall, Vector2.zero, 1, 0, c, name);
+                var sr = WorldFx.Spr(_barRoot, Art.HpBarRect, Vector2.zero, 1, 0, c, name);
                 sr.drawMode = SpriteDrawMode.Sliced;
                 sr.transform.localScale = Vector3.one * BarK;
-                sr.size = new Vector2(Mathf.Max(w, 0.01f) / BarK, h / BarK);
+                sr.size = new Vector2(Mathf.Max(w, 0.008f) / BarK, h / BarK);
                 return sr;
             }
 
             void SetBarWidth(SpriteRenderer sr, float frac, float w, float h)
             {
-                float fw = Mathf.Max(w * frac, h);
+                float fw = frac <= 0.002f ? 0.004f : Mathf.Max(w * frac, h * 0.55f);
                 sr.size = new Vector2(fw / BarK, h / BarK);
                 sr.transform.localPosition = new Vector2(-(w - fw) * 0.5f, sr.transform.localPosition.y);
             }
@@ -1696,26 +1810,42 @@ namespace Liangshan
                 _body.flipX = !e.Def.IsBoss && (Mathf.Abs(e.LaneX - e.Pos.X) > 0.25f ? e.LaneX > e.Pos.X : Random.value < 0.5f);
                 Bend.Use(_body);
                 _bend = Bend.Meta(e.Def.Art);
-                _flash = Bend.Use(WorldFx.Spr(_body.transform, _body.sprite, Vector2.zero, 1f, 0, new Color(1, 1, 1, 0), "flash"), true);
-                _flash.flipX = _body.flipX;
                 if (e.Def.Kind == EnemyKind.Porter)
                     _tag = WorldFx.Spr(_root, Art.Img("ic_chest"), new Vector2(0, _h + 0.3f), 0.45f, 0, null, "tag");
 
+                // 血条尺寸对标《蔚蓝星球》参考图：首领 1.08×0.118（窄于车身不越肩，正中嵌 xN），精英 0.78×0.088，小怪 0.44×0.058
                 _barRoot = new GameObject("bar").transform;
                 _barRoot.SetParent(_root, false);
-                _bw = e.Big ? 1.18f : e.Def.Kind == EnemyKind.Porter ? 0.84f : 0.58f;
-                _bh = e.Big ? 0.115f : 0.072f;
-                _barRoot.localPosition = new Vector2(0, _h + (e.Def.Kind == EnemyKind.Porter ? 0.62f : 0.13f) + (e.Def.Flying ? FlyH : 0f));
-                // 深青石细描边 + 暗槽 + 鲜明红/金填充（上半一道高光），掉血时后面拖一截白色残影。
-                _barBg = BarPiece("bg", _bw + 0.055f, _bh + 0.055f, new Color(0.06f, 0.10f, 0.15f, 0.94f));
-                _barTrack = BarPiece("track", _bw, _bh, new Color(0.20f, 0.12f, 0.14f, 1f));
-                if (e.Big && !e.Def.IsBoss) _layerText = WorldFx.I.Pinned(30, Pal.Hex("FFE27A"));
-                _barGhost = BarPiece("ghost", _bw, _bh, new Color(1f, 0.95f, 0.86f, 0.95f));
-                _bar = BarPiece("fill", _bw, _bh, e.Def.Kind == EnemyKind.Porter ? Pal.Hex("F2B531") : Pal.Hex("EE4636"));
-                _barHi = BarPiece("hi", _bw - 0.02f, _bh * 0.38f, new Color(1f, 1f, 1f, 0.36f));
-                _barHi.transform.localPosition = new Vector2(0, _bh * 0.2f);
+                bool boss = e.Def.IsBoss;
+                _bw = boss ? 1.08f : e.Big ? 0.78f : e.Def.Kind == EnemyKind.Porter ? 0.64f : 0.44f;
+                _bh = boss ? 0.118f : e.Big ? 0.088f : 0.058f;
+                _barBaseY = _h + (boss ? 0.20f : e.Big ? 0.16f : e.Def.Kind == EnemyKind.Porter ? 0.58f : 0.12f) + (e.Def.Flying ? FlyH : 0f);
+                _barRoot.localPosition = new Vector2(0, _barBaseY);
+
+                float pad = boss ? 0.052f : e.Big ? 0.040f : 0.030f;
+                _barBg = BarPiece("bg", _bw + pad, _bh + pad, new Color(0.05f, 0.07f, 0.10f, 0.98f));
+                if (boss)
+                    BarPiece("rim", _bw + 0.020f, _bh + 0.020f, Pal.Hex("E8BA54"));
+                _barTrack = BarPiece("track", _bw, _bh, new Color(0.18f, 0.12f, 0.11f, 1f));
+                if (boss)
+                    _layerText = WorldFx.I.Pinned(25, Color.white, UnityEngine.TextAnchor.MiddleCenter);
+                else if (e.Big)
+                    _layerText = WorldFx.I.Pinned(22, Pal.Hex("FFF2B0"), UnityEngine.TextAnchor.MiddleCenter);
+                _barGhost = BarPiece("ghost", _bw, _bh, new Color(1f, 0.99f, 0.92f, 0.98f));
+                Color baseFill = e.Def.Kind == EnemyKind.Porter ? Pal.Hex("F5B82E") : Pal.Hex("F59B23");
+                _bar = BarPiece("fill", _bw, _bh, baseFill);
+                _barHi = BarPiece("hi", _bw - 0.016f, _bh * 0.36f, new Color(1f, 1f, 1f, 0.40f));
+                _barHi.transform.localPosition = new Vector2(0, _bh * 0.22f);
+                if (boss || e.Big)
+                {
+                    int ticks = boss ? 4 : 3;
+                    for (int k = 1; k < ticks; k++)
+                    {
+                        var tk = WorldFx.Spr(_barRoot, Art.White, new Vector2(-_bw * 0.5f + _bw * k / ticks, 0f), 1f, 0, new Color(0.05f, 0.06f, 0.09f, 0.48f), "tick");
+                        tk.transform.localScale = new Vector3(0.016f, _bh, 1f);
+                    }
+                }
                 _barRoot.gameObject.SetActive(false);
-                if (e.Def.IsBoss) _barRoot.localScale = Vector3.zero;
                 _lastWorld = e.Pos.ToV();
                 _step = Random.Range(0f, 2f);
                 _walkPhase = Random.Range(0f, 8f);
@@ -1781,7 +1911,7 @@ namespace Liangshan
                 }
                 bool flyAnim = fly && _fly.Length > 0 && !(e.Attacking && e.Stun <= 0);
                 if (flyAnim) sprite = _fly[(int)(t * 9f) % _fly.Length];
-                if (_body.sprite != sprite) { _body.sprite = sprite; _flash.sprite = sprite; }
+                if (_body.sprite != sprite) _body.sprite = sprite;
 
                 // 从城门幽暗拱洞内踏出：刚进洞口时压暗微缩，跨过门槛自然受光放大，影子随落脚渐实。
                 float emerge = _fromGate ? Mathf.Clamp01((Layout.SpawnY + 0.32f - e.Pos.Y) / 0.82f) : 1f;
@@ -1798,12 +1928,31 @@ namespace Liangshan
                 float shear = s * (e.Big ? 0.018f : 0.028f);
                 float landing = (1f - pass) * bendW;
                 float breathe = _walkW < 0.5f ? Mathf.Sin(t * 3.2f) * 0.018f * (1f - _walkW) : 0f;
-                if (e.HitT > 0.09f) _redT = 0.22f;
+                if (e.HitT > 0.09f && _redT < 0.18f)
+                {
+                    _redT = 0.24f;
+                    _whiteT = Mathf.Max(_whiteT, 0.08f);
+                    _squashT = Mathf.Max(_squashT, 0.15f);
+                    _barShakeT = Mathf.Max(_barShakeT, 0.11f);
+                }
                 else if (_redT > 0) _redT -= Time.deltaTime;
-                float hit = Mathf.Clamp01(_redT / 0.22f);
-                shear += hit * hit * (_body.flipX ? 0.07f : -0.07f) * (e.Big ? 0.5f : 1f);
-                float sx = 1f + hit * 0.07f + landing * 0.012f + lunge * 0.05f - breathe * 0.4f;
-                float sy = 1f - hit * 0.06f - landing * 0.015f - lunge * 0.07f + breathe;
+                float hit = Mathf.Clamp01(_redT / 0.24f);
+
+                // Q 弹受击挤压回弹曲线：先横向受压变扁，再纵向微拉回弹，扎实有肉感
+                float sqX = 0f, sqY = 0f;
+                if (_squashT > 0)
+                {
+                    _squashT -= Time.deltaTime;
+                    float sk = 1f - Mathf.Clamp01(_squashT / 0.16f);
+                    float wave = Mathf.Sin(sk * Mathf.PI * 1.55f) * (1f - sk * 0.45f);
+                    float amp = e.Def.IsBoss ? 0.065f : e.Big ? 0.095f : 0.135f;
+                    sqX = wave * amp;
+                    sqY = -wave * amp * 0.88f;
+                }
+
+                shear += hit * hit * (_body.flipX ? 0.085f : -0.085f) * (e.Big ? 0.55f : 1f);
+                float sx = 1f + sqX + landing * 0.012f + lunge * 0.05f - breathe * 0.4f;
+                float sy = 1f + sqY - landing * 0.015f - lunge * 0.07f + breathe;
                 if (e.Attacking) bob = -lunge * 0.04f;
                 float lift = fly ? FlyH + Mathf.Sin(t * 4f) * 0.08f : 0f;
                 if (fly) { legL = legR = 0f; bob = 0f; }
@@ -1811,14 +1960,14 @@ namespace Liangshan
                 if (_stopT > 0)
                 {
                     _stopT -= Time.deltaTime;
-                    jolt = _knockDir * (_knockPow * 0.085f) + Random.insideUnitCircle * (0.028f * _knockPow);
-                    shear += _knockDir.x * 0.09f * _knockPow;
+                    jolt = _knockDir * (_knockPow * 0.095f) + Random.insideUnitCircle * (0.032f * _knockPow);
+                    shear += _knockDir.x * 0.10f * _knockPow;
                 }
                 else if (_knockT > 0)
                 {
                     _knockT -= Time.deltaTime;
                     float back = Mathf.Clamp01(_knockT / KnockBack);
-                    jolt = _knockDir * (_knockPow * 0.085f * back * back);
+                    jolt = _knockDir * (_knockPow * 0.095f * back * back);
                 }
                 _body.transform.localPosition = new Vector2(0, _cy * emergeScale + lift) + jolt;
                 _body.transform.localRotation = e.Def.Kind == EnemyKind.Lantern ? Quaternion.Euler(0, 0, Mathf.Sin(t * 3.5f) * 6f) : Quaternion.identity;
@@ -1827,8 +1976,22 @@ namespace Liangshan
                 if (fly) _shadow.transform.localScale = new Vector3(_h * 0.56f, _h * 0.18f, 1f) * emergeScale;
                 else _shadow.transform.localScale = new Vector3(_h * 0.72f * footPulse, _h * 0.24f * footPulse, 1f) * emergeScale;
                 _shadow.color = new Color(0.03f, 0.05f, 0.09f, (e.Diving ? 0.16f : 0.54f) * Mathf.Clamp01(emerge * 1.2f));
-                Bend.Set(_body, _bend, bob, shear, sx, sy, legL, legR);
-                Bend.Set(_flash, _bend, bob, shear, sx, sy, legL, legR);
+
+                // Shader 级纯白实心闪光（初段 100% 纯白剪影，尾段退为暖绯受击余韵，绝不漏底透灰！）
+                float flashAmt = 0f;
+                Color flashCol = Color.white;
+                if (_whiteT > 0)
+                {
+                    _whiteT -= Time.deltaTime;
+                    flashAmt = Mathf.Clamp01(_whiteT / 0.065f);
+                    flashCol = Color.white;
+                }
+                else if (hit > 0.01f)
+                {
+                    flashAmt = hit * 0.45f;
+                    flashCol = new Color(1f, 0.34f, 0.25f, 1f);
+                }
+                Bend.Set(_body, _bend, bob, shear, sx, sy, legL, legR, flashAmt, flashCol);
                 if (e.ChargeT > 0 && Random.value < 0.5f) WorldFx.I.Dust(p, _h * 0.8f, DustCol.A(0.5f), 0.5f, 95);
                 if (e.Shield > 0)
                 {
@@ -1857,47 +2020,60 @@ namespace Liangshan
                     if (Random.value < Time.deltaTime * 7f)
                         WorldFx.I.Dust(p + new Vector2(Random.Range(-0.25f, 0.25f), _h * 0.35f), _h * 0.35f, bc.A(0.6f), 0.45f, order + 2);
                 }
-                if (hit > 0) c = Color.Lerp(c, Pal.Hex("FF7A6A"), hit);
                 if (emerge < 1f) c = Color.Lerp(new Color(0.14f, 0.17f, 0.24f), c, emerge);
                 float baseA = e.Diving ? 0.28f : 1f;
                 float alpha = emerge < 0.99f ? baseA * Mathf.Clamp01(emerge * 1.45f) : Mathf.MoveTowards(_body.color.a, baseA, Time.deltaTime * 6f);
                 if (e.Diving && Random.value < Time.deltaTime * 4f) WorldFx.I.Ring(p + new Vector2(0, 0.1f), _h * 0.45f, Pal.Hex("8FD0FF"), 0.4f);
                 if (e.RageT > 0 && Random.value < 0.4f) WorldFx.I.Dust(p, _h * 0.6f, Pal.Hex("FF7050").A(0.5f), 0.4f, 95);
                 _body.color = c.A(alpha);
-                _flash.sortingOrder = order + 1;
-                if (_whiteT > 0)
-                {
-                    _whiteT -= Time.deltaTime;
-                    _flash.color = new Color(1f, 1f, 1f, 0.9f * _body.color.a);
-                }
-                else _flash.color = new Color(1f, 0.32f, 0.26f, 0.85f * hit * _body.color.a);
 
-                bool showBar = !e.Def.IsBoss && (e.Big || e.Def.Kind == EnemyKind.Porter || e.Hp < e.MaxHp);
+                // 全员统一精悍头顶血条（首领、精英、运宝官常驻，小怪受伤才亮出，满血干净无噪点）
+                bool showBar = e.Def.IsBoss || e.Big || e.Def.Kind == EnemyKind.Porter || e.Hp < e.MaxHp;
                 if (_barRoot.gameObject.activeSelf != showBar) _barRoot.gameObject.SetActive(showBar);
                 if (_layerText) _layerText.gameObject.SetActive(showBar);
                 if (showBar)
                 {
+                    // 受击时血条微震 + 轻微放大脉冲，掉血反馈直觉炸裂
+                    var barJit = Vector2.zero;
+                    float barPulse = 1f;
+                    if (_barShakeT > 0)
+                    {
+                        _barShakeT -= Time.deltaTime;
+                        float bk = Mathf.Clamp01(_barShakeT / 0.14f);
+                        barJit = new Vector2(Mathf.Sin(_barShakeT * 95f) * 0.032f * bk, 0.015f * bk);
+                        barPulse = 1f + 0.07f * bk;
+                    }
+                    // 首领在靠近城门顶栏时自动将头顶血条钳在波次栏下方，任何位置都清晰可见
+                    float maxWorldY = Game.Cam != null ? Game.Cam.transform.localPosition.y + Game.Cam.orthographicSize - 1.55f : 99f;
+                    float worldBarY = Mathf.Min(p.y + _barBaseY, maxWorldY);
+                    _barRoot.localPosition = new Vector2(barJit.x, worldBarY - p.y + barJit.y);
+                    _barRoot.localScale = new Vector3(1f, barPulse, 1f);
+
                     float frac = Mathf.Clamp01(e.Hp / e.MaxHp);
                     if (_layerText)
                     {
-                        // 精英血条分层：每层一种颜色，背后露出下一层，右侧显示剩余层数。
-                        var (layer, f, cur, next) = Pal.Layers(Mathf.Max(0, e.Hp), e.MaxHp, EliteLayers);
+                        int totalLayers = e.Def.IsBoss ? BossLayers : EliteLayers;
+                        var (layer, f, cur, next) = Pal.Layers(Mathf.Max(0, e.Hp), e.MaxHp, totalLayers);
                         if (layer != _layer)
                         {
-                            if (_layer > 0) _ghostFrac = 1f;
+                            if (_layer > 0)
+                            {
+                                _ghostFrac = 1f;
+                                Tween.Pop(_layerText.rectTransform, 0.16f);
+                            }
                             _layer = layer;
                             _bar.color = cur;
                             _barTrack.color = next;
                             _layerText.text = "x" + layer;
                         }
                         frac = f;
-                        WorldFx.Place(_layerText, (Vector2)_barRoot.position + new Vector2(_bw * 0.5f + 0.05f, 0));
+                        WorldFx.Place(_layerText, (Vector2)_barRoot.position + new Vector2(0f, 0.005f));
                     }
-                    _ghostFrac = _ghostFrac < frac ? frac : Mathf.MoveTowards(_ghostFrac, frac, Time.deltaTime * 0.9f);
+                    _ghostFrac = _ghostFrac < frac ? frac : Mathf.MoveTowards(_ghostFrac, frac, Time.deltaTime * 1.15f);
                     SetBarWidth(_bar, frac, _bw, _bh);
                     SetBarWidth(_barGhost, _ghostFrac, _bw, _bh);
-                    SetBarWidth(_barHi, frac, _bw - 0.02f, _bh * 0.38f);
-                    _barHi.color = _barHi.color.A(frac > 0.02f ? 0.32f : 0f);
+                    SetBarWidth(_barHi, frac, _bw - 0.016f, _bh * 0.34f);
+                    _barHi.color = _barHi.color.A(frac > 0.02f ? 0.34f : 0f);
                 }
 
                 if (e.Stun > 0)
@@ -1923,8 +2099,7 @@ namespace Liangshan
                 DropLayerText();
                 if (_stun) _stun.gameObject.SetActive(false);
                 if (_tag) _tag.gameObject.SetActive(false);
-                _flash.gameObject.SetActive(false);
-                fx.Flash(p + new Vector2(0, _h * 0.45f), _h * 1.2f, new Color(1f, 0.95f, 0.85f, 0.5f), 0.15f);
+                fx.Flash(p + new Vector2(0, _h * 0.45f), _h * 1.35f, new Color(1f, 0.96f, 0.86f, 0.62f), 0.16f);
                 fx.Dust(p, _h * 1.3f, DustCol.A(0.7f), 0.6f, WorldFx.Order(p.y) + 20);
                 fx.Sparks(Art.SoftDot, p + new Vector2(0, _h * 0.3f), big ? 10 : 4, big ? 0.4f : 0.22f, big ? 3.5f : 2.2f, Pal.Hex("D6CBB5").A(0.85f), 0.45f, 9300, 5f);
                 if (big) fx.Debris(p, 4, 0.22f, 2.4f);
@@ -1947,14 +2122,17 @@ namespace Liangshan
                     Sfx.Play(Snd.UltBomb);
                 }
                 var body = _body;
+                var bend = _bend;
                 var root = _root;
                 float side = body.flipX ? 1 : -1;
                 var sh = _shadow;
-                Tween.Run(root, 0.4f, k =>
+                Tween.Run(root, 0.36f, k =>
                 {
                     if (!body) return;
-                    body.transform.localRotation = Quaternion.Euler(0, 0, side * 80f * Tween.OutCubic(k));
-                    body.transform.localPosition = new Vector2(side * -0.15f * k, _cy * (1 - 0.6f * k));
+                    float pop = k < 0.22f ? Mathf.Lerp(1f, 1.14f, k / 0.22f) : Mathf.Lerp(1.14f, 0.88f, (k - 0.22f) / 0.78f);
+                    Bend.Set(body, bend, 0f, 0f, pop, pop, 0f, 0f, Mathf.Clamp01(1f - k * 3.8f) * 0.9f, Color.white);
+                    body.transform.localRotation = Quaternion.Euler(0, 0, side * 78f * Tween.OutCubic(k));
+                    body.transform.localPosition = new Vector2(side * -0.18f * k, _cy * (1 - 0.55f * k));
                     body.color = body.color.A(1 - k);
                     sh.color = sh.color.A(0.42f * (1 - k));
                 }, () => { if (root) Object.Destroy(root.gameObject); });

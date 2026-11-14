@@ -11,7 +11,7 @@ namespace Liangshan
         static string P(float v) => $"{v * 100:0.#}%";
         static string Sec(float v) => O(v.ToString("0.#") + "秒");
 
-        public static string Atk(HeroDef d, Battle b = null)
+        public static string Atk(HeroDef d, Battle b = null, float panelAtk = 0f)
         {
             if (d.Buff.HasValue) return Buff(d, b);
             var h = d.Id;
@@ -22,7 +22,8 @@ namespace Liangshan
             if (b != null) (stun, chance) = b.StunOf(h);
             else { stun = d.Stun > 0 ? d.Stun : 0.8f; chance = d.Stun > 0 && d.StunChance <= 0 ? 1f : d.StunChance; }
             float slow = b?.SlowOf(h) ?? d.Slow;
-            string dmg = $"{O(P(d.Coef))}攻击力的{d.Element}伤害";
+            string hitNote = panelAtk > 0.5f ? $"（{O(Ui.Num(System.Math.Max(1, (int)System.Math.Round(panelAtk * d.Coef))))}）" : "";
+            string dmg = $"{O(P(d.Coef))}攻击力{hitNote}的{d.Element}伤害";
             string t;
             if (d.Chan > 0)
             {
@@ -38,22 +39,31 @@ namespace Liangshan
             }
             else
             {
+                string noun = d.Noun ?? "攻击";
                 switch (d.Shot)
                 {
                     case ShotKind.Arrow:
-                        t = $"向前排射出{O(count)}支箭，每支造成{dmg}" + (chain > 0 ? $"，穿透{O(chain)}个敌人" : "");
+                        t = count <= 1
+                            ? $"向前排射出{O(1)}发{noun}，造成{dmg}"
+                            : $"向前排射出{O(count)}发{noun}，每发造成{dmg}";
+                        if (chain > 0)
+                            t += $"，穿透{O(chain)}个敌人" + (d.PierceGrow > 0 ? $"（每穿透1敌伤害+{O(P(d.PierceGrow))}）" : "");
                         break;
                     case ShotKind.Bomb:
-                        t = $"投掷{O(count)}枚炸弹，对半径{O((d.Radius * area).ToString("0.#"))}内的敌人造成{dmg}";
+                        t = $"投掷{O(count)}枚{noun}，对半径{O((d.Radius * area).ToString("0.##"))}内的敌人造成{dmg}";
                         break;
                     case ShotKind.Fireball:
-                        t = $"掷出{O(count)}颗火球，落地爆炸对半径{O((d.Radius * area).ToString("0.#"))}内的敌人造成{dmg}";
+                        t = $"砸落{O(count)}颗{noun}，落地爆炸对半径{O((d.Radius * area).ToString("0.##"))}内的敌人造成{dmg}";
                         break;
                     case ShotKind.Lightning:
-                        t = $"召雷劈中敌人，造成{dmg}" + (chain > 0 ? $"，再连锁{O(chain)}个敌人" : "");
+                        t = count <= 1
+                            ? $"召下一道天雷劈中敌人，造成{dmg}" + (chain > 0 ? $"，再连锁弹射{O(chain)}个敌人" : "")
+                            : $"召下{O(count)}道天雷劈中敌人，每道造成{dmg}" + (chain > 0 ? $"并连锁{O(chain)}个敌人" : "");
                         break;
                     case ShotKind.Punch:
-                        t = $"只打墙前近身的敌人，连击{O(count)}次，每次造成{dmg}并击退";
+                        t = count <= 1
+                            ? $"向墙前近身敌军挥出{O(1)}记{noun}，造成{dmg}并击退"
+                            : $"向墙前近身敌军连出{O(count)}记{noun}，每次造成{dmg}并击退";
                         break;
                     case ShotKind.Slam:
                         t = $"砸地震击周围敌人，造成{dmg}并震退";
@@ -62,7 +72,9 @@ namespace Liangshan
                         t = $"长枪贯穿目标和身后一列敌人，造成{dmg}";
                         break;
                     case ShotKind.Stone:
-                        t = $"掷出飞石造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次（每次{O("80%")}）" : "");
+                        t = d.Kind == Role.Mage
+                            ? $"祭出{O(count)}块{noun}从天砸落，造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次" : "")
+                            : $"掷出{O(count)}枚{noun}造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次（每次{O("80%")}）" : "");
                         break;
                     case ShotKind.Lasso:
                         t = $"甩出套索缚住{O(count)}个敌人，造成{dmg}，定身{Sec(stun)}";
@@ -70,6 +82,11 @@ namespace Liangshan
                     default:
                         t = $"风刃卷向敌群，对目标造成{dmg}，周围敌人受一半伤害";
                         break;
+                }
+                if (d.Dot > 0)
+                {
+                    string dotKind = d.Element == "火系" ? "灼烧" : "中毒";
+                    t += $"，并附加{Sec(Defs.BurnDur)}{O(P(d.Dot))}{dotKind}" + (d.AntiHeal ? $"（治疗降低{O("60%")}）" : "");
                 }
             }
             if (d.Shot != ShotKind.Lasso && chance > 0)

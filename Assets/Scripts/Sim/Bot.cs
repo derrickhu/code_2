@@ -20,14 +20,15 @@ namespace Liangshan.Sim
                     {
                         var c = b.Choices[i];
                         var hd = Defs.Hero(c.Hero);
-                        float score = BestStar(b, c.Hero) * 4f + (hd.Carry ? 2f : 0f);
+                        float score = BestStar(b, c.Hero) * (hd.Carry ? 5f : 1.5f) + (hd.Carry ? 9f : -2f);
                         if (c.Ult) score += 45f;
-                        if (c.Kind == PerkKind.Adv) score += 16f;
-                        else if (c.Kind == PerkKind.Morph) score += 10f;
-                        if (c.Eff == Eff.Surge || c.Eff == Eff.Top || c.Eff == Eff.Resonance) score += 8f;
+                        if (c.Kind == PerkKind.Adv) score += 18f;
+                        else if (c.Kind == PerkKind.Morph) score += 12f;
+                        if (c.Eff == Eff.Count) score += 11f;
+                        if (c.Eff == Eff.Surge || c.Eff == Eff.Top || c.Eff == Eff.Resonance) score += 9f;
                         if (c.Eff == Eff.Shatter) score += 7f;
                         if (c.Eff == Eff.Exec && b.Wall < b.WallMax * 0.7f) score += 9f;
-                        if (c.Eff == Eff.Dmg || c.Eff == Eff.Area || c.Eff == Eff.Count) score += 3f;
+                        if (c.Eff == Eff.Dmg || c.Eff == Eff.Area) score += 5f;
                         if (score > best) { best = score; pick = i; }
                     }
                 }
@@ -45,10 +46,24 @@ namespace Liangshan.Sim
             _think = 0.32f;
 
             int units = Occupied(b);
-            // 100/200 低费强化性价比极高，场上站稳 4 人后优先拿前两手词条
-            if (_skill >= 2 && units >= 4 && b.Enhances < 2 && b.Coins >= b.EnhanceCost && b.Enhance()) return;
+            if (_skill >= 2 && !b.SwappedOnce)
+            {
+                for (int i = 0; i < b.Slots.Count; i++)
+                {
+                    var u = b.Slots[i].Unit;
+                    if (u != null && u.Star >= 2 && u.Def.Kind == Role.Support && b.SwapUnit(i)) return;
+                }
+            }
             if (_skill >= 1 && TryMerge(b)) return;
-            if (_skill >= 2 && b.Coins >= b.EnhanceCost && b.EnhanceCost <= b.SummonCost * 1.85f && b.Enhance()) return;
+            // 对标蔚蓝星球核心运营：先铺满 6 次召唤（稳定场上双2星+基础火力），随后当强化费明显优于高额召唤费时优先买词条
+            if (_skill >= 2 && units >= 5 && b.Summons >= 6)
+            {
+                bool wantSaveForEnhance = (b.Enhances == 0)
+                    || (b.Enhances == 1 && b.Summons >= 8)
+                    || (b.Enhances < 7 && b.EnhanceCost <= b.SummonCost * 1.45f);
+                if (b.Coins >= b.EnhanceCost && b.Enhance()) return;
+                if (wantSaveForEnhance && b.Wall > b.WallMax * 0.50f) return;
+            }
             if (b.CanSummon) { b.Summon(); return; }
             if (_skill >= 2 && !b.HasEmptySlot() && b.Coins >= b.EnhanceCost) b.Enhance();
         }
@@ -71,21 +86,17 @@ namespace Liangshan.Sim
         static bool TryMerge(Battle b)
         {
             bool full = !b.HasEmptySlot();
-            bool danger = b.Wall < b.WallMax * 0.55f;
+            bool danger = b.Wall < b.WallMax * 0.45f;
             // 1→2 星 200% 翻倍零损耗，只要场上满 4 人就优先合出 2 星腾格子；
-            // 2→3 星有边际衰减，仅当满格、危急需合击震退、或者是战士/已有强化词条时才合高星。
+            // 2→3 星有边际衰减且可能变辅助：未满格时绝不轻易合掉 2 星远程输出（仅优先合掉 2 星辅助/控制，或战士博 3 星刀气）！
             for (int star = 3; star >= 1; star--)
             {
-                if (!full && !danger)
-                {
-                    if (star == 1 && Occupied(b) < 4 && b.Coins >= b.SummonCost) continue;
-                    if (star >= 2 && b.Enhances < 2) continue;
-                }
+                if (!full && !danger && star == 1 && Occupied(b) < 4 && b.Coins >= b.SummonCost) continue;
                 for (int i = 0; i < b.Slots.Count; i++)
                 {
                     var u = b.Slots[i].Unit;
                     if (u == null || u.Star != star) continue;
-                    if (!full && !danger && star >= 2 && u.Def.Kind != Role.Fighter && b.Enhances < 3) continue;
+                    if (!full && !danger && star >= 2 && u.Def.Carry && u.Def.Kind != Role.Fighter) continue;
                     for (int j = i + 1; j < b.Slots.Count; j++)
                         if (b.CanMerge(i, j)) return b.Drop(i, j);
                 }

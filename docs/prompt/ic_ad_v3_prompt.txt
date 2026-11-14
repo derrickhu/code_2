@@ -1,0 +1,6 @@
+视频图标 ic_ad 重画（GenerateImage，1:1）
+不要中国结，不要红穗，不要任何向下拖的尾巴。图标要尽量方，小圆框里也能撑满。
+
+A single premium Q-style video icon, centered and large, filling most of the square. NO TEXT, no letters, no tassel, no knot, no ribbon, no string hanging below.
+Cute chunky gouache: a plump closed clapperboard, cinnabar and honey-gold stripes, ivory slate, one huge raised gold play triangle in the center. Thin cocoa outline, soft painted highlight. The whole object is compact and nearly square, nothing dangling under it.
+Background: SOLID FLAT #5F7A92.

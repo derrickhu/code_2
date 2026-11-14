@@ -35,8 +35,8 @@ namespace Liangshan
 
         /// <summary>星级色：一星白、二星绿、三星蓝紫、满星金。</summary>
         public static readonly Color[] Star = { Hex("F4F1EA"), Hex("7BE36A"), Hex("8FA8FF"), Hex("FFD24A") };
-        /// <summary>多层血条：每掉一层换一种颜色，背后露出下一层的颜色。</summary>
-        public static readonly Color[] HpLayer = { Hex("E8412F"), Hex("F08A2A"), Hex("F2C431"), Hex("7BC74A"), Hex("3FA9E0"), Hex("9A6BE0") };
+        /// <summary>多层血条：首层暖金橙（对标参考图清晰暖橙血条），其后鲜红、紫晶、天青、翠绿逐层轮转。</summary>
+        public static readonly Color[] HpLayer = { Hex("F59B23"), Hex("EB4934"), Hex("9A63E6"), Hex("38A6E8"), Hex("5CC948"), Hex("F2C431") };
 
         /// <summary>多层血条：(剩余层数, 当前层比例, 当前层颜色, 下一层颜色)。最后一层背后是暗底。</summary>
         public static (int layer, float frac, Color cur, Color next) Layers(float hp, float max, int n)
@@ -88,6 +88,8 @@ namespace Liangshan
 
         public static Sprite Rounded => Get("rounded", () => RoundRect(256, 64, 0));
         public static Sprite RoundedSmall => Get("rounded_s", () => RoundRect(256, 36, 0));
+        /// <summary>怪物头顶利落微圆角扁框（对标参考图紧致直角感矩形条，杜绝肥厚大圆胶囊）。</summary>
+        public static Sprite HpBarRect => Get("hpbar_rect", () => RoundRect(128, 12, 0));
         public static Sprite Pill => Get("pill", () => RoundRect(256, 126, 0));
         public static Sprite Circle => Get("circle", () => Disc(256, 0.02f));
         public static Sprite SoftDot => Get("softdot", () => Disc(128, 1f));
@@ -349,24 +351,47 @@ namespace Liangshan
         /// <summary>左、下、右、上。横条类上下为 0，配合按高度缩放使用。</summary>
         static Vector4 SkinBorder(string n)
         {
-            if (n.StartsWith("btn_")) return new Vector4(32, 32, 32, 32);
-            if (n.StartsWith("bar_")) return new Vector4(14, 0, 14, 0);
-            if (n.StartsWith("card_")) return new Vector4(30, 74, 30, 30);
-            if (n.StartsWith("slot_")) return new Vector4(32, 32, 32, 32);
-            if (n == "banner") return new Vector4(262, 0, 262, 0);
-            if (n.StartsWith("banner")) return new Vector4(120, 0, 120, 0);
+            if (n.EndsWith("_lip") && n.StartsWith("btn_")) return new Vector4(46, 46, 46, 46);
+            if (n.EndsWith("_well") && n.StartsWith("btn_")) return new Vector4(22, 22, 22, 22);
+            if (n.StartsWith("btn_")) return new Vector4(38, 38, 38, 38);
+            if (n == "bar_bg") return new Vector4(22, 0, 22, 0);
+            if (n.StartsWith("bar_")) return new Vector4(18, 0, 18, 0);
+            if (n.StartsWith("card_")) return new Vector4(52, 52, 52, 52);
+            if (n.StartsWith("slot_")) return new Vector4(44, 44, 44, 44);
+            if (n.StartsWith("eqcard_")) return new Vector4(44, 48, 44, 44);
+            if (n == "banner_gold") return new Vector4(120, 0, 120, 0);
+            if (n.StartsWith("banner")) return new Vector4(148, 0, 148, 0);
+            if (n.StartsWith("rank_badge_")) return new Vector4(76, 0, 76, 0);
+            if (n.StartsWith("vtab_")) return new Vector4(36, 36, 36, 36);
             switch (n)
             {
-                case "panel": return new Vector4(48, 48, 48, 48);
-                case "dark": return new Vector4(32, 32, 32, 32);
-                case "tab_on": return new Vector4(32, 32, 32, 32);
+                case "rank_well": return new Vector4(48, 48, 48, 48);
+                case "rank_row":
+                case "rank_row_me": return new Vector4(44, 44, 44, 44);
+                case "panel": return new Vector4(68, 68, 68, 68);
+                case "quest_tray": return new Vector4(56, 42, 56, 52);
+                case "modal_well": return new Vector4(44, 44, 44, 44);
+                case "hint": return new Vector4(52, 52, 52, 52);
+                case "dark": return new Vector4(48, 48, 48, 48);
+                case "tab_on": return new Vector4(40, 40, 40, 40);
                 case "tabbar": return new Vector4(40, 20, 40, 30);
-                case "row": return new Vector4(28, 28, 28, 28);
+                case "row":
+                case "row_claim":
+                case "row_done": return new Vector4(42, 42, 42, 42);
+                case "power_crest": return new Vector4(96, 0, 96, 0);
                 case "pill": return new Vector4(28, 0, 28, 0);
                 case "plate": return new Vector4(50, 0, 50, 0);
                 case "plaque": return new Vector4(176, 0, 176, 0);
                 case "flame_bar": return new Vector4(60, 60, 230, 130);
-                case "h_start": return new Vector4(46, 46, 46, 46);
+                case "h_start": return new Vector4(54, 54, 54, 54);
+                case "h_start_lip": return new Vector4(62, 62, 62, 62);
+                case "forge_sel": return new Vector4(48, 48, 48, 48);
+                case "forge_card": return new Vector4(44, 44, 44, 44);
+                case "gacha_dock_gold": return new Vector4(52, 52, 52, 52);
+                case "gacha_dock_purple": return new Vector4(52, 52, 52, 52);
+                case "gacha_sum_pedestal": return new Vector4(56, 56, 56, 56);
+                case "gacha_tray": return new Vector4(48, 36, 48, 48);
+                case "gacha_oct_badge": return new Vector4(56, 0, 56, 0);
                 case "h_tabbar": return new Vector4(24, 24, 24, 28);
                 case "h_tile": return new Vector4(28, 28, 28, 28);
                 case "h_capsule": return new Vector4(28, 0, 28, 0);

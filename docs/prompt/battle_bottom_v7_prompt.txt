@@ -1,0 +1,26 @@
+局内指挥台与货币 UI 美术大焕新 v7（对标《永远的蔚蓝星球》底栏质感 + 水浒梁山霁蓝宋瓷风）
+====================================================================================
+
+设计目标：
+1. 解决宋江 2.6 头身过瘦高导致头顶撞血条、站台脱节的问题：为局内绘制专门的 1.8 头身墩实 Q 萌版【点将台宋江】（保留乌纱方帽金饰、短须、深翠绿交领宋袍完全一致的角色身份，右手举青玉龙泉剑，稳坐/立于凹槽式青石点将碉台正中）。
+2. 解决钱币丑、发灰、像个碗的问题：绘制光泽饱满、厚立体倒角、微斜视角的【梁山水浒亮银币】（厚银边 + 冰蓝内圈 + 中央闪亮立体祥云纹徽记 + 高光星芒）。
+3. 解决书案与战鼓单薄脱节的问题：统一为 2.5D 俯斜视角、自带精致石基座的【天书石坛】与【聚义战鼓营寨】，与凹槽式点将碉台在材质、透视、描边粗细上 100% 统一。
+
+Prompt 1: battle_bottom_props_v7 (2 columns x 2 rows grid, 1:1)
+----------------------------------------------------------------
+2 columns x 2 rows sprite sheet grid of 4 isolated 2.5D top-down oblique mobile strategy game assets on a uniform solid pure white #FFFFFF background with generous clean spacing between cells.
+Use the reference image ONLY for the crisp thick-outlined cel-shaded Q-version art style, chunky tactile 3D volume, recessed stone turret proportions, and lively lighting (do NOT copy the western crown king or any UI/text/numbers).
+Unified Song-dynasty Liangshan palette: clean cool light ivory-grey carved stone, recessed slate-azure (#5A8BB5) inner basins, warm champagne-gold metallic trim, crisp bold dark-brown/charcoal outlines, NO TEXT, no labels, no numbers anywhere.
+
+- Top-left (b_throne_box): An empty 2.5D top-down oblique square-beveled stone command bastion turret box. Thick chiseled light grey-ivory stone parapet walls forming a cozy recessed square basin on top with a smooth slate-azure (#6A9BC3) inner floor, warm gold trim band under the upper rim, a small royal-blue & gold shield crest centered on the front stone wall, and a sturdy stepped stone base below. Completely empty on top (no character inside).
+- Top-right (lord_songjiang_chibi): An ultra-cute, chunky 1.7-head super-deformed chibi figure of Song Jiang (宋江, Commander of Liangshan) seen from a matching slight 2.5D top-down front angle, designed to sit snugly inside the command turret box. Exact Song Jiang identity: black Song scholar-official square hat (乌纱幞头) with a small gold front emblem, expressive big dark eyes, neat short black mustache and small pointed beard, rich emerald-green Song commander robe with gold trim and jade belt, compact chibi body (wide head, short cute torso, tucked robe hem), right hand proudly holding an upright gleaming silver-and-gold Song command sword at his side, left hand holding a small golden command tally. Isolated character on solid white background, NO pedestal underneath.
+- Bottom-left (prop_book_v7): A 2.5D top-down oblique ancient mystic Song military strategy tome ("天书兵法") open on an ornate octagonal carved stone & dark-wood lectern altar. Glowing ice-blue celestial cloud runes softly shimmering on the thick cream parchment pages (purely decorative geometric swirls, NO readable text or letters), a royal-blue silk bookmark banner with gold trim hanging down the front, set on a sturdy beveled light-grey stone octagonal plinth with subtle gold rim and soft cyan magic glow under the bookstand.
+- Bottom-right (prop_drum_v7): A 2.5D top-down oblique Liangshan barracks & war-drum pavilion prop ("聚义点兵营"). A compact sturdy timber-and-bluestone mini-barracks chest structure with an azure-blue tiled roof, a bold crimson-and-gold lacquered war drum mounted at the front-left, a small golden tiger-head shield with crossed swords on the front-right corner, and a tiny fluttering sky-blue pennant flag on top (blank flag, NO text). Crisp chunky cel-shaded game prop on solid white background.
+
+STRICT RULES: NO TEXT, NO Chinese characters, NO letters, NO numbers, NO UI bars, uniform pure white #FFFFFF background, ample margin around each of the 4 items so they never touch or overlap.
+
+Prompt 2: ic_silver_v7 (1:1 single icon)
+----------------------------------------
+Single isolated mobile game currency coin icon centered on a uniform solid pure white #FFFFFF background.
+Use the reference image ONLY for the chunky tilted 3D coin thickness, crisp dark cel-shaded outline, and glossy casual game polish (do NOT copy the lightning bolt).
+A gleaming chunky tilted round silver-platinum Liangshan battle coin seen at a slight 3/4 angle showing its thick milled 3D metallic edge: bright polished silver-white rim with crisp specular shine and two tiny four-point star glints, a recessed icy-azure (#4A90C8) enamel inner ring, and an embossed gleaming silver-and-pale-gold auspicious cloud-scroll crest in the center. Vibrant contrast, clean bold dark-slate outer outline, reads super crisp even at 48px icon size, NO TEXT, no letters, no numbers anywhere.

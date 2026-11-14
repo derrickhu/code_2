@@ -19,6 +19,8 @@ Shader "Liangshan/SpriteBend"
         [PerRendererData] _LegR ("LegLiftR", Float) = 0
         [PerRendererData] _LegTop ("LegTop", Float) = 0.3
         [PerRendererData] _LegCx ("LegCenterX", Float) = 0.5
+        [PerRendererData] _Flash ("HitFlash", Float) = 0
+        [PerRendererData] _FlashColor ("HitFlashColor", Color) = (1,1,1,1)
         [HideInInspector] _SrcBlend ("Src", Float) = 1
         [HideInInspector] _DstBlend ("Dst", Float) = 10
     }
@@ -37,7 +39,8 @@ Shader "Liangshan/SpriteBend"
             #pragma fragment frag
             #include "UnitySprites.cginc"
 
-            float _Foot, _Body, _Bob, _Shear, _Sx, _Sy, _LegL, _LegR, _LegTop, _LegCx;
+            float _Foot, _Body, _Bob, _Shear, _Sx, _Sy, _LegL, _LegR, _LegTop, _LegCx, _Flash;
+            fixed4 _FlashColor;
 
             fixed4 frag(v2f IN) : SV_Target
             {
@@ -53,7 +56,10 @@ Shader "Liangshan/SpriteBend"
                 float hl = (uv.y - _Foot) / _Body;
                 float legW = 1.0 - smoothstep(0.0, _LegTop, hl);
                 uv.y -= lift * legW;
-                fixed4 c = tex2D(_MainTex, uv) * IN.color;
+                fixed4 tex = tex2D(_MainTex, uv);
+                fixed4 c;
+                c.rgb = lerp(tex.rgb * IN.color.rgb, _FlashColor.rgb, saturate(_Flash));
+                c.a = tex.a * IN.color.a;
                 float inside = step(0, uv.x) * step(uv.x, 1) * step(0, uv.y) * step(uv.y, 1);
                 c.a *= inside;
                 c.rgb *= c.a;

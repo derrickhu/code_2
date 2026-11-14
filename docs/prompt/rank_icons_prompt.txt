@@ -1,0 +1,25 @@
+2D Q-version casual fantasy mobile game UI icon sheet arranged in a strict, clean 3 columns x 2 rows grid (6 isolated icons total) on a solid flat pure magenta background (#FF00FF) with generous spacing between cells. Thick clean dark-brown/navy outlines, rich glossy 3D-like hand-painted highlights, vibrant metallic gold and jewel tones matching high-end WeChat minigame UI.
+
+Use the reference image for visual polish, chunky glossy bevels, and lighting density only. Do not copy any text from the reference.
+
+Row 1, Column 1 (Mainline Stage Podium Icon):
+A cute chunky 3-stepped stone-and-gold victory podium icon (center step highest with a tiny embossed star/crown motif, flanked by silver-blue left step and bronze right step), glossy sky-blue and gold metallic finish. NO numbers, NO text.
+
+Row 1, Column 2 (Combat Power Trophy Scroll Icon):
+A majestic golden winged trophy chalice crossed with a gleamingjade-hilted broadsword and topped with a small golden imperial crown, radiating power and prestige. NO text.
+
+Row 1, Column 3 (Arena Duel Shield Icon):
+A bold crimson-and-gold gladiator shield crossed with twin polished steel halberds, dynamic competitive emblem. NO text.
+
+Row 2, Column 1 (Escort Treasure Cart Icon):
+A sturdy cute wooden treasure wagon reinforced with iron bands, overflowing with gleaming golden sycee ingots and glowing blue gems. NO text.
+
+Row 2, Column 2 (Golden Thumbs-Up Medallion):
+A circular glossy golden-rimmed dark-amber badge with a cute chubby 3D golden thumbs-up hand gesture centered inside, celebratory warm highlights. NO text.
+
+Row 2, Column 3 (Radiant Milestone Reward Chest):
+A ornate gleaming golden treasure chest slightly brimming with warm golden light, decorated with a royal crown clasp on the front lock. NO text.
+
+STRICT CONSTRAINTS:
+- Solid flat uniform #FF00FF magenta background behind all 6 icons, no floor shadows extending to cell borders, no grid lines.
+- NO TEXT, no labels, no numbers, no letters, no watermarks anywhere in the image.

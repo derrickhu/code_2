@@ -1,0 +1,12 @@
+Vertical 9:16 mobile game UI background illustration for a grand Hall of Honor leaderboard header, inspired by modern Q-chibi fantasy strategy games (matching the warm sunlit palace dome aesthetic of the reference image, blended with subtle Chinese imperial palace warmth).
+
+Composition & Camera:
+- Symmetrical straight-on front view inside a majestic sunlit golden-sandstone grand hall dome.
+- Upper 55% is the focal area (this sits behind the Top 3 champion podiums); lower 45% gently darkens into warm amber-slate shadow as it goes behind the UI list panel.
+- Left and right sides feature tall warm cream-gold carved stone pillars with crimson-red and burnished-gold royal hanging banners (decorated ONLY with a clean golden geometric crown/diamond emblem, strictly NO letters or characters).
+- Center features a grand recessed cathedral/palace arch bathed in warm golden-peach sunlight streaming diagonally from the upper dome, with tiny floating golden light motes and celebratory warm sparkles.
+
+Style & Palette:
+- Crisp, clean, vibrant 2D casual mobile game vector-painterly background art, smooth cel-shaded gradients, warm champagne gold (#F6D386), sunlit peach-amber (#E8A85A), soft terracotta-crimson banners (#C94A42), warm ivory stone (#F4DFB8).
+- Center area kept clean, airy, and bright so foreground Q-chibi characters and golden title ribbon stand out with high contrast.
+- STRICT RULE: NO TEXT, no Chinese characters, no English letters, no numbers, no UI buttons, no characters, no pedestals in the image. Pure architectural palace background only.

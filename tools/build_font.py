@@ -24,7 +24,7 @@ FONTS = [
 ]
 
 EXTRA = (
-    "，。！？、：；「」『』（）【】《》—…·★☆◆◇▲▼◀▶↑↓←→"
+    "，。！？、：；「」『』（）【】《》—…·★☆◆◇▲▼◀▶↑↓←→♂♀"
     "×÷＋－±％‰✓!?"
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 )

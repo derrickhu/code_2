@@ -152,6 +152,25 @@ namespace Liangshan
             done(status, reply, ok ? null : Describe(status, reply));
         }
 
+        public static IEnumerator CallRaw(string path, string json, Action<long, string, string> done)
+        {
+            string err = null;
+            yield return EnsureToken(e => err = e);
+            if (err != null) { done(0, null, err); yield break; }
+
+            long status = 0;
+            string text = null;
+            yield return PostText(path, json, _tok.token, (s, t) => { status = s; text = t; });
+            if (status == 401)
+            {
+                ClearToken();
+                yield return EnsureToken(e => err = e);
+                if (err != null) { done(401, text, err); yield break; }
+                yield return PostText(path, json, _tok.token, (s, t) => { status = s; text = t; });
+            }
+            done(status, text, status == 200 ? null : "HTTP " + status);
+        }
+
         public static void ClearToken()
         {
             _tok = null;

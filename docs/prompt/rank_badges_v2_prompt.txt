@@ -1,0 +1,23 @@
+2D Q-version casual fantasy mobile game UI decorative emblem sheet arranged in a strict 3 columns x 2 rows grid (6 isolated UI pieces) on a solid flat uniform #20D860 bright chroma-green background with wide spacing between cells. Thick clean dark outlines, rich hand-painted glossy highlights, matching the vibrant ornate badge aesthetic of the reference image (do NOT copy any text!).
+
+Row 1, Column 1 (Tier-1 Crimson Dragon Title Plaque):
+Wide horizontal ornate pill-shaped title badge frame with golden dragon-horn wings on left and right ends and rich crimson-red glossy center plate (completely blank empty center for text overlay). NO TEXT.
+
+Row 1, Column 2 (Tier-2 Violet Feather Title Plaque):
+Wide horizontal ornate pill-shaped title badge frame with lavender-silver angel/phoenix wings and glowing purple crystal accents on the sides, deep royal-violet center plate (blank center). NO TEXT.
+
+Row 1, Column 3 (Tier-3 Azure Sword Title Plaque):
+Wide horizontal ornate pill-shaped title badge frame with a gleaming sky-blue sword guard and silver cloud swirls wrapping the ends, vibrant cerulean-blue center plate (blank center). NO TEXT.
+
+Row 2, Column 1 (Tier-4 Emerald Leaf Title Plaque):
+Wide horizontal ornate pill-shaped title badge frame with fresh golden-rimmed emerald leaves and white blossoms at the corners, lush jade-green center plate (blank center). NO TEXT.
+
+Row 2, Column 2 (Champion Ornate Gold Avatar Frame):
+Square rounded ornate avatar border frame with a hollow dark-slate center, decorated with golden corner wings, a tiny top crown, and a small crossed-sword crest on the right rim. NO character inside, NO text.
+
+Row 2, Column 3 (Elite Azure-Silver Ornate Avatar Frame):
+Square rounded ornate avatar border frame with a hollow dark-slate center, decorated with swirling ice-blue waves, silver-gold filigree trim, and a small knight sword on the right rim. NO character inside, NO text.
+
+STRICT CONSTRAINTS:
+- Solid flat #20D860 green background everywhere outside the 6 pieces.
+- NO TEXT, no Chinese characters, no letters, no numbers anywhere in the image! Every plaque center must be clean empty color so crisp dynamic text can be rendered on top.

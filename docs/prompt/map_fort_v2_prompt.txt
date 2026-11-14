@@ -1,0 +1,8 @@
+Vertical 9:16 2D isometric mobile game valley map of an ancient Chinese mountain stronghold in lush sunlit summer greenery, vibrant Q-version painterly game art style.
+Five pure architectural landmarks with generous open stone courtyards:
+- Upper center: grand golden-roofed red wooden palace hall on a stone terrace.
+- Upper left: open sandy martial training yard with wooden weapon racks, a red war drum, and an archery target.
+- Middle right centerpiece plaza: majestic white-stone and gold warrior statue holding a halberd on a circular stone pedestal surrounded by clear blue moat water and stone bridges.
+- Lower left beside an emerald pond: wooden boat pier with two small wooden boats.
+- Lower right: blue-roofed treasury pavilion with wooden crates overflowing with gold coins.
+CRITICAL CONSTRAINT: Pure scenery illustration ONLY! Strictly NO UI boxes, NO tooltips, NO text, NO letters, NO numbers anywhere in the image!

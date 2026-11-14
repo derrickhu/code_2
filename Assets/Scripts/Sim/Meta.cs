@@ -106,6 +106,12 @@ namespace Liangshan.Sim
         public List<TotemData> Totems = new List<TotemData>();
         public int[] TotemEquipped = new int[0];
         public int NextTotemId = 1, TotemPity;
+        /// <summary>聚义信物已消耗点数、每周半价碎片计数、跳过招募动画、整日2倍速日期、今日无损撤退与广告计数、首次出橙标记。</summary>
+        public int CreditSpent, ShardWeek, SkipRecruitAnim, Speed2Day, FreeRetreats, AdStart2Star, AdTakeAll, LegendPulled;
+        public int[] WeeklyShardBought = new int[0];
+        /// <summary>排行榜主线进度奖励领取位、今日已点赞次数、玩家自定义名号。</summary>
+        public int RankClaimed, RankLikes;
+        public string Nick = "";
     }
 
     public enum Cur { Ingot, Copper, Iron, Token, Stamina, Shard, Page, Tome, Silk, Meteor, GearBox, AnyShard, Refine, Hammer }
@@ -232,6 +238,7 @@ namespace Liangshan.Sim
             s.EquipQ = Fit(s.EquipQ, Equips.Length);
             if (s.Totems == null) s.Totems = new List<TotemData>();
             s.TotemEquipped = Fit(s.TotemEquipped, TotemTotalSockets);
+            s.WeeklyShardBought = Fit(s.WeeklyShardBought, Defs.HeroCount);
             if (s.NextTotemId < 1)
             {
                 int mx = 0;
@@ -253,12 +260,20 @@ namespace Liangshan.Sim
         {
             if (s.Born == 0) s.Born = day + 1;
             RollSprint(s, day);
+            int week = Math.Max(0, DayNo(s, day) - 1) / 7 + 1;
+            if (s.ShardWeek != week)
+            {
+                s.ShardWeek = week;
+                if (s.WeeklyShardBought != null)
+                    for (int i = 0; i < s.WeeklyShardBought.Length; i++) s.WeeklyShardBought[i] = 0;
+            }
             if (s.Day == day) return;
             s.Day = day;
             for (int i = 0; i < s.Task.Length; i++) s.Task[i] = 0;
             s.TaskClaimed = 0;
             s.ActBox = 0;
             s.AdIngots = s.AdStamina = s.AdRecruit = s.AdIdle = s.DailyTries = s.EscortTries = s.ShopStamina = s.Meals = 0;
+            s.FreeRetreats = s.AdStart2Star = s.AdTakeAll = s.RankLikes = 0;
             Progress(s, Act.Login);
         }
 
@@ -412,11 +427,11 @@ namespace Liangshan.Sim
         }
 
         /// <summary>
-        /// 好汉等级解锁表（参考视频的火焰法师）：1 级技能（传说另有大招），5 级局内卡池多一张「爆发」，10 级被动，
-        /// 15 级「爆发」必定暴击，20 级卡池再多一张「最强」，25、30 级数值。
+        /// 好汉等级解锁表（对标《永远的蔚蓝星球》）：1 级基础技能，5 级解锁「爆发」（传说好汉同步解锁大招进卡池），
+        /// 10 级被动质变，15 级「爆发」必暴且减冷却，20 级解锁「最强」且抹除所有取舍卡负面减伤代价，25、30 级突破。
         /// </summary>
         public static readonly int[] UnlockLv = { 1, 5, 10, 15, 20, 25, 30 };
-        public const int SurgeLv = 5, PassiveLv = 10, SurgePlusLv = 15, TopLv = 20;
+        public const int UltLv = 5, SurgeLv = 5, PassiveLv = 10, SurgePlusLv = 15, TopLv = 20, NoPenaltyLv = 25;
 
         public static PerkDef OptPerk(HeroId h, int opt)
         {
@@ -429,14 +444,39 @@ namespace Liangshan.Sim
             var d = Defs.Hero(h);
             switch (i)
             {
-                case 0: return d.HasUlt ? $"解锁技能「{d.AtkName}」与大招「{d.UltName}」（局内抽到大招卡释放）" : $"解锁技能「{d.AtkName}」";
-                case 1: return $"解锁「{OptPerk(h, 1).Name}」选项（局内强化可抽到）";
-                case 2: return $"获得被动「{d.PassiveName}」，伤害 +20%";
-                case 3: return d.Buff.HasValue ? $"「{OptPerk(h, 1).Name}」效果翻倍，技能冷却 -10%" : $"「{OptPerk(h, 1).Name}」必定暴击、几率 +10%，技能冷却 -10%";
-                case 4: return $"解锁「{OptPerk(h, 2).Name}」选项（局内强化可抽到）";
-                case 5: return d.Buff.HasValue ? "技能效果 +15%" : "技能伤害 +15%";
+                case 0: return $"解锁战斗技能「{d.AtkName}」";
+                case 1: return d.HasUlt
+                    ? $"解锁大招「{d.UltName}」与「{OptPerk(h, 1).Name}」（局内强化可抽到）"
+                    : $"解锁「{OptPerk(h, 1).Name}」选项（局内强化可抽到）";
+                case 2: return h == HeroId.YanQing
+                    ? $"获得被动「{d.PassiveName}」，场上满4位时弩箭+1，伤害 +20%"
+                    : $"获得被动「{d.PassiveName}」，伤害 +20%";
+                case 3: return h == HeroId.HuaRong
+                    ? $"场上满4位花荣穿透+1，「{OptPerk(h, 1).Name}」必暴，冷却 -10%"
+                    : d.Buff.HasValue ? $"「{OptPerk(h, 1).Name}」效果翻倍，技能冷却 -10%" : $"「{OptPerk(h, 1).Name}」必定暴击、几率 +10%，技能冷却 -10%";
+                case 4: return $"解锁「{OptPerk(h, 2).Name}」选项，且取舍强化不再降低属性";
+                case 5: return d.Buff.HasValue ? "技能效果 +15%，奥义增幅 +35%" : (d.HasUlt ? "技能伤害 +15%，大招冷却 -15%" : "技能伤害 +15%，三合一奥义伤害 +35%");
                 default: return "攻击速度 +20%";
             }
+        }
+
+        /// <summary>好汉免费传功重置：退回 1 级，100% 全额返还已消耗的铜钱与该好汉碎片，换新主 C 零损耗。</summary>
+        public static bool CanResetHero(SaveData s, HeroId h) => s.HeroLv[(int)h] > 1;
+
+        public static bool ResetHero(SaveData s, HeroId h, out int refundCopper, out int refundShards)
+        {
+            refundCopper = refundShards = 0;
+            int lv = s.HeroLv[(int)h];
+            if (lv <= 1) return false;
+            for (int k = 1; k < lv; k++)
+            {
+                refundCopper += CopperCost(k);
+                refundShards += ShardCost(k);
+            }
+            s.HeroLv[(int)h] = 1;
+            s.Copper += refundCopper;
+            s.Shards[(int)h] += refundShards;
+            return true;
         }
 
         public static int HeroPower(SaveData s, HeroId h) => HeroPowerAt(h, s.HeroLv[(int)h]);
@@ -451,6 +491,40 @@ namespace Liangshan.Sim
             return (int)(PowerDps(d) * BaseAtk * HeroDmg(lv) * (lv >= 30 ? 1.2f : 1f) * (lv >= PassiveLv ? 1.08f : 1f) * (lv >= SurgeLv ? 1.06f : 1f) * (lv >= TopLv ? 1.06f : 1f) * 10);
         }
 
+        /// <summary>好汉 1 星真实基础攻击力（局外详情页与局内 1 星 0 词条面板完全同源一致）。</summary>
+        public static float HeroBaseAtk(Loadout lo, HeroId h)
+        {
+            var d = Defs.Hero(h);
+            float m = lo.Atk * lo.HeroDmg[(int)h] * lo.RoleDmg[(int)d.Kind] * lo.DmgMul;
+            if (lo.Lineup != null && Array.IndexOf(lo.Lineup, h) >= 0)
+            {
+                float syn = Defs.RoleSynergyBonus(lo.Lineup);
+                foreach (var bd in Defs.ActiveBonds(lo.Lineup))
+                    if (!bd.RoleTarget.HasValue || bd.RoleTarget.Value == d.Kind) syn += bd.Dmg;
+                m *= 1f + syn;
+            }
+            return m;
+        }
+
+        /// <summary>好汉局外展示攻击力（与局内 1 星 0 词条无本关增益时的面板攻击严格一致）。</summary>
+        public static int HeroDisplayAtk(SaveData s, HeroId h)
+        {
+            var lo = BuildLoadout(s);
+            return (int)Math.Round(HeroBaseAtk(lo, h) * lo.SkillPow[(int)h]);
+        }
+
+        /// <summary>升 1 级后增加的真实面板攻击力。</summary>
+        public static int HeroNextAtkDelta(SaveData s, HeroId h)
+        {
+            int lv = s.HeroLv[(int)h];
+            if (lv <= 0 || lv >= MaxHeroLv) return 0;
+            int cur = HeroDisplayAtk(s, h);
+            s.HeroLv[(int)h] = lv + 1;
+            int nxt = HeroDisplayAtk(s, h);
+            s.HeroLv[(int)h] = lv;
+            return Math.Max(1, nxt - cur);
+        }
+
         public static int TeamPower(SaveData s)
         {
             var lo = BuildLoadout(s);
@@ -458,12 +532,12 @@ namespace Liangshan.Sim
             foreach (var h in lo.Lineup)
             {
                 var d = Defs.Hero(h);
-                p += PowerDps(d) * lo.HeroDmg[(int)h] * lo.HeroSpeed[(int)h] * lo.RoleDmg[(int)d.Kind];
+                p += PowerDps(d) * HeroBaseAtk(lo, h) * lo.SkillPow[(int)h] * lo.HeroSpeed[(int)h];
             }
             float crit = 1f + lo.Crit * (lo.CritDmg - 1f);
-            float extra = lo.DmgMul * (1f + (lo.EliteDmg - 1f) * 0.25f + (lo.BossDmg - 1f) * 0.25f);
+            float extra = 1f + (lo.EliteDmg - 1f) * 0.25f + (lo.BossDmg - 1f) * 0.25f;
             float lord = (lo.LordHits - 1) * 0.04f + (lo.LordStun > 0 ? 0.03f : 0) + (lo.LordBig - 1f) * 0.05f + (lo.FlagStun > 0 ? 0.03f : 0);
-            return (int)(p * lo.Atk * lo.AllSpeed * crit * 10 * extra * (1f + lord) + lo.WallMul * 300 / (1f - lo.WallResist));
+            return (int)(p * lo.AllSpeed * crit * 10 * extra * (1f + lord) + lo.WallMul * 300 / (1f - lo.WallResist));
         }
 
         // ---------------- 寨主天赋 ----------------
@@ -631,11 +705,11 @@ namespace Liangshan.Sim
             return Math.Max(1, n);
         }
 
-        /// <summary>首通送好汉：第一章先补齐稀有的控制、辅助，之后一章两位史诗，第三章往后才有传说。</summary>
+        /// <summary>首通送好汉：按稀有→史诗→传说平滑递增，第 15 关首通保送传说林冲，配合第 6 关开放传说招募，首日即可畅玩传说大招。</summary>
         static readonly (int lv, HeroId h)[] Unlocks =
         {
-            (3, HeroId.RuanXiaoqi), (6, HeroId.TangLong), (10, HeroId.HuaRong), (14, HeroId.WuSong), (18, HeroId.LingZhen),
-            (22, HeroId.WuYong), (26, HeroId.ZhuWu), (30, HeroId.LinChong), (35, HeroId.GongSun), (40, HeroId.HuSanniang), (45, HeroId.LuJunyi),
+            (3, HeroId.RuanXiaoqi), (5, HeroId.TangLong), (7, HeroId.HuaRong), (9, HeroId.WuSong), (12, HeroId.LingZhen),
+            (14, HeroId.WuYong), (16, HeroId.ZhuWu), (18, HeroId.LinChong), (25, HeroId.GongSun), (35, HeroId.HuSanniang), (45, HeroId.LuJunyi),
         };
 
         public static int UnlockLevelOf(HeroId h)
@@ -746,12 +820,12 @@ namespace Liangshan.Sim
         public static int RecruitNeed(int lv) => 10 + lv * 10;
         public const int RecruitMaxLv = 10;
 
-        /// <summary>传说好汉要打完第二章才进招募池，开局只会招到稀有和史诗。</summary>
-        public const int OrangeOpen = 20;
+        /// <summary>传说好汉通关第 6 关即进入招募池（首张传说享受 15 抽新手破冰小保底），首日即可招募并升至 5 级解锁大招。</summary>
+        public const int OrangeOpen = 6;
         public static bool OrangeOpened(SaveData s) => s.Cleared >= OrangeOpen;
         public static float OrangeRate(SaveData s) => OrangeOpened(s) ? 0.05f + 0.01f * (s.RecruitLv - 1) : 0f;
         public static float PurpleRate(SaveData s) => 0.30f + 0.01f * (s.RecruitLv - 1);
-        public const int OrangePity = 40;
+        public const int OrangePity = 40, FirstOrangePity = 15;
 
         public static HeroId? GetWish(SaveData s) =>
             s.WishHero > 0 && s.WishHero <= Defs.HeroCount ? (HeroId)(s.WishHero - 1) : (HeroId?)null;
@@ -759,20 +833,131 @@ namespace Liangshan.Sim
         public static void SetWish(SaveData s, HeroId? h) =>
             s.WishHero = h.HasValue ? (int)h.Value + 1 : 0;
 
-        static HeroId PickOf(SaveData s, int rarity, Rng rng)
+        /// <summary>分章节渐进扩充招募池，防止前期 32 位好汉一齐稀释碎片导致主力升不动。</summary>
+        static bool InRecruitPool(SaveData s, HeroDef d)
+        {
+            if (s.Cleared >= 20) return true;
+            if (s.Cleared >= 10)
+                return d.Id <= HeroId.DaiZong || d.Id == HeroId.LiKui || d.Id == HeroId.ZhuWu || d.Id == HeroId.ShiXiu
+                    || d.Id == HeroId.XieZhen || d.Id == HeroId.MaLing || d.Id == HeroId.KongLiang || d.Id == HeroId.TangLong
+                    || d.Id == HeroId.RuanXiaoqi || d.Id == HeroId.ShiQian;
+            // 第 1 章聚焦 14 位核心代表好汉（含百搭时迁与四大主力传说）
+            switch (d.Id)
+            {
+                case HeroId.HuaRong:
+                case HeroId.LingZhen:
+                case HeroId.WuSong:
+                case HeroId.LuZhiShen:
+                case HeroId.WuYong:
+                case HeroId.GongSun:
+                case HeroId.LinChong:
+                case HeroId.LuJunyi:
+                case HeroId.QinMing:
+                case HeroId.ShiXiu:
+                case HeroId.XieZhen:
+                case HeroId.MaLing:
+                case HeroId.KongLiang:
+                case HeroId.RuanXiaoqi:
+                case HeroId.ShiQian:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        static HeroId PickOf(SaveData s, int rarity, Rng rng, HeroId? avoidPrev = null, int[] roundCounts = null)
         {
             var wish = GetWish(s);
-            if (wish.HasValue && Defs.Hero(wish.Value).Rarity == rarity && (rarity < 4 || OrangeOpened(s)) && rng.Chance(0.5f))
-                return wish.Value;
+            bool wishMatch = wish.HasValue && Defs.Hero(wish.Value).Rarity == rarity && (rarity < 4 || OrangeOpened(s));
+            if (wishMatch)
+            {
+                int wc = roundCounts != null ? roundCounts[(int)wish.Value] : 0;
+                if (rng.Chance(0.5f) && wc < 3 && (!avoidPrev.HasValue || avoidPrev.Value != wish.Value || wc == 0))
+                    return wish.Value;
+            }
+
             var pool = new List<HeroId>();
-            foreach (var d in Defs.Heroes) if (d.Rarity == rarity) pool.Add(d.Id);
+            foreach (var d in Defs.Heroes) if (d.Rarity == rarity && InRecruitPool(s, d)) pool.Add(d.Id);
+            if (pool.Count == 0)
+                foreach (var d in Defs.Heroes) if (d.Rarity == rarity) pool.Add(d.Id);
+
+            // 心愿 50% 判定未中时从候选池剔除心愿好汉，修复「50% + 池内二次抽中 = 60%+」的叠加偏差
+            if (wishMatch && pool.Count > 1)
+            {
+                var noWish = new List<HeroId>();
+                foreach (var h in pool) if (h != wish.Value) noWish.Add(h);
+                if (noWish.Count > 0) pool = noWish;
+            }
+
+            // 单轮十连防扎堆：非心愿同一好汉单轮最多出 2 次
+            if (roundCounts != null && pool.Count > 1)
+            {
+                var underCap = new List<HeroId>();
+                foreach (var h in pool) if (roundCounts[(int)h] < 2) underCap.Add(h);
+                if (underCap.Count > 0) pool = underCap;
+            }
+
+            // 防相邻连号：避免连续两抽蹦出同一个好汉
+            if (avoidPrev.HasValue && pool.Count > 1)
+            {
+                var noAdj = new List<HeroId>();
+                foreach (var h in pool) if (h != avoidPrev.Value) noAdj.Add(h);
+                if (noAdj.Count > 0) pool = noAdj;
+            }
+
             return pool[rng.Int(pool.Count)];
         }
 
-        /// <summary>抽 n 次：十连保底一个紫，四十抽保底橙；设了心愿单时同品质 50% 必中心愿好汉。</summary>
+        /// <summary>在不改变抽出英雄集合的前提下，打散同名相邻并把本轮头号亮点留到第 10 席压轴。</summary>
+        static void ArrangePullDrama(SaveData s, List<HeroId> picks)
+        {
+            int n = picks.Count;
+            if (n < 4) return;
+
+            int Score(HeroId h) => Defs.Hero(h).Rarity * 100 + (s.HeroLv[(int)h] == 0 ? 40 : 0);
+
+            int bestIdx = 0, bestScore = -1;
+            for (int i = 0; i < n; i++)
+            {
+                int sc = Score(picks[i]);
+                if (sc >= bestScore) { bestScore = sc; bestIdx = i; }
+            }
+            HeroId finale = picks[bestIdx];
+            var rest = new List<HeroId>(n - 1);
+            for (int i = 0; i < n; i++) if (i != bestIdx) rest.Add(picks[i]);
+
+            var ordered = new List<HeroId>(n);
+            for (int slot = 0; slot < n - 1; slot++)
+            {
+                HeroId? prev = ordered.Count > 0 ? ordered[ordered.Count - 1] : (HeroId?)null;
+                bool prevHigh = prev.HasValue && Defs.Hero(prev.Value).Rarity >= 3;
+                int chosen = -1, bestCandScore = -9999;
+                for (int j = 0; j < rest.Count; j++)
+                {
+                    var cand = rest[j];
+                    int cs = 0;
+                    if (prev.HasValue && cand == prev.Value) cs -= 1000;
+                    if (slot == n - 2 && cand == finale) cs -= 800;
+                    // 高品质与普通品质自然穿插，避免前 5 张挤成一排紫卡后半程全蓝泄气
+                    bool candHigh = Defs.Hero(cand).Rarity >= 3;
+                    if (prevHigh && !candHigh) cs += 30;
+                    if (!prevHigh && candHigh && slot >= 2) cs += 25;
+                    if (cs > bestCandScore) { bestCandScore = cs; chosen = j; }
+                }
+                ordered.Add(rest[chosen]);
+                rest.RemoveAt(chosen);
+            }
+            ordered.Add(finale);
+
+            for (int i = 0; i < n; i++) picks[i] = ordered[i];
+        }
+
+        /// <summary>抽 n 次：十连保底一个紫，首橙 15 抽破冰保底、常规四十抽保底橙；设了心愿单时同品质 50% 必中心愿好汉。</summary>
         public static List<Pull> Recruit(SaveData s, int n, Rng rng)
         {
-            var res = new List<Pull>();
+            var picks = new List<HeroId>(n);
+            var roundCounts = n > 1 ? new int[Defs.HeroCount] : null;
+            HeroId? prevHero = null;
             bool purple = false;
             for (int i = 0; i < n; i++)
             {
@@ -780,11 +965,31 @@ namespace Liangshan.Sim
                 s.Pulls++;
                 float r = rng.F();
                 int rar = r < OrangeRate(s) ? 4 : r < OrangeRate(s) + PurpleRate(s) ? 3 : 2;
-                if (OrangeOpened(s) && s.Pity >= OrangePity) rar = 4;
+                int pityNeed = s.LegendPulled == 0 ? FirstOrangePity : OrangePity;
+                if (OrangeOpened(s) && s.Pity >= pityNeed) rar = 4;
                 if (n >= 10 && i == n - 1 && !purple && rar < 3) rar = 3;
                 if (rar >= 3) purple = true;
-                if (rar == 4) s.Pity = 0;
-                var h = PickOf(s, rar, rng);
+                if (rar == 4) { s.Pity = 0; s.LegendPulled = 1; }
+
+                var h = PickOf(s, rar, rng, prevHero, roundCounts);
+                picks.Add(h);
+                prevHero = h;
+                if (roundCounts != null) roundCounts[(int)h]++;
+
+                s.RecruitExp++;
+                while (s.RecruitLv < RecruitMaxLv && s.RecruitExp >= RecruitNeed(s.RecruitLv))
+                {
+                    s.RecruitExp -= RecruitNeed(s.RecruitLv);
+                    s.RecruitLv++;
+                }
+            }
+
+            if (n >= 5) ArrangePullDrama(s, picks);
+
+            var res = new List<Pull>(n);
+            foreach (var h in picks)
+            {
+                int rar = Defs.Hero(h).Rarity;
                 var p = new Pull { Hero = h };
                 if (s.HeroLv[(int)h] == 0)
                 {
@@ -797,15 +1002,45 @@ namespace Liangshan.Sim
                     s.Shards[(int)h] += p.Shards;
                 }
                 res.Add(p);
-                s.RecruitExp++;
-                while (s.RecruitLv < RecruitMaxLv && s.RecruitExp >= RecruitNeed(s.RecruitLv))
-                {
-                    s.RecruitExp -= RecruitNeed(s.RecruitLv);
-                    s.RecruitLv++;
-                }
             }
             Progress(s, Act.Recruit, n);
             return res;
+        }
+
+        // ---------------- 酒馆聚义信物（招募积分每周半价定向换碎片） ----------------
+
+        public const int CreditsPerPull = 10, WeeklyHalfLimit = 10;
+
+        public static int RecruitCredits(SaveData s) => Math.Max(0, s.Pulls * CreditsPerPull - s.CreditSpent);
+
+        public static int BaseShardCreditPrice(int rarity) => rarity >= 4 ? 20 : rarity == 3 ? 12 : 8;
+
+        public static int NextShardCreditPrice(SaveData s, HeroId h)
+        {
+            int baseP = BaseShardCreditPrice(Defs.Hero(h).Rarity);
+            int bought = s.WeeklyShardBought != null && (int)h < s.WeeklyShardBought.Length ? s.WeeklyShardBought[(int)h] : 0;
+            return bought < WeeklyHalfLimit ? baseP / 2 : baseP;
+        }
+
+        public static int HalfLeft(SaveData s, HeroId h)
+        {
+            int bought = s.WeeklyShardBought != null && (int)h < s.WeeklyShardBought.Length ? s.WeeklyShardBought[(int)h] : 0;
+            return Math.Max(0, WeeklyHalfLimit - bought);
+        }
+
+        public static bool BuyHeroShardWithCredits(SaveData s, HeroId h, int count = 1)
+        {
+            if (!Owned(s, h) || count <= 0) return false;
+            int total = 0;
+            int bought = s.WeeklyShardBought[(int)h];
+            int baseP = BaseShardCreditPrice(Defs.Hero(h).Rarity);
+            for (int i = 0; i < count; i++)
+                total += (bought + i) < WeeklyHalfLimit ? baseP / 2 : baseP;
+            if (RecruitCredits(s) < total) return false;
+            s.CreditSpent += total;
+            s.WeeklyShardBought[(int)h] += count;
+            s.Shards[(int)h] += count;
+            return true;
         }
 
         // ---------------- 每日任务、签到、巡山 ----------------
@@ -989,9 +1224,27 @@ namespace Liangshan.Sim
 
         // ---------------- 数值参考 ----------------
 
-        static int ExpectedLv(int n) => Math.Min(MaxHeroLv, 1 + (int)((n - 1) * 0.5f));
-        static int ExpectedEquip(int n) => Math.Min(Math.Min(40, 5 + (n - 1) * 7 / 10), (int)((n - 1) * 0.6f));
-        static int ExpectedTalent(int n) => Math.Min(Math.Min(TalentMax, 6 + (n - 1) * 3), 2 * (n - 1));
+        static int ExpectedLv(int n) => Math.Min(MaxHeroLv, 1 + (n <= 10 ? (int)((n - 1) * 0.72f) : 6 + (int)((n - 10) * 0.60f)));
+        static int ExpectedEquip(int n) => Math.Min(Math.Min(40, 5 + (n - 1) * 7 / 10), (int)((n - 1) * 0.85f));
+        static int ExpectedEquipQ(int n) => n >= 36 ? 3 : n >= 20 ? 2 : n >= 6 ? 1 : 0;
+        static int ExpectedTalent(int n) => Math.Min(Math.Min(TalentMax, 6 + (n - 1) * 3), (int)((n - 1) * 3.0f));
+        static int ExpectedCloak(int n) => n <= 3 ? 0 : Math.Min(CloakMax, (n - 2) * 15 / 48);
+        static int ExpectedPage(int n) => n <= 3 ? 0 : Math.Min(PageMax, (n - 2) * 30 / 48);
+        static int ExpectedTotemRarityAt(int n, int k)
+        {
+            if (k == 0 && n >= 3) return n >= 36 ? 4 : n >= 20 ? 3 : 2; // 开档即赠 1 枚史诗兽魂
+            int age = n - 3 - k * 2;
+            return age >= 38 ? 4 : age >= 22 ? 3 : age >= 8 ? 2 : 1;
+        }
+        static int ExpectedTotemCount(int n)
+        {
+            if (n <= 2) return 0;
+            int openPerSlot = 0;
+            for (int k = 0; k < TotemSocketUnlockCleared.Length; k++)
+                if (n - 1 >= TotemSocketUnlockCleared[k]) openPerSlot++;
+            int want = 2 + (n - 2) * 22 / 46;
+            return Math.Min(6 * openPerSlot, want);
+        }
 
         /// <summary>打到第 n 关前首通解锁的好汉数。</summary>
         static int ExpectedUnlocked(int n)
@@ -1001,7 +1254,7 @@ namespace Liangshan.Sim
             return k;
         }
 
-        /// <summary>正常推进到第 n 关时大致的养成：调难度曲线、写单测都用它。</summary>
+        /// <summary>正常推进到第 n 关时的真实局外养成基准（含好汉等级、装备强化与品质、天赋、战氅、天书、兽魂图腾）：调难度曲线、写单测共用。</summary>
         public static SaveData ExpectedSave(int n)
         {
             var s = NewSave(0);
@@ -1018,40 +1271,66 @@ namespace Liangshan.Sim
                 s.HeroLv[s.Lineup[i]] = lv;
             }
             if (s.Presets != null) Array.Copy(s.Lineup, 0, s.Presets, s.Preset * 4, 4);
-            s.Cleared = n - 1;
-            int eq = ExpectedEquip(n);
-            for (int i = 0; i < s.EquipLv.Length; i++) s.EquipLv[i] = eq;
+            s.Cleared = Math.Max(0, n - 1);
+            int eq = ExpectedEquip(n), eqQ = ExpectedEquipQ(n);
+            for (int i = 0; i < s.EquipLv.Length; i++) { s.EquipLv[i] = eq; s.EquipQ[i] = eqQ; }
             s.Talent = ExpectedTalent(n);
+            s.CloakLv = ExpectedCloak(n);
+            s.PageLv = ExpectedPage(n);
+
+            s.Totems.Clear();
+            Array.Clear(s.TotemEquipped, 0, s.TotemEquipped.Length);
+            int tCnt = ExpectedTotemCount(n);
+            for (int k = 0; k < tCnt; k++)
+            {
+                int slot = k % 6, sock = k / 6;
+                int tRar = ExpectedTotemRarityAt(n, k);
+                var td = new TotemData { Id = k + 1, Beast = slot, Slot = slot, Rarity = tRar, Kind = 0 };
+                s.Totems.Add(td);
+                s.TotemEquipped[slot * TotemSocketsPerSlot + sock] = td.Id;
+            }
+            s.NextTotemId = tCnt + 1;
             return s;
         }
 
         static readonly float PlainCrit = 1f + BaseCrit * (BaseCritDmg - 1f);
 
-        /// <summary>一位好汉的输出倍率（相对白板）：攻击力 × 等级 × 攻速 × 暴击期望 × 职业突破。</summary>
+        /// <summary>一位好汉的局外综合输出倍率（相对 1 级白板）：含武器、天赋、等级、职业突破、战氅、天书、战旗、兽魂图腾、攻速与暴击期望。</summary>
         public static float PowerOf(Loadout lo, HeroId h)
         {
             var d = Defs.Hero(h);
             float crit = 1f + Math.Min(0.8f, lo.Crit) * (lo.CritDmg - 1f);
-            return lo.Atk / BaseAtk * lo.HeroDmg[(int)h] * lo.HeroSpeed[(int)h] * lo.AllSpeed * lo.RoleDmg[(int)d.Kind] * crit / PlainCrit;
+            return lo.Atk / BaseAtk * lo.DmgMul * lo.HeroDmg[(int)h] * lo.HeroSpeed[(int)h] * lo.AllSpeed * lo.RoleDmg[(int)d.Kind] * crit / PlainCrit;
         }
 
         /// <summary>被动、技能冷却、开局强化、技能伤害这几档解锁的大致收益。</summary>
         public static float UnlockFactor(int lv) => (lv >= 5 ? 1.08f : 1f) * (lv >= 15 ? 1.11f : 1f) * (lv >= 20 ? 1.06f : 1f) * (lv >= 25 ? 1.15f : 1f);
 
-        /// <summary>ExpectedSave(n) 的单个好汉输出倍率，不依赖关卡表，关卡表初始化时可以调。和 PowerOf(BuildLoadout(ExpectedSave(n))) 保持一致。</summary>
+        /// <summary>ExpectedSave(n) 的单个好汉输出倍率，不依赖关卡表，关卡表初始化时可以调。和 PowerOf(BuildLoadout(ExpectedSave(n))) 严格一致。</summary>
         public static float ExpectedPower(int n)
         {
             int lv = ExpectedLv(n);
             int lv2 = Math.Max(1, lv - 4);
-            int eq = ExpectedEquip(n);
+            int eq = ExpectedEquip(n), eqQ = ExpectedEquipQ(n);
+            int cloak = ExpectedCloak(n), page = ExpectedPage(n);
+            int tCnt = ExpectedTotemCount(n);
+            int tAtkSum = 0;
+            float tDmgSum = 0f;
+            for (int k = 0; k < tCnt; k++)
+            {
+                int r = ExpectedTotemRarityAt(n, k);
+                tAtkSum += TotemBaseAtk[r];
+                tDmgSum += TotemVal(0, r);
+            }
             TalentSum(ExpectedTalent(n), out var tAtk, out var tCrit, out var tCritDmg, out _, out _, out var tSpeed);
-            float atk = BaseAtk + tAtk + EquipValue(0, eq);
-            float critRate = Math.Min(0.8f, BaseCrit + tCrit + EquipValue(4, eq));
+            float atk = BaseAtk + tAtk + EquipValue(0, eq, eqQ) + tAtkSum;
+            float dmgMul = 1f + PageDmg * page + CloakDmgBonus(cloak) + tDmgSum;
+            float critRate = Math.Min(0.8f, BaseCrit + tCrit + EquipValue(4, eq, eqQ));
             float critDmg = BaseCritDmg + tCritDmg + (4 * (lv - 1) + ExpectedUnlocked(n) * (lv2 - 1)) * CritDmgPerLv;
             float crit = 1f + critRate * (critDmg - 1f);
-            float speed = (lv >= 30 ? 1.2f : 1f) * (1f + EquipValue(3, eq) + tSpeed);
+            float speed = (lv >= 30 ? 1.2f : 1f) * (1f + EquipValue(3, eq, eqQ) + tSpeed);
             float role = 1f + Breaks(eq) * BreakDmg;
-            return atk / BaseAtk * HeroDmg(lv) * speed * role * crit / PlainCrit * UnlockFactor(lv);
+            return atk / BaseAtk * dmgMul * HeroDmg(lv) * speed * role * crit / PlainCrit * UnlockFactor(lv);
         }
 
         static float RarityWeight(int r) => r >= 4 ? 1.15f : r == 3 ? 1f : 0.76f;
@@ -1071,12 +1350,122 @@ namespace Liangshan.Sim
             return Math.Min(0.96f, sum / 4f / ((3 * RarityWeight(3) + RarityWeight(4)) / 4f));
         }
 
-        /// <summary>ExpectedSave(n) 的寨墙等效血量倍率（头盔、天赋加血，铠甲减伤）。</summary>
+        /// <summary>ExpectedSave(n) 的寨墙等效血量倍率（头盔、天赋、战氅加血，铠甲减伤）。</summary>
         public static float ExpectedWall(int n)
         {
-            int eq = ExpectedEquip(n);
+            int eq = ExpectedEquip(n), eqQ = ExpectedEquipQ(n);
+            int cloak = ExpectedCloak(n);
             TalentSum(ExpectedTalent(n), out _, out _, out _, out var tWall, out _, out _);
-            return (1f + EquipValue(1, eq) + tWall) / (1f - EquipValue(2, eq));
+            return (1f + EquipValue(1, eq, eqQ) + tWall + CloakWallBonus(cloak)) / (1f - EquipValue(2, eq, eqQ));
+        }
+
+        // ---------------- 排行榜进度里程碑 & 荣耀称号 ----------------
+
+        public const int RankLikesMax = 3;
+
+        public sealed class RankMilestoneDef
+        {
+            public int Stage;
+            public string Name;
+            public Item[] Items;
+        }
+
+        public static readonly RankMilestoneDef[] RankMilestones =
+        {
+            new RankMilestoneDef { Stage = 2,  Name = "初露锋芒", Items = new[] { new Item(Cur.Ingot, 60),  new Item(Cur.Copper, 800) } },
+            new RankMilestoneDef { Stage = 5,  Name = "智破何涛", Items = new[] { new Item(Cur.Ingot, 100), new Item(Cur.Token, 2) } },
+            new RankMilestoneDef { Stage = 10, Name = "荡平金沙", Items = new[] { new Item(Cur.Ingot, 150), new Item(Cur.Hammer, 2) } },
+            new RankMilestoneDef { Stage = 15, Name = "名震济州", Items = new[] { new Item(Cur.Ingot, 180), new Item(Cur.Token, 3) } },
+            new RankMilestoneDef { Stage = 20, Name = "三打祝庄", Items = new[] { new Item(Cur.Ingot, 220), new Item(Cur.Refine, 4) } },
+            new RankMilestoneDef { Stage = 25, Name = "威震水泊", Items = new[] { new Item(Cur.Ingot, 260), new Item(Cur.Hammer, 3) } },
+            new RankMilestoneDef { Stage = 30, Name = "曾头破敌", Items = new[] { new Item(Cur.Ingot, 300), new Item(Cur.Token, 5) } },
+            new RankMilestoneDef { Stage = 35, Name = "连环破甲", Items = new[] { new Item(Cur.Ingot, 350), new Item(Cur.Refine, 6) } },
+            new RankMilestoneDef { Stage = 40, Name = "横扫千军", Items = new[] { new Item(Cur.Ingot, 420), new Item(Cur.Hammer, 5) } },
+            new RankMilestoneDef { Stage = 50, Name = "替天魁首", Items = new[] { new Item(Cur.Ingot, 600), new Item(Cur.Token, 10) } },
+        };
+
+        public static bool RankMilestoneGot(SaveData s, int i) => (s.RankClaimed & (1 << i)) != 0;
+
+        public static bool CanClaimRankMilestone(SaveData s, int i) =>
+            i >= 0 && i < RankMilestones.Length && s.Cleared >= RankMilestones[i].Stage && !RankMilestoneGot(s, i);
+
+        public static int RankRewardBadge(SaveData s)
+        {
+            int n = 0;
+            for (int i = 0; i < RankMilestones.Length; i++)
+                if (CanClaimRankMilestone(s, i)) n++;
+            return n;
+        }
+
+        public static List<Item> ClaimRankMilestone(SaveData s, int i)
+        {
+            var got = new List<Item>();
+            if (!CanClaimRankMilestone(s, i)) return got;
+            s.RankClaimed |= 1 << i;
+            foreach (var it in RankMilestones[i].Items)
+            {
+                Give(s, it);
+                got.Add(it);
+            }
+            return got;
+        }
+
+        public static List<Item> ClaimAllRankMilestones(SaveData s)
+        {
+            var merged = new List<Item>();
+            for (int i = 0; i < RankMilestones.Length; i++)
+            {
+                if (!CanClaimRankMilestone(s, i)) continue;
+                s.RankClaimed |= 1 << i;
+                foreach (var it in RankMilestones[i].Items)
+                {
+                    Give(s, it);
+                    int k = merged.FindIndex(x => x.Cur == it.Cur && x.Hero == it.Hero);
+                    if (k >= 0) merged[k] = new Item(it.Cur, merged[k].N + it.N, it.Hero);
+                    else merged.Add(it);
+                }
+            }
+            return merged;
+        }
+
+        public static int TotalStars(SaveData s)
+        {
+            if (s.Stars == null) return 0;
+            int sum = 0, n = Math.Min(s.Cleared, s.Stars.Length);
+            for (int i = 0; i < n; i++) sum += s.Stars[i];
+            return sum;
+        }
+
+        public static HeroId StrongestHero(SaveData s)
+        {
+            var lu = Lineup(s);
+            HeroId best = lu[0];
+            int bestP = -1;
+            foreach (var h in lu)
+            {
+                int p = HeroPower(s, h);
+                if (p > bestP) { bestP = p; best = h; }
+            }
+            for (int i = 0; i < Defs.HeroCount; i++)
+            {
+                if (!Owned(s, (HeroId)i)) continue;
+                int p = HeroPower(s, (HeroId)i);
+                if (p > bestP) { bestP = p; best = (HeroId)i; }
+            }
+            return best;
+        }
+
+        /// <summary>按榜单名次与进度授予荣耀称号与牌匾品阶（1 赤金 / 2 紫电 / 3 天青 / 4 翠玉）。</summary>
+        public static (string Title, int Tier) HonorTitle(int rank, int cleared, int power)
+        {
+            if (rank == 1) return ("替天魁首", 1);
+            if (rank == 2) return ("天罡统领", 2);
+            if (rank == 3) return ("镇山先锋", 3);
+            if (cleared >= 42 || power >= 16000) return ("传奇英杰", 1);
+            if (cleared >= 28 || power >= 9500) return ("无双猛将", 2);
+            if (cleared >= 14 || power >= 4500) return ("剑心澄明", 3);
+            if (cleared >= 5 || power >= 2000) return ("水泊英豪", 4);
+            return ("聚义新锐", 4);
         }
     }
 }

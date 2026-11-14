@@ -55,10 +55,10 @@ def patch_game_js():
     block = f"""loadingPageConfig: {{
                 totalLaunchTime: 7000,
                 animationDuration: 100,
-                // 720x1280 整张都要看见。长屏上下留边，不裁左右，武松和鲁智深才不会被切掉。
+                // 720x1280 等比铺满不拉伸。长屏裁掉左右一点边，不再上下留黑边。
                 designWidth: {W},
                 designHeight: {H},
-                scaleMode: scaleMode.showAll,
+                scaleMode: scaleMode.noBorder,
                 textConfig: {{
                     firstStartText: '首次加载请耐心等待',
                     downloadingText: ['正在加载资源'],
@@ -112,7 +112,7 @@ def patch_game_js():
     if needle in js and "hideLoadingPage" not in js[js.find("onLaunchProgress"):js.find("onLaunchProgress") + 1200]:
         js = js.replace(needle, guard, 1)
     GAME_JS.write_text(js, encoding="utf-8")
-    print("已改 game.js：封面整张显示，金色进度条落在槽里，主界面出来后揭开")
+    print("已改 game.js：封面铺满屏幕，金色进度条落在槽里，主界面出来后揭开")
 
 
 def drop_data_subpackage():

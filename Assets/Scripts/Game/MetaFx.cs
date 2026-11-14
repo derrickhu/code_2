@@ -10,7 +10,7 @@ namespace Liangshan
     /// <summary>局外的庆祝演出：升级成功、火焰属性条、永久强化、天赋提升、恭喜获得、新好汉揭晓。都挂在 Layer 最上层，点一下推进或关闭。</summary>
     public static class MetaFx
     {
-        static readonly Color BandColor = new Color(0.06f, 0.14f, 0.24f, 0.92f);
+        static readonly Color BandColor = new Color(0.05f, 0.12f, 0.22f, 0.98f);
 
         /// <summary>全屏遮罩。minShow 秒内点击无效，免得连点把演出直接点没了。</summary>
         public static RectTransform Overlay(Transform layer, string key, float dim, Action onTap, float minShow = 0.35f)
@@ -192,13 +192,15 @@ namespace Liangshan
             return r;
         }
 
-        /// <summary>一行副属性：深色胶囊「暴击伤害 139.4% +1.0%」，从右边滑进。</summary>
+        /// <summary>一行副属性：深色胶囊左对齐属性名、右对齐数值与绿字涨幅，从右边滑进。</summary>
         public static RectTransform StatLine(Transform p, string label, string value, string add, Vector2 pos, float delay = 0)
         {
             var r = Ui.Rect(p, "statLine");
-            r.sizeDelta = new Vector2(620, 70);
-            Ui.Skin(r, "pill", new Vector2(620, 66), Vector2.zero, -1f);
-            Ui.Outlined(r, $"{label}  <color=#FFE08A>{value}</color>  <color=#9CFF6A>{add}</color>", 34, Color.white, new Vector2(0, 1), new Vector2(600, 60), Pal.Ink, 2f);
+            r.sizeDelta = new Vector2(720, 82);
+            Ui.Skin(r, "pill", new Vector2(720, 80), Vector2.zero, -1f);
+            Ui.Outlined(r, label, 31, Color.white, new Vector2(-150, 1), new Vector2(340, 60), Pal.Ink, 2f, TextAnchor.MiddleLeft);
+            Ui.Outlined(r, value, 34, Pal.Hex("FFE08A"), new Vector2(82, 1), new Vector2(180, 60), Pal.Ink, 2.2f, TextAnchor.MiddleRight);
+            Ui.Outlined(r, add, 31, Pal.Hex("9CFF6A"), new Vector2(268, 1), new Vector2(136, 60), Pal.Hex("1B4E12"), 2.0f, TextAnchor.MiddleLeft);
             var start = pos + new Vector2(900, 0);
             r.anchoredPosition = start;
             Tween.Run(r, 0.3f, k => r.anchoredPosition = Vector2.Lerp(start, pos, Tween.OutBack(k)), null, delay);
@@ -251,39 +253,160 @@ namespace Liangshan
                 if (ui > 0) Perma(layer, info.Hero, ui, done);
                 else done?.Invoke();
             }
-            root = Overlay(layer, "levelup", 0.45f, Close);
+            root = Overlay(layer, "levelup", 0.76f, Close);
             Sfx.Play(Snd.LevelUp, 0.9f);
-            Band(root, 250, 230);
-            GoldBanner(root, "升级成功", new Vector2(0, 268), 720);
-            Burst(root, new Vector2(0, 268), 16, 420);
-            FlameBar(root, "战力", info.OldPower, info.NewPower, new Vector2(-10, 60), 0.25f);
-            StatLine(root, "全军暴击伤害", $"{info.NewCritDmg * 100:0.#}%", $"+{(info.NewCritDmg - info.OldCritDmg) * 100:0.#}%", new Vector2(0, -60), 0.4f);
-            Ui.Label(root, $"{Defs.Hero(info.Hero).Name} 升到 {info.NewLv} 级", 30, Pal.Cream, new Vector2(0, -130), new Vector2(800, 44), TextAnchor.MiddleCenter, Fonts.Heavy);
+            Band(root, 56, 548);
+            GoldBanner(root, "升级成功", new Vector2(0, 344), 720);
+            Burst(root, new Vector2(0, 344), 16, 420);
+
+            var lvPill = Ui.Rect(root, "lvPill");
+            lvPill.anchoredPosition = new Vector2(0, 184);
+            lvPill.sizeDelta = new Vector2(460, 52);
+            Ui.Box(lvPill, new Vector2(460, 50), Vector2.zero, new Color(0.03f, 0.08f, 0.16f, 0.80f), Art.Pill);
+            Ui.Outlined(lvPill, $"{Defs.Hero(info.Hero).Name}  升至  <color=#FFE47A>Lv.{info.NewLv}</color>",
+                33, Color.white, new Vector2(0, 1), new Vector2(436, 46), Pal.Ink, 2.2f);
+            Tween.Pop(lvPill, 0.24f, 0.10f);
+
+            FlameBar(root, "战力", info.OldPower, info.NewPower, new Vector2(-10, 34), 0.22f);
+            StatLine(root, "全军暴击伤害", $"{info.NewCritDmg * 100:0.#}%", $"+{(info.NewCritDmg - info.OldCritDmg) * 100:0.#}%", new Vector2(0, -124), 0.36f);
+            Hint(root, -284);
             Tween.Run(root, 2.6f, k => { }, Close);
         }
 
-        /// <summary>等级里程碑：5、20 级往局内卡池加一张选项，用「解锁选项」；其余是「永久强化」。</summary>
+        static string FormatMilestoneDesc(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "";
+            s = s.Replace("」\n", "」").Replace("额外\n", "额外").Replace("首领\n", "首领").Replace("\n", "，");
+            if (!s.Contains("<color="))
+            {
+                s = System.Text.RegularExpressions.Regex.Replace(s, "「(.*?)」", m => HeroText.O("[" + m.Groups[1].Value + "]"));
+                s = System.Text.RegularExpressions.Regex.Replace(s, @"([+-]?\d+(?:\.\d+)?(?:%|秒))", m => HeroText.O(m.Groups[1].Value));
+            }
+            return s;
+        }
+
+        /// <summary>等级里程碑：5、20 级往局内卡池加选项，用「解锁选项」；其余是「永久强化」。分区排版杜绝任何多行重叠。</summary>
         public static void Perma(Transform layer, HeroId h, int unlockIdx, Action done = null)
         {
             var d = Defs.Hero(h);
             RectTransform root = null;
-            root = Overlay(layer, "perma", 0.55f, () => { Dismiss(root); done?.Invoke(); }, 0.6f);
+            root = Overlay(layer, "perma", 0.86f, () => { Dismiss(root); done?.Invoke(); }, 0.6f);
             Sfx.Play(Snd.Unlock, 0.9f);
             var opt = unlockIdx == 1 ? Meta.OptPerk(h, 1) : unlockIdx == 4 ? Meta.OptPerk(h, 2) : null;
-            Band(root, 60, 420);
-            var word = BigWord(root, opt != null ? "解锁选项" : "永久强化", new Vector2(0, 250), 92);
-            Burst(root, new Vector2(0, 250), 18, 460);
+            int lvNeed = unlockIdx >= 0 && unlockIdx < Meta.UnlockLv.Length ? Meta.UnlockLv[unlockIdx] : 5;
+
+            // 传说好汉升至 5 级：同时解锁「天罡大招」与「爆发强化选项」，采用双横卡宽敞分栏展示！
+            if (unlockIdx == 1 && d.HasUlt && opt != null)
+            {
+                Band(root, 68, 564);
+                var dualWord = BigWord(root, "解锁选项", new Vector2(0, 366), 86);
+                Burst(root, new Vector2(0, 366), 18, 460);
+
+                var dualSub = Ui.Rect(root, "dualSub");
+                dualSub.anchoredPosition = new Vector2(0, 252);
+                dualSub.sizeDelta = new Vector2(680, 46);
+                Ui.Box(dualSub, new Vector2(680, 44), Vector2.zero, new Color(0.03f, 0.09f, 0.18f, 0.78f), Art.Pill);
+                Ui.Outlined(dualSub, $"{d.Name} Lv.{lvNeed} 突破 · 上阵时局内强化池新增",
+                    25, Pal.Hex("A8E4FF"), new Vector2(0, 1), new Vector2(656, 40), Pal.Ink, 1.7f);
+
+                void BuildUnlockRow(Vector2 pos, string ic, string tag, Color tagCol, string title, string rawDesc, float delay)
+                {
+                    var card = Ui.Rect(root, "unlockCard_" + title);
+                    card.anchoredPosition = pos;
+                    card.sizeDelta = new Vector2(900, 160);
+                    Ui.Box(card, new Vector2(900, 160), Vector2.zero, new Color(0.03f, 0.08f, 0.15f, 0.88f), Art.Rounded);
+                    Ui.Box(card, new Vector2(892, 2), new Vector2(0, 78), Pal.Gold.A(0.48f), Art.White);
+                    Ui.Box(card, new Vector2(696, 2), new Vector2(68, 2), Color.white.A(0.10f), Art.White);
+
+                    var hx = Hex(card, string.IsNullOrEmpty(ic) ? d.AtkIcon : ic, 108, new Vector2(-364, 0), false, d.Rarity);
+                    Tween.Pop(hx, 0.32f, delay);
+
+                    MetaUi.Badge(card, tag, tagCol, new Vector2(118, 36), new Vector2(-230, 38), 20);
+                    Ui.Outlined(card, title, 36, Pal.Hex("FFE7A0"), new Vector2(126, 38), new Vector2(556, 46), Pal.Ink, 2.4f, TextAnchor.MiddleLeft);
+
+                    var dt = Ui.Outlined(card, FormatMilestoneDesc(rawDesc), 26, Color.white,
+                        new Vector2(64, -36), new Vector2(706, 54), Pal.Ink, 1.6f, TextAnchor.MiddleLeft);
+                    MetaUi.Fit(dt, 21);
+                    Tween.Pop(card, 0.24f, delay * 0.6f);
+                }
+
+                string ultRaw = !string.IsNullOrEmpty(d.UltTip) ? d.UltTip : HeroText.Ult(d);
+                BuildUnlockRow(new Vector2(0, 112), d.UltIcon, "天罡大招", Pal.Red, d.UltName, ultRaw, 0.10f);
+                BuildUnlockRow(new Vector2(0, -82), d.AtkIcon, "爆发选项", Pal.Hex("D67A12"), opt.Name, opt.Desc, 0.20f);
+
+                Hint(root, -278);
+                dualWord.transform.SetAsLastSibling();
+                return;
+            }
+
+            // 常规单项里程碑：标题 → 六边形徽章 → 技能名 → 来源胶囊 → 独立暗金说明框（每行独立节点，绝不撞字）
+            bool hasExtraLine = opt != null && unlockIdx == 4;
+            float boxH = hasExtraLine ? 148f : 104f;
+            float boxY = hasExtraLine ? -172f : -150f;
+            float bandBot = boxY - boxH * 0.5f - 38f;
+            const float bandTop = 342f;
+            Band(root, (bandTop + bandBot) * 0.5f, bandTop - bandBot);
+
+            var word = BigWord(root, opt != null ? "解锁选项" : "永久强化", new Vector2(0, 358), 86);
+            Burst(root, new Vector2(0, 358), 18, 460);
+
             string icon = opt != null ? (opt.Opt == 2 ? "ic_star" : d.AtkIcon) : unlockIdx == 2 ? "ic_star" : unlockIdx == 6 ? "ic_fast" : d.AtkIcon;
-            var hex = Hex(root, icon, 150, new Vector2(0, 110), false, d.Rarity);
-            Tween.Pop(hex, 0.35f, 0.15f);
+            Ui.Box(root, Vector2.one * 240f, new Vector2(0, 184), MetaUi.RarityColor(d.Rarity).A(0.32f), Art.SoftDot, "hexGlow");
+            var hex = Hex(root, icon, 148, new Vector2(0, 184), false, d.Rarity);
+            Tween.Pop(hex, 0.35f, 0.12f);
+
             string name = opt != null ? opt.Name : unlockIdx == 2 ? d.PassiveName : unlockIdx == 3 ? Meta.OptPerk(h, 1).Name + "·精通" :
                 unlockIdx == 5 ? d.AtkName + "·极意" : "疾风";
-            Ui.Outlined(root, name, 44, Pal.Hex("FFE7A0"), new Vector2(0, 2), new Vector2(800, 60), Pal.Ink, 3f);
-            string desc = opt != null
-                ? $"{d.Name}上阵时，局内强化可抽到{HeroText.O("[" + name + "]")}：{opt.Desc}"
-                : $"{d.Name}获得{HeroText.O("[" + name + "]")}：{Meta.Talent(h, unlockIdx)}";
-            Ui.Label(root, desc, 32, Color.white, new Vector2(0, -72), new Vector2(880, 110), TextAnchor.MiddleCenter, Fonts.Heavy);
-            Hint(root, -300);
+            Ui.Outlined(root, name, 46, Pal.Hex("FFE7A0"), new Vector2(0, 30), new Vector2(840, 58), Pal.Ink, 3f);
+
+            var subPill = Ui.Rect(root, "subPill");
+            subPill.anchoredPosition = new Vector2(0, -46);
+            subPill.sizeDelta = new Vector2(640, 46);
+            Ui.Box(subPill, new Vector2(640, 44), Vector2.zero, new Color(0.03f, 0.09f, 0.18f, 0.78f), Art.Pill);
+            string subText = opt != null
+                ? $"{d.Name} Lv.{lvNeed} 解锁 · 上阵时局内强化可抽到"
+                : $"{d.Name} Lv.{lvNeed} 突破 · 属性与技能永久生效";
+            Ui.Outlined(subPill, subText, 25, opt != null ? Pal.Hex("9EE2FF") : Pal.Hex("A8F5BE"),
+                new Vector2(0, 1), new Vector2(616, 40), Pal.Ink, 1.7f);
+
+            var descBox = Ui.Rect(root, "descBox");
+            descBox.anchoredPosition = new Vector2(0, boxY);
+            descBox.sizeDelta = new Vector2(880, boxH);
+            Ui.Box(descBox, new Vector2(880, boxH), Vector2.zero, new Color(0.03f, 0.08f, 0.15f, 0.86f), Art.Rounded);
+            Ui.Box(descBox, new Vector2(872, 2), new Vector2(0, boxH * 0.5f - 2f), Pal.Gold.A(0.45f), Art.White);
+
+            string mainLine;
+            if (opt != null)
+            {
+                mainLine = FormatMilestoneDesc(opt.Desc);
+            }
+            else if (unlockIdx == 2)
+            {
+                string pas = FormatMilestoneDesc(HeroText.Passive(d));
+                string dmgNote = h == HeroId.YanQing
+                    ? $"满{HeroText.O("4位")}弩箭{HeroText.O("+1")}，伤害 {HeroText.O("+20%")}"
+                    : $"普攻与技能伤害 {HeroText.O("+20%")}";
+                mainLine = $"{pas}，{dmgNote}";
+            }
+            else
+            {
+                mainLine = FormatMilestoneDesc(Meta.Talent(h, unlockIdx));
+            }
+
+            if (hasExtraLine)
+            {
+                MetaUi.Fit(Ui.Outlined(descBox, mainLine, 29, Color.white, new Vector2(0, 32), new Vector2(832, 48), Pal.Ink, 1.9f), 22);
+                Ui.Box(descBox, new Vector2(780, 2), new Vector2(0, -1), Color.white.A(0.10f), Art.White);
+                MetaUi.Fit(Ui.Outlined(descBox, "额外突破：所有取舍强化不再降低属性", 26, Pal.Hex("9CFF6A"),
+                    new Vector2(0, -34), new Vector2(832, 44), Pal.Hex("143E18"), 1.7f), 21);
+            }
+            else
+            {
+                MetaUi.Fit(Ui.Outlined(descBox, mainLine, 30, Color.white, Vector2.zero, new Vector2(832, 76), Pal.Ink, 1.9f), 22);
+            }
+            Tween.Pop(descBox, 0.24f, 0.16f);
+
+            Hint(root, bandBot - 64f);
             word.transform.SetAsLastSibling();
         }
 
@@ -311,12 +434,13 @@ namespace Liangshan
             var cg = root.gameObject.AddComponent<CanvasGroup>();
             cg.blocksRaycasts = false;
             Sfx.Play(Snd.Talent, 0.9f);
-            Band(root, 120, 300);
-            BigWord(root, "天赋提升", new Vector2(0, 200), 100);
-            var hex = Hex(root, icon, 120, new Vector2(0, 70), false);
+            Band(root, 110, 330);
+            var word = BigWord(root, "天赋提升", new Vector2(0, 275), 92);
+            var hex = Hex(root, icon, 124, new Vector2(0, 126), false);
             Tween.Pop(hex, 0.3f, 0.1f);
-            Ui.Outlined(root, stat, 34, Pal.Hex("B6FF6A"), new Vector2(0, -20), new Vector2(800, 50), Pal.Ink, 2.5f);
-            Burst(root, new Vector2(0, 200), 14, 420);
+            Ui.Outlined(root, stat, 36, Pal.Hex("B6FF6A"), new Vector2(0, -2), new Vector2(840, 54), Pal.Ink, 2.5f);
+            word.transform.SetAsLastSibling();
+            Burst(root, new Vector2(0, 275), 14, 420);
             Tween.Fade(cg, 1, 0, 0.3f, () => { if (root) Object.Destroy(root.gameObject); }, 1.3f);
         }
 
@@ -382,11 +506,13 @@ namespace Liangshan
 
             var card = Ui.Rect(root, "card");
             card.anchoredPosition = new Vector2(0, 40);
-            card.sizeDelta = new Vector2(440, 620);
-            MetaUi.Card(card, MetaUi.RarityCard(d.Rarity), new Vector2(440, 620), Vector2.zero);
-            var art = Ui.Icon(card, d.Art, 420, new Vector2(0, 70));
-            Ui.Outlined(card, d.Name, 60, Color.white, new Vector2(0, -232), new Vector2(420, 80), Pal.Ink, 3f);
-            MetaUi.Badge(card, d.Role, MetaUi.RoleColor(d.Kind), new Vector2(130, 56), new Vector2(-130, 268), 28);
+            card.sizeDelta = new Vector2(440, 560);
+            MetaUi.Card(card, MetaUi.RarityCard(d.Rarity), new Vector2(440, 560), Vector2.zero);
+            var art = Ui.Icon(card, d.Art, 400, new Vector2(0, 52));
+            var namePlaque = Ui.Box(card, new Vector2(340, 74), new Vector2(0, -206), new Color(0.06f, 0.10f, 0.16f, 0.68f), Art.Pill);
+            Ui.Box(namePlaque.transform, new Vector2(332, 66), Vector2.zero, MetaUi.QualGlow(MetaUi.HeroTier(d.Rarity)).A(0.28f), Art.Pill);
+            Ui.Outlined(card, d.Name, 54, d.Rarity >= 4 ? Pal.Hex("FFF1B4") : Color.white, new Vector2(0, -205), new Vector2(330, 72), Pal.Ink, 3f);
+            MetaUi.Badge(card, d.Role, MetaUi.RoleColor(d.Kind), new Vector2(132, 54), new Vector2(-128, 232), 28);
             Ui.Outlined(root, $"「{d.Nick}」{d.Desc}", 32, Pal.Hex("FFE7B0"), new Vector2(0, -330), new Vector2(900, 50), Pal.Ink, 2f);
 
             // 好汉先从左边拖着尾光冲到中间，再翻成卡
