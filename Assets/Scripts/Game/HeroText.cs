@@ -33,8 +33,8 @@ namespace Liangshan
                 {
                     case ShotKind.Beam: t = $"{head}灼烧射线上的敌人，目标受到{dmg}，射线路过的敌人受{O("60%")}"; break;
                     case ShotKind.Lightning: t = $"{head}一道天雷随机劈向前排，造成{dmg}" + (chain > 0 ? $"并连锁{O(chain)}个敌人" : ""); break;
-                    case ShotKind.Wind: t = $"{head}在目标处绞杀，对周围敌人造成{dmg}"; break;
-                    default: t = $"{head}在敌人头顶结阵，召金砖从天而降砸下，造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次" : ""); break;
+                    case ShotKind.Wind: t = $"{head}在目标处绞杀，目标受到{dmg}，周围敌人受一半伤害"; break;
+                    default: t = $"{head}在敌人头顶结阵，召金砖从天而降砸下，造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次（每次{O("80%")}）" : ""); break;
                 }
             }
             else
@@ -50,30 +50,34 @@ namespace Liangshan
                             t += $"，穿透{O(chain)}个敌人" + (d.PierceGrow > 0 ? $"（每穿透1敌伤害+{O(P(d.PierceGrow))}）" : "");
                         break;
                     case ShotKind.Bomb:
-                        t = $"投掷{O(count)}枚{noun}，对半径{O((d.Radius * area).ToString("0.##"))}内的敌人造成{dmg}";
+                        t = $"投掷{O(count)}枚{noun}，对半径{O((d.Radius * area).ToString("0.##"))}内的敌人造成{dmg}并震退";
                         break;
                     case ShotKind.Fireball:
-                        t = $"砸落{O(count)}颗{noun}，落地爆炸对半径{O((d.Radius * area).ToString("0.##"))}内的敌人造成{dmg}";
+                        t = $"砸落{O(count)}颗{noun}，落地爆炸对半径{O((d.Radius * area).ToString("0.##"))}内的敌人造成{dmg}并震退";
                         break;
                     case ShotKind.Lightning:
                         t = count <= 1
-                            ? $"召下一道天雷劈中敌人，造成{dmg}" + (chain > 0 ? $"，再连锁弹射{O(chain)}个敌人" : "")
-                            : $"召下{O(count)}道天雷劈中敌人，每道造成{dmg}" + (chain > 0 ? $"并连锁{O(chain)}个敌人" : "");
+                            ? $"召下一道天雷劈中敌人，造成{dmg}" + (chain > 0 ? $"，再连锁弹射{O(chain)}个敌人（{O("60%")}伤害）" : "")
+                            : $"召下{O(count)}道天雷劈中敌人，每道造成{dmg}" + (chain > 0 ? $"并连锁{O(chain)}个敌人（{O("60%")}伤害）" : "");
                         break;
                     case ShotKind.Punch:
                         t = count <= 1
-                            ? $"向墙前近身敌军挥出{O(1)}记{noun}，造成{dmg}并击退"
-                            : $"向墙前近身敌军连出{O(count)}记{noun}，每次造成{dmg}并击退";
+                            ? $"向近身目标及身边敌军（半径{O((d.Radius * area).ToString("0.##"))}）挥出{O(1)}记{noun}，造成{dmg}并击退"
+                            : $"向近身目标及身边敌军（半径{O((d.Radius * area).ToString("0.##"))}）连出{O(count)}记{noun}，每次造成{dmg}并击退";
                         break;
                     case ShotKind.Slam:
-                        t = $"砸地震击周围敌人，造成{dmg}并震退";
+                        t = $"砸地震击半径{O((d.Radius * area).ToString("0.##"))}内的敌人，造成{dmg}并击退";
                         break;
                     case ShotKind.Spear:
-                        t = $"长枪贯穿目标和身后一列敌人，造成{dmg}";
+                    {
+                        bool fullRear = b != null && b.Stat(h, Eff.Reach) > 3f;
+                        string rearNote = fullRear ? "（全额伤害）" : $"（身后受{O("70%")}伤害）";
+                        t = $"长枪贯穿目标和身后一列敌人{rearNote}，造成{dmg}" + (d.Knock > 0 ? "并击退" : "");
                         break;
+                    }
                     case ShotKind.Stone:
                         t = d.Kind == Role.Mage
-                            ? $"祭出{O(count)}块{noun}从天砸落，造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次" : "")
+                            ? $"祭出{O(count)}块{noun}从天砸落，造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次（每次{O("80%")}）" : "")
                             : $"掷出{O(count)}枚{noun}造成{dmg}" + (chain > 0 ? $"，再弹射{O(chain)}次（每次{O("80%")}）" : "");
                         break;
                     case ShotKind.Lasso:
@@ -117,10 +121,11 @@ namespace Liangshan
                     t = $"打造神兵：{Sec(8)}内全军伤害{O("+" + P(d.BuffV * boost))}起（星级越高越多）";
                     break;
                 case UltKind.Steal:
-                    t = $"偷来银两：{O("20+10×星级+4×波次")}" + (boost > 1.01f ? $"，再{O("×" + boost.ToString("0.##"))}" : "");
+                    t = $"偷来银两：{O("28+12×星级+5×波次")}" + (boost > 1.01f ? $"，再{O("×" + boost.ToString("0.##"))}" : "")
+                        + $"，并破绽最强敌军{Sec(Defs.VulnDur)}（受伤{O("+25%")}）";
                     break;
                 case UltKind.Interest:
-                    t = $"立即获得当前银两{O(P(d.BuffV * boost))}的利息（{O("30~400")}）";
+                    t = $"立即获得当前银两{O(P(d.BuffV * boost))}的利息（{O("45~260")}），并鼓舞全军攻速{O("+25%")}持续{Sec(5)}";
                     break;
                 default: t = ""; break;
             }
@@ -138,7 +143,7 @@ namespace Liangshan
                 case AuraKind.Dmg: return $"光环：在场每星为全军加{v}伤害" + (b != null ? $"（当前{O("+" + P(b.DmgAura))}）" : "");
                 case AuraKind.Charge: return $"光环：在场每星让全军冷却加快{v}" + (b != null ? $"（当前{O("+" + P(b.ChargeAura))}）" : "");
                 case AuraKind.Coin: return $"光环：在场每星让击杀银两加{v}" + (b != null ? $"（当前{O("+" + P(b.CoinAura))}）" : "");
-                case AuraKind.Interest: return $"每4秒获得当前银两{v}×星级的利息（单次最多25）";
+                case AuraKind.Interest: return $"每4秒获得当前银两{v}×星级的利息（{O("4~30")}）";
                 default: return "";
             }
         }
@@ -155,7 +160,7 @@ namespace Liangshan
                 case UltKind.Frost: return $"风雪冰封一片敌人，造成{dmg}伤害，冻住{Sec(d.UltStun)}";
                 case UltKind.Sweep: return $"横扫墙前一整排，{n}段各造成{dmg}伤害并击飞";
                 case UltKind.Haste: return $"全军攻速{O("+60%")}持续{Sec(8f * pow)}";
-                case UltKind.Heal: return $"为寨墙回复{O(P(d.UltCoef * pow))}最大生命，并解除所有好汉的晕眩";
+                case UltKind.Heal: return $"为寨墙回复{O(P(d.UltCoef * pow))}起最大生命（随星级提升），并解除所有好汉的晕眩";
                 case UltKind.Bind: return $"同时套住{n}个敌人（优先精英、首领），每个造成{dmg}伤害并定身{Sec(d.UltStun)}";
                 case UltKind.Snipe: return $"瞄准场上最强的敌人，一箭造成{dmg}伤害";
                 case UltKind.Tornado: return $"召出龙卷风，范围内敌人受到{dmg}伤害并被卷起{Sec(d.UltStun)}";
@@ -168,6 +173,6 @@ namespace Liangshan
 
         public static string Tip(HeroDef d) =>
             d.Buff.HasValue ? "辅助：不打伤害，专给队友加持" :
-            d.Melee ? "近战：打不到飞行敌人" : d.Physical ? "物理：被重甲削弱" : "法术：克制重甲";
+            d.Melee ? "近战：打不到飞行敌人 · 精英与首领免疫击退" : d.Physical ? "物理：被重甲削弱" : "法术：克制重甲";
     }
 }

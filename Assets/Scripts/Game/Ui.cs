@@ -728,7 +728,7 @@ namespace Liangshan
         Vector3 _scale;
         Vector2 _pos;
         readonly List<Tint> _tints = new List<Tint>();
-        bool _have, _down, _over, _sunk;
+        bool _have, _down, _over, _sunk, _restLocked;
         int _gen;
 
         public void Setup(Transform target, float sink)
@@ -748,8 +748,13 @@ namespace Liangshan
             if (!_sunk)
             {
                 _have = true;
-                _scale = _t.localScale;
-                if (_rt != null) _pos = _rt.anchoredPosition;
+                // 静息尺寸只在第一次按下时记下。召唤成功还会再弹一下按钮，若每次都重采样，会把按下时的缩小记成新基准，越点越小。
+                if (!_restLocked)
+                {
+                    _scale = _t.localScale.sqrMagnitude < 0.0001f ? Vector3.one : _t.localScale;
+                    if (_rt != null) _pos = _rt.anchoredPosition;
+                    _restLocked = true;
+                }
                 _tints.Clear();
                 foreach (var g in _t.GetComponentsInChildren<Graphic>(false))
                 {

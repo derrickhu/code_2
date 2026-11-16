@@ -840,9 +840,7 @@ namespace Liangshan
             float by = -630;
             if (!owned)
             {
-                int at = Meta.UnlockLevelOf(h);
-                string how = at > 0 ? $"通关第 {HeroText.O(at)} 关入伙，或擂鼓招募获得"
-                    : "擂鼓招募获得" + (d.Rarity >= 4 && !Meta.OrangeOpened(S) ? $"（通关第 {Meta.OrangeOpen} 关后进入招募池）" : "");
+                string how = "擂鼓招募获得" + (d.Rarity >= 4 && !Meta.OrangeOpened(S) ? $"（通关第 {Meta.OrangeOpen} 关后进入招募池）" : "");
                 Ui.Label(p, HeroText.OnLight(how), 30, Pal.Ink, new Vector2(0, by + 56), new Vector2(880, 50), TextAnchor.MiddleCenter, Fonts.Heavy);
                 Ui.Btn(p, "获取途径", new Vector2(320, 110), new Vector2(0, by - 36), Pal.Azure, () => GetPaths(layer, h), 40);
                 return;
@@ -947,9 +945,8 @@ namespace Liangshan
             if (hero.HasValue)
             {
                 var d = Defs.Hero(hero.Value);
-                int at = Meta.UnlockLevelOf(hero.Value);
                 rows.Add(("prop_drum", "擂鼓招募", "招到重复好汉折成碎片", () => Tab(HomeScreen.TabShop)));
-                rows.Add(("tab_battle", "主线出征", Meta.Owned(S, hero.Value) ? "胜利后随机给出战好汉碎片" : at > 0 ? $"首通第 {at} 关直接入伙" : "胜利奖励招募令", () => Tab(HomeScreen.TabBattle)));
+                rows.Add(("tab_battle", "主线出征", Meta.Owned(S, hero.Value) ? "胜利后随机给出战好汉碎片" : "胜利奖励招募令", () => Tab(HomeScreen.TabBattle)));
                 if (d.Rarity <= 3) rows.Add(("ic_chest_gold", "章节宝箱", "集星开宝箱得招募令", () => Tab(HomeScreen.TabBattle)));
             }
             else

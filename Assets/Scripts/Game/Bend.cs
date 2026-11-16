@@ -43,7 +43,7 @@ namespace Liangshan
 
         /// <summary>
         /// bob：胯部以上抬起多少（占身体高）；shear：头顶横移多少（占身体高）；sx/sy：以脚底为锚的缩放；
-        /// legL/legR：左右靴子抬起多少（占身体高，按贴图左右算）；flash：受击实心闪白强度 0..1。
+        /// legL/legR：左右靴子抬起多少（占身体高，按贴图左右算）；flash：受击染色强度 0..1，按 flashColor 乘到原图上。
         /// </summary>
         public static void Set(SpriteRenderer sr, in Info m, float bob, float shear, float sx, float sy,
             float legL = 0f, float legR = 0f, float flash = 0f, Color? flashColor = null)

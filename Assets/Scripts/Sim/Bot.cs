@@ -55,14 +55,14 @@ namespace Liangshan.Sim
                 }
             }
             if (_skill >= 1 && TryMerge(b)) return;
-            // 对标蔚蓝星球核心运营：先铺满 6 次召唤（稳定场上双2星+基础火力），随后当强化费明显优于高额召唤费时优先买词条
-            if (_skill >= 2 && units >= 5 && b.Summons >= 6)
+            // 对标蔚蓝星球核心运营：先铺满 6 次召唤且场上站稳阵脚，随后当强化费明显优于高额召唤费时优先买词条
+            if (_skill >= 2 && b.Recruited >= Defs.EnhanceUnlockSummons && units >= 4 && b.Summons >= 7)
             {
-                bool wantSaveForEnhance = (b.Enhances == 0)
-                    || (b.Enhances == 1 && b.Summons >= 8)
-                    || (b.Enhances < 7 && b.EnhanceCost <= b.SummonCost * 1.45f);
-                if (b.Coins >= b.EnhanceCost && b.Enhance()) return;
-                if (wantSaveForEnhance && b.Wall > b.WallMax * 0.50f) return;
+                int[] gates = { 7, 10, 13, 16, 19, 22, 24, 25, 26 };
+                bool wantSaveForEnhance = b.Enhances < gates.Length && b.Summons >= gates[b.Enhances];
+                if (b.Coins >= b.EnhanceCost && (wantSaveForEnhance || b.EnhanceCost <= b.SummonCost * 2.5f) && b.Enhance()) return;
+                bool worthHolding = b.Enhances <= 3 || b.Coins >= b.EnhanceCost * 0.45f;
+                if (wantSaveForEnhance && worthHolding && b.Wall > b.WallMax * 0.60f) return;
             }
             if (b.CanSummon) { b.Summon(); return; }
             if (_skill >= 2 && !b.HasEmptySlot() && b.Coins >= b.EnhanceCost) b.Enhance();

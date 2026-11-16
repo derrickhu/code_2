@@ -211,7 +211,16 @@ namespace Liangshan
                 Tween.Run(home, 0.35f, k => { }, () => MetaFx.HeroReveal(home.Layer, h));
             }
             _pendingReveal = null;
-            if (Profile.S.Cleared < Defs.LevelCount) ArtPack.Prefetch(BattleArt(Defs.Level(Profile.S.Cleared + 1), Meta.Lineup(Profile.S)));
+            if (Profile.S.Cleared < Defs.LevelCount)
+            {
+                var next = BattleArt(Defs.Level(Mathf.Min(Profile.S.Selected, Profile.S.Cleared + 1)), Meta.Lineup(Profile.S));
+                // 编辑器和 Mac 包图在本地，停在主界面时先装进内存，点开始挑战就不用再盖加载层。
+                // 微信只预拉到缓存，进战斗再解码，避免主界面把一局的帧全堆在显存里。
+#if UNITY_EDITOR || UNITY_STANDALONE
+                ArtPack.Ensure(next);
+#endif
+                ArtPack.Prefetch(next);
+            }
         }
 
         static List<string> HomeArt()
@@ -241,11 +250,15 @@ namespace Liangshan
             return list;
         }
 
-        /// <summary>图包齐了再开始；第一次进某章要从 CDN 下，盖上和启动页同一张加载图。</summary>
+        /// <summary>图包齐了再开始。编辑器里读盘是同步的，当场齐了就直接进，不闪启动封面。
+        /// 微信第一次进某章要等 CDN 时，只盖一块纯色进度，不再复用启动大图。</summary>
         void WithArt(List<string> need, Action go)
         {
             if (ArtPack.Ready(need)) { go(); return; }
-            var loading = LoadingScreen.Open();
+            bool sync = false;
+            ArtPack.Ensure(need, () => sync = true);
+            if (sync) { go(); return; }
+            var loading = LoadingScreen.Open(false);
             loading.Follow(need);
             ArtPack.Ensure(need, () => StartCoroutine(FinishArt(loading, go)));
         }
@@ -524,6 +537,12 @@ namespace Liangshan
             yield return WaitReal(0.6f);
             Shot("02d2_book_guide");
             yield return WaitReal(0.3f);
+            for (int i = 0; i < 8; i++)
+            {
+                if (v.B.Recruited >= Defs.EnhanceUnlockSummons || !v.B.HasEmptySlot()) break;
+                v.Hud.PressSummon();
+                yield return WaitReal(0.15f);
+            }
 
             v.B.ShotChoices = new[]
             {
@@ -1118,9 +1137,9 @@ namespace Liangshan
                 if (lordCasts < 2 && b.LordCasts > lordCasts && hud.ModalKind == null)
                 {
                     lordCasts = b.LordCasts;
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < 6; i++)
                     {
-                        yield return WaitReal(0.12f);
+                        yield return WaitReal(0.1f);
                         Shot($"03c_lord{lordCasts}_{i}");
                     }
                 }

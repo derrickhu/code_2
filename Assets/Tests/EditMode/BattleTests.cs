@@ -14,7 +14,7 @@ namespace Liangshan.Tests
             var b = new Battle(1, Lineup) { Coins = 100000 };
             Assert.AreEqual(7, b.Slots.Count);
             int last = 0;
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < Defs.SummonsPerSlot; i++)
             {
                 int cost = b.SummonCost;
                 Assert.Greater(cost, last);
@@ -32,7 +32,23 @@ namespace Liangshan.Tests
             for (int w = 2; w <= 10; w++) Assert.Greater(Defs.WaveCount(w), Defs.WaveCount(w - 1));
             Assert.GreaterOrEqual(Defs.WaveCount(10), 90, "第10波接近百怪割草密度");
             Assert.Greater(Defs.Tough(1), Defs.Tough(6));
-            Assert.That(Defs.Tough(6), Is.InRange(1.1f, 2.0f), "单怪轻快利落，总血池与银两守恒");
+            Assert.That(Defs.Tough(6), Is.InRange(1.1f, 2.0f), "单怪厚度扎实，总血池与银两守恒");
+
+            // 验证第1波小怪散着持续刷出（直到 ~21s+ 仍有新怪出门，杜绝 8s 出完后中间空一大截断档）
+            var b = new Battle(1, Lineup, Defs.Level(1));
+            int spawnedEarly = 0, spawnedMid = 0, spawnedLate = 0;
+            for (int s = 1; s <= 23; s++)
+            {
+                int prev = b.Enemies.Count;
+                for (int k = 0; k < 20; k++) b.Update(0.05f);
+                int delta = b.Enemies.Count - prev;
+                if (s <= 8) spawnedEarly += delta;
+                else if (s <= 16) spawnedMid += delta;
+                else spawnedLate += delta;
+            }
+            Assert.GreaterOrEqual(spawnedEarly, 2);
+            Assert.GreaterOrEqual(spawnedMid, 2, "波中段必须持续有怪散着走下来，不得断档留空");
+            Assert.GreaterOrEqual(spawnedLate, 2, "波尾段必须衔接下一波，不得空等十余秒");
         }
 
         [Test]
@@ -86,10 +102,20 @@ namespace Liangshan.Tests
         [Test]
         public void SummonAndEnhancePricesFollowTable()
         {
-            CollectionAssert.AreEqual(new[] { 10, 20, 30, 45, 65, 90, 120, 160, 210, 270, 340, 420, 510, 610, 720, 840, 970, 1110, 1260, 1425 },
-                Enumerable.Range(0, 20).Select(Defs.SummonCost).ToArray());
-            CollectionAssert.AreEqual(new[] { 100, 180, 260, 360, 460 }, Enumerable.Range(0, 5).Select(Defs.EnhanceCost).ToArray());
-            Assert.AreEqual(100, new Battle(1, Lineup).Coins);
+            CollectionAssert.AreEqual(
+                new[] { 10, 20, 30, 45, 60, 80, 90, 110, 130, 150, 160, 175, 190, 200, 215, 235, 260, 290, 320, 360, 410, 470, 540, 630, 750, 1100, 1800 },
+                Enumerable.Range(0, 27).Select(Defs.SummonCost).ToArray());
+            // 纯查表不走线性加价：超出表长固定取最后一格
+            Assert.AreEqual(1800, Defs.SummonCost(27));
+            Assert.AreEqual(1800, Defs.SummonCost(35));
+            CollectionAssert.AreEqual(new[] { 100, 200, 400, 600, 1000, 1500, 1800, 2500, 3000 }, Enumerable.Range(0, 9).Select(Defs.EnhanceCost).ToArray());
+            Assert.AreEqual(3000, Defs.EnhanceCost(9));
+            Assert.AreEqual(3000, Defs.EnhanceCost(15));
+            // 开局 100 银两固定召唤 3 人（10+20+30=60，余 40 < 第 4 抽 45）
+            var open = new Battle(1, Lineup);
+            Assert.AreEqual(100, open.Coins);
+            for (int i = 0; i < 3; i++) Assert.IsNotNull(open.Summon());
+            Assert.IsFalse(open.CanSummon, "开局保持固定召唤 3 人不变");
         }
 
         [Test]
@@ -103,12 +129,39 @@ namespace Liangshan.Tests
             b.Enemies.Add(near);
             b.Enemies.Add(far);
             b.LordT = 0.01f;
-            for (int i = 0; i < 60; i++) { b.Update(1f / 30f); b.Events.Clear(); }
+            for (int i = 0; i < 80; i++) { b.Update(1f / 30f); b.Events.Clear(); }
             Assert.AreEqual(1, b.LordCasts);
             Assert.Less(near.Hp, near.MaxHp);
             Assert.AreEqual(far.MaxHp, far.Hp);
             Assert.Greater(b.LordDamage, b.LordPower * 0.9f);
-            Assert.AreEqual(Defs.LordCdBase, b.LordT, 2.1f);
+            Assert.AreEqual(Defs.LordCdBase, b.LordT, 2.8f);
+        }
+
+        [Test]
+        public void LordSwordFliesAtTheCrowdNotTheNearestLoner()
+        {
+            var b = new Battle(3, Lineup);
+            var loner = new Enemy { Id = 1, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(-0.4f, Layout.WallRowY + 1.1f), Attacking = true };
+            var c1 = new Enemy { Id = 2, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0.8f, Layout.WallRowY + 2.4f), Attacking = true };
+            var c2 = new Enemy { Id = 3, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(1.5f, Layout.WallRowY + 2.6f), Attacking = true };
+            var c3 = new Enemy { Id = 4, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(1.1f, Layout.WallRowY + 3.1f), Attacking = true };
+            foreach (var e in new[] { loner, c1, c2, c3 })
+            {
+                Assert.IsTrue(Layout.InLordRange(e.Pos));
+                b.Enemies.Add(e);
+            }
+            b.LordT = 0.01f;
+            b.Update(0.05f);
+            Assert.AreEqual(1, b.LordCasts);
+            var crowd = new V2((0.8f + 1.5f + 1.1f) / 3f, Layout.WallRowY + (2.4f + 2.6f + 3.1f) / 3f);
+            int slashes = 0;
+            foreach (var s in b.Shots)
+            {
+                if (s.Kind != ShotKind.Slash) continue;
+                slashes++;
+                Assert.Less((s.To - crowd).Len, (s.To - loner.Pos).Len, "剑气落点靠近人群，不追更近的落单者");
+            }
+            Assert.AreEqual(4, slashes, "半圆里的人都会被打到");
         }
 
         [Test]
@@ -270,6 +323,16 @@ namespace Liangshan.Tests
             b.Enemies.Add(boss);
             for (int i = 0; i < 30; i++) b.Update(1f / 30f);
             Assert.AreEqual(boss.Def.Speed * Defs.BossPace, 7 - boss.Pos.Y, 0.01f, "首领压阵要慢慢逼近");
+
+            // 精英怪阵亡只给赏银，不再触发第二个生辰纲（全关仅首领掉唯一一次生辰纲）
+            var bElite = new Battle(4, Lineup, Defs.Level(5));
+            var elite = new Enemy { Id = 998, Def = Defs.Enemy(EnemyKind.Elite), Hp = 1, MaxHp = 1, Pos = new V2(0, 3) };
+            bElite.Enemies.Add(elite);
+            bElite.Slots[0].Unit = new Unit { Hero = HeroId.GongSun, Star = 4 };
+            for (int i = 0; i < 120; i++) bElite.Update(1f / 30f);
+            Assert.IsTrue(elite.Dead);
+            Assert.AreEqual(0, bElite.PendingReels, "精英阵亡不得再掉落第二个生辰纲");
+            Assert.AreEqual(Phase.Running, bElite.Phase);
         }
 
         [Test]
@@ -846,7 +909,7 @@ namespace Liangshan.Tests
                     {
                         float critExp = 1f + System.Math.Min(0.8f, lo.Crit + (lo.Passive[(int)h] && d.PassiveEff == Eff.Crit ? d.PassiveV : 0f)) * (lo.CritDmg - 1f);
                         float effVolley = rawHit * critExp * lo.AllSpeed * lo.HeroSpeed[(int)h];
-                        Assert.That(soldierHp / effVolley, Is.InRange(2.1f, 4.8f), $"第{stageNo}关 1星射手 {d.Name} 等效轮次应在 2.1~4.8 之间，实际={soldierHp / effVolley:F2}");
+                        Assert.That(soldierHp / effVolley, Is.InRange(2.8f, 6.4f), $"第{stageNo}关 1星射手 {d.Name} 等效轮次应在 2.8~6.4 之间，实际={soldierHp / effVolley:F2}");
                     }
                 }
             }
@@ -868,6 +931,120 @@ namespace Liangshan.Tests
                 if (b.Phase == Phase.Victory) noEnhanceWins++;
             }
             Assert.LessOrEqual(noEnhanceWins, 2, $"不买局内强化词条光靠铺人合成不该混过首领关，实际胜场={noEnhanceWins}/10");
+        }
+
+        [Test]
+        public void HeroSkillBehaviorMatchesDescriptions()
+        {
+            // 1. 溅射/近战暴击保留 Crit 标记；击退是持续平滑滑退而非单帧瞬移
+            var lo = Loadout.Plain(new[] { HeroId.ShiXiu, HeroId.XieZhen, HeroId.HuSanniang, HeroId.TangLong });
+            lo.Crit = 1f; // 100% 暴击核验 Splash Crit 透传
+            var b = new Battle(7, lo.Lineup, Defs.Level(1), lo);
+            Put(b, 0, HeroId.ShiXiu, 3);
+            var foe1 = new Enemy { Id = 910, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(b.Slots[0].Pos.X, Layout.StopY), Attacking = true };
+            var foe2 = new Enemy { Id = 911, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(b.Slots[0].Pos.X + 0.5f, Layout.StopY), Attacking = true };
+            var hawk = new Enemy { Id = 912, Def = Defs.Enemy(EnemyKind.Hawk), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(b.Slots[0].Pos.X, Layout.StopY + 0.5f) };
+            b.Enemies.AddRange(new[] { foe1, foe2, hawk });
+            b.Slots[0].Unit.Cd = 0f;
+            b.Update(0.02f);
+            var cut = b.Shots.First(s => s.Kind == ShotKind.Punch);
+            var qi = b.Shots.First(s => s.Kind == ShotKind.Qi);
+            Assert.AreEqual(cut.Damage / lo.CritDmg * 0.65f, qi.Damage, 0.05f, "3星刀气伤害严格等于单刀基础伤害的 65%");
+
+            b.Events.Clear();
+            while (b.Shots.Contains(cut)) b.Update(1f / 60f);
+            Assert.IsTrue(b.Events.Any(e => e.Type == Ev.Damage && e.EnemyId == foe1.Id && e.Crit), "石秀暴击必须打出暴击飘字");
+            Assert.IsTrue(b.Events.Any(e => e.Type == Ev.Damage && e.EnemyId == foe2.Id && e.Crit), "小范围溅射目标同样获得暴击标记");
+            Assert.Greater(foe1.Pos.Y - Layout.StopY, 0.30f, "命中后产生肉眼清晰可见的击退距离");
+            Assert.IsFalse(foe1.Attacking, "击退打断啃墙状态");
+
+            // 2. 3星近战绝不对飞行怪空挥
+            b.Enemies.Clear();
+            b.Shots.Clear();
+            b.Enemies.Add(hawk);
+            b.Slots[0].Unit.Cd = 0f;
+            b.Update(0.05f);
+            Assert.IsEmpty(b.Shots, "近战打不到飞行敌人，不应朝飞行怪空挥");
+
+            // 3. 20级即免除取舍强化负面代价（与里程碑说明一致）
+            Assert.AreEqual(20, Meta.NoPenaltyLv);
+
+            // 4. 扈三娘 4星落点震慑周围敌人；汤隆 1星打造神兵为 +40% 起
+            var b2 = new Battle(9, lo.Lineup, Defs.Level(1), Loadout.Plain(lo.Lineup));
+            Put(b2, 0, HeroId.HuSanniang, 4);
+            Put(b2, 1, HeroId.TangLong, 1);
+            var mainT = new Enemy { Id = 920, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0f, 0f) };
+            var nearT = new Enemy { Id = 921, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0.8f, 0f) };
+            b2.Enemies.AddRange(new[] { mainT, nearT });
+            b2.Slots[0].Unit.Cd = 0f;
+            b2.Slots[1].Unit.Cd = 0f;
+            b2.Update(0.02f);
+            Assert.AreEqual(0.4f, b2.ForgeV, 0.01f, "汤隆1星神兵加成严格从 40% 起步");
+            for (int f = 0; f < 60 && b2.Shots.Count > 0; f++) b2.Update(1f / 60f);
+            Assert.Greater(nearT.Stun, 0f, "扈三娘4星天罗地网落点震慑周围敌人");
+        }
+
+        [Test]
+        public void BalanceManagementSystemAndSmoothedEconomyWork()
+        {
+            // 1. 小兵击杀赏银随波次温和上升，彻底消除第3波跌回5银两的倒挂；小兵有效血量前5波单调上升
+            var soldier = Defs.Enemy(EnemyKind.Soldier);
+            Assert.GreaterOrEqual(Defs.KillCoin(soldier, 3, 0f), Defs.KillCoin(soldier, 1, 0f));
+            Assert.Greater(Defs.KillCoin(soldier, 10, 0f), Defs.KillCoin(soldier, 1, 0f));
+            for (int w = 2; w <= 10; w++)
+                Assert.GreaterOrEqual(Defs.Tough(w) * Defs.HpScale(w), Defs.Tough(w - 1) * Defs.HpScale(w - 1) * 0.99f);
+
+            // 2. 生辰纲去泡沫核验：第7波5格首领全银两大奖收敛至 ~1060 银两（不再爆 3800+），转盘占整局经济比重 < 30%
+            var bBoss = new Battle(3, Lineup, Defs.Level(5)) { Wave = 7, Phase = Phase.Reels, PendingReels = 1 };
+            int bossAllSilver = bBoss.ReelSilverOf(new[] { Reel.Silver, Reel.Silver, Reel.Silver, Reel.Silver, Reel.Silver });
+            Assert.That(bossAllSilver, Is.InRange(700, 1300), $"首领全银两生辰纲应适度惊喜无泡沫，实际={bossAllSilver}");
+            var est = Balance.EstimateTenWaveEconomy(true, 7);
+            Assert.Less(est.TreasureShare, 0.30f, $"生辰纲+首领期望占比应低于30%，实际={est.TreasureShare:P1}");
+
+            // 3. 首领压血分段爆钱袋 + 波次推进发放守城军饷
+            var b = new Battle(5, Lineup, Defs.Level(1));
+            b.Update(0.1f);
+            // 推进过第 1 波时长触发进第 2 波发放军饷（清空场上官兵避免拆坏寨墙）
+            for (int i = 0; i < 600 && b.Wave == 1; i++)
+            {
+                b.Enemies.Clear();
+                b.Update(0.05f);
+            }
+            Assert.AreEqual(2, b.Wave);
+            Assert.Greater(b.CoinsFromWaves, 0, "每撑过一波发放守城军饷");
+
+            var boss = new Enemy { Id = 777, Def = Defs.Enemy(EnemyKind.Boss), Hp = 1000f, MaxHp = 1000f, Pos = new V2(0, 2f) };
+            b.Enemies.Add(boss);
+            b.Shots.Add(new Shot { Id = 1, Kind = ShotKind.Arrow, Hero = HeroId.HuaRong, From = default, To = boss.Pos, TargetId = boss.Id, Dur = 0.01f, Damage = 700f });
+            b.Update(0.02f);
+            Assert.AreEqual(2, boss.BossDrops, "首领压过 70% 与 35% 血线各爆一次阶段钱袋");
+            Assert.Greater(b.CoinsFromBossPhase, 100);
+
+            // 4. Resources/BalanceConfig.json 完整性与动态热改数值回退验证
+            var txt = UnityEngine.Resources.Load<UnityEngine.TextAsset>("BalanceConfig");
+            Assert.IsNotNull(txt, "缺少 Resources/BalanceConfig.json");
+            var parsed = UnityEngine.JsonUtility.FromJson<BalanceConfig>(txt.text);
+            Assert.IsNotNull(parsed);
+            Assert.AreEqual(Defs.HeroCount, parsed.Heroes.Length);
+            Assert.AreEqual(Defs.Enemies.Length, parsed.Enemies.Length);
+
+            try
+            {
+                var custom = Balance.CreateDefault();
+                custom.Economy.StartCoins = 155;
+                custom.Economy.EnhanceTable[0] = 66;
+                custom.Heroes[0].Coef = 2.22f;
+                Balance.Apply(custom);
+                Assert.AreEqual(155, new Battle(1, Lineup).Coins);
+                Assert.AreEqual(66, Defs.EnhanceCost(0));
+                Assert.AreEqual(2.22f, Defs.Heroes[0].Coef, 1e-4f);
+            }
+            finally
+            {
+                Balance.ResetToDefault();
+            }
+            Assert.AreEqual(100, new Battle(1, Lineup).Coins);
+            Assert.AreEqual(100, Defs.EnhanceCost(0));
         }
     }
 }

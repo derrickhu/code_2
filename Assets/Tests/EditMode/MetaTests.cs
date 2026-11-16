@@ -96,11 +96,12 @@ namespace Liangshan.Tests
             Assert.AreEqual(3, r.Stars);
             Assert.AreEqual(2, Meta.StarsFor(0.8f));
             Assert.AreEqual(1, Meta.StarsFor(0.3f));
-            Assert.AreEqual(HeroId.RuanXiaoqi, r.Unlock);
+            Assert.IsNull(r.Unlock);
             Assert.Greater(r.Get(Cur.Ingot), 0);
+            Assert.Greater(r.Get(Cur.Token), 0);
             Meta.Give(s, r);
             Meta.FinishMain(s, st, true, r);
-            Assert.IsTrue(Meta.Owned(s, HeroId.RuanXiaoqi));
+            Assert.IsFalse(Meta.Owned(s, HeroId.RuanXiaoqi));
             Assert.AreEqual(3, s.Cleared);
             Assert.AreEqual(4, s.Selected);
             Assert.AreEqual(1, s.Speed15);

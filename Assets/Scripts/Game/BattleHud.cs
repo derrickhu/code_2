@@ -358,9 +358,18 @@ namespace Liangshan
             if (_guideStep == 0) NextGuide();
         }
 
+        /// <summary>本局已经召唤的次数。合成会把场上人数吃掉，强化只看召唤了几次。</summary>
+        bool SummonedEnough() => B.Recruited >= Defs.EnhanceUnlockSummons;
+
         void TryEnhance()
         {
             if (Blocking || B.Phase != Phase.Running) return;
+            if (!SummonedEnough())
+            {
+                Sfx.Play(Snd.Deny);
+                ShowEnhanceNeed();
+                return;
+            }
             if (B.Coins < B.EnhanceCost)
             {
                 Sfx.Play(Snd.Deny);
@@ -375,6 +384,30 @@ namespace Liangshan
             }
             Sfx.Play(Snd.Card);
             if (_guideStep == 2) NextGuide();
+        }
+
+        RectTransform _enhNeedTip;
+
+        /// <summary>召唤次数不够时，提示贴在强化书正上方，点下去就能看见。</summary>
+        void ShowEnhanceNeed()
+        {
+            string s = $"召唤{Defs.EnhanceUnlockSummons}次，才能强化";
+            if (_enhNeedTip) Destroy(_enhNeedTip.gameObject);
+            const float w = 456f, h = 72f;
+            // 强化点击区顶边离底 288。提示底边再抬 12，和按钮同一列，略往右让左边不裁出屏幕。
+            var host = Ui.Bottom(_root, -248f, 288f + 12f + h * 0.5f, new Vector2(w, h), "enhNeed");
+            var bg = Ui.Skin(host, "pill", new Vector2(w, h), Vector2.zero, -1f);
+            bg.raycastTarget = false;
+            var label = Ui.Label(host, s, 32, Pal.Cream, Vector2.zero, new Vector2(w - 28f, h), TextAnchor.MiddleCenter, Fonts.Heavy);
+            label.raycastTarget = false;
+            host.SetAsLastSibling();
+            Tween.Pop(host, 0.18f);
+            _enhNeedTip = host;
+            Tween.Run(host, 1.6f, _ => { }, () =>
+            {
+                if (_enhNeedTip == host) _enhNeedTip = null;
+                if (host) Destroy(host.gameObject);
+            });
         }
 
         /// <summary>主线还没打通过的关不能加速。机器人自检不受限。</summary>
@@ -470,7 +503,7 @@ namespace Liangshan
             _sumLabel.color = canSum ? Pal.Hex("FFE68A") : Pal.Hex("DCEAF8");
             _sumGlow.color = Pal.Gold.A(canSum ? 0.22f + 0.12f * Mathf.Sin(Time.unscaledTime * 5f) : 0);
 
-            bool canEnh = B.CanEnhance;
+            bool canEnh = B.CanEnhance && SummonedEnough();
             _enhCost.text = Ui.Num(B.EnhanceCost);
             _enhCost.color = canEnh ? Color.white : B.Coins >= B.EnhanceCost ? Pal.Hex("AFC2D4") : Pal.Hex("FF5C52");
             _enhRim.color = canEnh ? Pal.Hex("E8C060") : Pal.Hex("5A7692");
@@ -540,6 +573,8 @@ namespace Liangshan
 
         public void OnSummon()
         {
+            if (_sumBtn == null) return;
+            _sumBtn.localScale = Vector3.one;
             Tween.Punch(_sumBtn, 0.15f, 0.08f);
         }
 
@@ -847,7 +882,7 @@ namespace Liangshan
 
             int hits = Mathf.Max(1, B.Lo.LordHits);
             string times = hits <= 1 ? "1道" : hits + "道";
-            float pct = B.Lo.LordPct * B.Lo.LordMul * 100f;
+            float pct = B.Lo.LordPct * 100f;
             float cut = Defs.LordCdBase - B.Lo.LordCd;
             string cd = cut > 0.05f
                 ? $"冷却：<color=#FFB648>{Defs.LordCdBase:0.0}s</color> <color=#7DE35A>-{cut:0.0}s</color>"
@@ -855,7 +890,7 @@ namespace Liangshan
             Ui.Outlined(_info, Defs.LordSkillName, 32, Color.white, new Vector2(colX - 130, 68), new Vector2(220, 42), Pal.Hex("0C1622"), 2f, TextAnchor.MiddleLeft);
             Ui.Label(_info, cd, 24, Pal.Hex("D7E6F5"), new Vector2(colX + 120, 68), new Vector2(230, 40), TextAnchor.MiddleRight, Fonts.Heavy);
             Ui.Box(_info, new Vector2(colW, 2), new Vector2(colX, 40), Pal.Hex("6D92B6").A(0.24f), Art.White);
-            string desc = $"向范围内的敌人发出<color=#FFB648>{times}</color>剑气。\n造成<color=#FFB648>{pct:0}%</color>攻击力的物理伤害。";
+            string desc = $"向范围内的敌人发出<color=#FFB648>{times}</color>剑气。\n造成<color=#FFB648>{pct:0}%</color>统帅剑气伤害（单道<color=#FFB648>{Ui.Num(B.LordPower)}</color>）。";
             if (B.Lo.LordStun > 0.05f) desc += $" 命中眩晕<color=#FFB648>{B.Lo.LordStun:0.#}</color>秒。";
             if (B.Lo.LordBig > 1.01f) desc += $" 对精英、首领<color=#FFB648>+{(B.Lo.LordBig - 1f) * 100f:0}%</color>。";
             desc += $"\n<color=#8EA6BE>开战 {Defs.LordFirstCast:0} 秒第一次出手</color>";
@@ -1385,18 +1420,10 @@ namespace Liangshan
 
         static string PerkIcon(PerkDef p) => Defs.Hero(p.Hero).Art;
 
-        static string KindName(PerkKind k) => k == PerkKind.Trade ? "取舍" : k == PerkKind.Morph ? "质变" : k == PerkKind.Adv ? "进阶" : "数值";
-
         static Color KindColor(PerkKind k) => Pal.Hex(k == PerkKind.Trade ? "CE7028" : k == PerkKind.Morph ? "7A52C4" : k == PerkKind.Adv ? "C84038" : "4C7294");
 
-        static Color CardHeadColor(PerkDef p)
-        {
-            if (p.Ult) return Pal.Hex("C85828");
-            if (p.Star) return Pal.Hex("C88E22");
-            if (p.Kind == PerkKind.Adv) return Pal.Hex("B84840");
-            if (p.Kind == PerkKind.Morph) return Pal.Hex("64568C");
-            return Pal.Hex("4D7292");
-        }
+        /// <summary>词条顶栏一律用这名好汉的品质色，和名册、卡框同一套，不按词条种类另配色。</summary>
+        static Color CardHeadColor(PerkDef p) => MetaUi.RarityColor(Defs.Hero(p.Hero).Rarity);
 
         /// <summary>卡底一行：进阶写它从哪张来。取舍互斥只在发牌里生效，卡上不提。</summary>
         static string PerkNote(PerkDef p)
@@ -1507,7 +1534,6 @@ namespace Liangshan
         void BuildCards(RectTransform c, List<RectTransform> cards)
         {
             var choices = B.Choices;
-            int rec = Recommend(choices);
             const float cw = 326f, chh = 568f, gap = 22f;
             for (int i = 0; i < choices.Length; i++)
             {
@@ -1518,12 +1544,10 @@ namespace Liangshan
                 card.anchoredPosition = new Vector2(x, 22);
                 var hd = Defs.Hero(p.Hero);
                 var headC = CardHeadColor(p);
-                bool picked = i == rec;
 
-                // 宋瓷立式卡面：霁蓝/鎏金顶栏 + 温润米白瓷身 + 细双线内框 + 底纹菱花。
+                // 宋瓷立式卡面：霁蓝顶栏 + 温润米白瓷身 + 细双线内框 + 底纹菱花。
                 Ui.Box(card, new Vector2(cw + 10, chh + 12), new Vector2(0, -8), new Color(0.02f, 0.05f, 0.1f, 0.48f), Art.Rounded);
-                if (picked) Ui.Box(card, new Vector2(cw + 22, chh + 22), Vector2.zero, Pal.Hex("FFE078").A(0.32f), Art.SoftDot);
-                var face = Ui.Box(card, new Vector2(cw, chh), Vector2.zero, picked ? Pal.Hex("DFB248") : Pal.Hex("34495E"), Art.Rounded);
+                var face = Ui.Box(card, new Vector2(cw, chh), Vector2.zero, Pal.Hex("34495E"), Art.Rounded);
                 Ui.Box(card, new Vector2(cw - 8, chh - 8), Vector2.zero, Pal.Hex("F6F4EC"), Art.Rounded);
 
                 float top = chh * 0.5f;
@@ -1551,22 +1575,15 @@ namespace Liangshan
                 Ui.Box(card, new Vector2(154, 34), new Vector2(0, 22), new Color(0.05f, 0.1f, 0.16f, 0.14f), Art.GroundShadow);
                 Ui.Icon(card, PerkIcon(p), 184, new Vector2(0, 96));
 
-                // 角色归属 + 词条类型小签并排，清爽利落
-                string badgeText = p.Ult ? "大招" : p.Star ? "满星" : KindName(p.Kind);
-                Color badgeCol = p.Ult ? Pal.Hex("C84820") : p.Star ? Pal.Hex("C48A18") : KindColor(p.Kind);
-                Ui.Label(card, $"{hd.Name} · {hd.Role}", 24, Pal.Hex("5E7082"), new Vector2(-38, -16), new Vector2(190, 34), TextAnchor.MiddleCenter, Fonts.Heavy);
-                var stamp = Ui.Box(card, new Vector2(74, 32), new Vector2(88, -16), badgeCol, Art.Pill);
-                Ui.Outlined(stamp.transform, badgeText, 21, Color.white, new Vector2(0, 1), new Vector2(74, 32), badgeCol.Mul(0.42f), 1.4f);
+                Ui.Label(card, $"{hd.Name} · {hd.Role}", 24, Pal.Hex("5E7082"), new Vector2(0, -16), new Vector2(cw - 48, 34), TextAnchor.MiddleCenter, Fonts.Heavy);
 
                 Ui.Box(card, new Vector2(cw - 64, 2), new Vector2(0, -44), Pal.Hex("E2DDD0"), Art.White);
                 string note = PerkNote(p);
-                bool lift = note != null && picked;
-                var desc = Ui.Label(card, Colorize(p.Desc), 30, Pal.Hex("243240"), new Vector2(0, lift ? -108 : -124), new Vector2(cw - 48, lift ? 100 : 126));
+                var desc = Ui.Label(card, Colorize(p.Desc), 30, Pal.Hex("243240"), new Vector2(0, -124), new Vector2(cw - 48, 126));
                 desc.lineSpacing = 1.15f;
                 desc.verticalOverflow = VerticalWrapMode.Truncate;
 
                 float foot = -top + 40;
-                bool showLv = p.Max > 1 || note != null;
                 if (note != null)
                 {
                     var nt = Ui.Label(card, note, 22, KindColor(p.Kind), new Vector2(0, foot), new Vector2(cw - 28, 34), TextAnchor.MiddleCenter, Fonts.Heavy);
@@ -1577,19 +1594,7 @@ namespace Liangshan
                     nt.verticalOverflow = VerticalWrapMode.Truncate;
                 }
                 else if (p.Max > 1)
-                {
-                    float lx = picked ? -58f : 0f;
-                    Ui.Label(card, $"等级 {B.Level(p.Id)}→{B.Level(p.Id) + 1}", 22, Pal.Hex("7A8A9A"), new Vector2(lx, foot), new Vector2(picked ? 176 : cw - 44, 32), TextAnchor.MiddleCenter, Fonts.Heavy);
-                }
-                if (picked)
-                {
-                    var r = Ui.Rect(card, "recommend");
-                    r.sizeDelta = new Vector2(114, 38);
-                    r.anchoredPosition = new Vector2(note != null ? 0f : (showLv ? cw * 0.5f - 78 : 0f), note != null ? foot + 50f : foot);
-                    Ui.Box(r, new Vector2(114, 38), Vector2.zero, Pal.Hex("FFE8A6"), Art.Pill);
-                    Ui.Icon(r, "ic_thumb", 28, new Vector2(-32, 1));
-                    Ui.Outlined(r, "推荐", 22, Pal.Hex("B86E10"), new Vector2(14, 0), new Vector2(70, 34), Pal.Hex("5A3206"), 1.3f);
-                }
+                    Ui.Label(card, $"等级 {B.Level(p.Id)}→{B.Level(p.Id) + 1}", 22, Pal.Hex("7A8A9A"), new Vector2(0, foot), new Vector2(cw - 44, 32), TextAnchor.MiddleCenter, Fonts.Heavy);
                 int idx = i;
                 Ui.Tap(face, () => PickCard(idx, cards), card);
                 Tween.Pop(card, 0.32f, 0.05f + i * 0.07f);
@@ -1925,9 +1930,13 @@ namespace Liangshan
             var band = Ui.Rect(c, "band");
             band.sizeDelta = new Vector2(1080, 1060);
             band.anchoredPosition = new Vector2(0, -10);
-            Ui.Box(band, new Vector2(1200, 1060), Vector2.zero, (win ? Pal.Hex("182D44") : Pal.Hex("232E3A")).A(0.96f), Art.White);
-            Ui.Box(band, new Vector2(1200, 8), new Vector2(0, 526), win ? Pal.Gold : Pal.Hex("7C8FA4"), Art.White);
-            Ui.Box(band, new Vector2(1200, 8), new Vector2(0, -526), win ? Pal.Gold : Pal.Hex("7C8FA4"), Art.White);
+            // 胜利不再放进伙条，板子在奖励下方收住；失败提示更长，仍用整块。
+            float panelH = win ? 960f : 1060f;
+            float panelY = win ? 50f : 0f;
+            Ui.Box(band, new Vector2(1200, panelH), new Vector2(0, panelY), (win ? Pal.Hex("182D44") : Pal.Hex("232E3A")).A(0.96f), Art.White);
+            float lip = panelH * 0.5f - 4f;
+            Ui.Box(band, new Vector2(1200, 8), new Vector2(0, panelY + lip), win ? Pal.Gold : Pal.Hex("7C8FA4"), Art.White);
+            Ui.Box(band, new Vector2(1200, 8), new Vector2(0, panelY - lip), win ? Pal.Gold : Pal.Hex("7C8FA4"), Art.White);
             if (win) Ui.Box(c, new Vector2(1000, 700), new Vector2(0, 560), Pal.Gold.A(0.45f), Art.SoftDot).transform.SetSiblingIndex(0);
             var crown = Ui.Icon(c, win ? "ic_crown" : "ic_wall", 250, new Vector2(0, 660));
             if (!win) crown.color = Pal.Hex("B0A6A0");
@@ -1973,20 +1982,12 @@ namespace Liangshan
                 }
                 SectionTitle(band, B.Stage.Mode == StageMode.Escort ? $"截获生辰纲 {B.PortersKilled} 担" : "通关奖励", -110);
                 MetaUi.ItemRow(band, r.Items, new Vector2(0, -230), 170);
-                if (r.Unlock.HasValue)
-                {
-                    var ud = Defs.Hero(r.Unlock.Value);
-                    var ub = Ui.Box(c, new Vector2(760, 150), new Vector2(0, -470), Pal.Hex("5A2A8A").A(0.95f), Art.Rounded);
-                    Ui.Icon(ub.transform, ud.Art, 150, new Vector2(-280, 12));
-                    Ui.Outlined(ub.transform, $"新好汉入伙：{ud.Name}", 42, Pal.Hex("FFE08A"), new Vector2(60, 24), new Vector2(560, 60), Pal.Ink, 3f);
-                    Ui.Label(ub.transform, $"「{ud.Nick}」{ud.Role} · 可在好汉页上阵", 28, Pal.Cream, new Vector2(60, -30), new Vector2(560, 44));
-                    Tween.Pop(ub.transform, 0.4f, 0.8f);
-                }
                 Confetti(c, 60);
                 Sfx.Play(Snd.Jackpot, 0.6f);
                 bool doubled = false;
                 RectTransform dbl = null;
-                dbl = Ui.Btn(c, "双倍领取", new Vector2(320, 124), new Vector2(-350, -640), Pal.Teal, () =>
+                const float btnY = -540f;
+                dbl = Ui.Btn(c, "双倍领取", new Vector2(340, 124), new Vector2(-190, btnY), Pal.Teal, () =>
                 {
                     if (doubled) return;
                     FakeAd("double", () =>
@@ -1998,10 +1999,7 @@ namespace Liangshan
                         Sfx.Play(Snd.Jackpot, 0.6f);
                     });
                 }, 40, "ic_ad");
-                bool hasNext = B.Stage.Mode == StageMode.Main && B.Stage.No < Defs.LevelCount;
-                Ui.Btn(c, "返回", new Vector2(260, 124), new Vector2(hasNext ? 0 : 300, -640), Pal.Slate, () => { CloseModal(); Game.I.ShowHome(); }, 46);
-                if (hasNext)
-                    Ui.Btn(c, "下一关", new Vector2(300, 124), new Vector2(330, -640), Pal.Hex("F2B632"), () => { CloseModal(); Game.I.StartLevel(B.Stage.No + 1); }, 46);
+                Ui.Btn(c, "返回", new Vector2(340, 124), new Vector2(190, btnY), Pal.Slate, () => { CloseModal(); Game.I.ShowHome(); }, 46);
                 if (_v.Auto != null) Tween.Run(c, 3f, k => { }, () => Game.I.OnAutoDone(true));
             }
             else
@@ -2076,7 +2074,7 @@ namespace Liangshan
                     else if (_guide != null) MoveMergeGhost();
                     break;
                 case 2:
-                    if (_guide == null && B.Coins >= B.EnhanceCost) ShowGuide();
+                    if (_guide == null && B.Coins >= B.EnhanceCost && SummonedEnough()) ShowGuide();
                     break;
             }
             TickHand();

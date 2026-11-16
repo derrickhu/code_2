@@ -454,9 +454,9 @@ namespace Liangshan
                     });
                 }
                 arts[i] = art;
-                float ph = i * 0.8f;
-                float bob = standY;
-                Tween.Run(art, 999f, k => art.rectTransform.anchoredPosition = new Vector2(0, bob + 3 * Mathf.Sin(k * 999f * 2.2f + ph)));
+                // 有攻击帧的好汉脚踩在石台上，呼吸和出手跟战场用同一套帧，不再整个人上下飘。
+                if (!framed)
+                    Tween.Run(art, 999f, k => art.rectTransform.anchoredPosition = new Vector2(0, standY + 3 * Mathf.Sin(k * 999f * 2.2f + i * 0.8f)));
                 Ui.Tap(art, () => SetTab(TabHero), g);
                 if (Meta.CanLevel(S, lu[i]))
                 {
@@ -965,8 +965,7 @@ namespace Liangshan
             else
             {
                 Ui.Icon(c, "ic_lock", 46, new Vector2(84, 118));
-                int at = Meta.UnlockLevelOf(h);
-                string src = at > 0 ? $"第{at}关入伙" : d.Rarity >= 4 && !Meta.OrangeOpened(S) ? $"第{Meta.OrangeOpen}关后可招" : "招募获得";
+                string src = d.Rarity >= 4 && !Meta.OrangeOpened(S) ? $"第{Meta.OrangeOpen}关后可招" : "招募获得";
                 Ui.Box(c, new Vector2(188, 28), new Vector2(0, -74), new Color(0.07f, 0.11f, 0.16f, 0.72f), Art.Pill, "lockBar");
                 Ui.Outlined(c, src, 20, Pal.Hex("CFE2F2"), new Vector2(0, -73), new Vector2(184, 30), Pal.Hex("0E1720"), 1.2f);
             }

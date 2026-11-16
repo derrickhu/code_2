@@ -82,8 +82,8 @@ namespace Liangshan.Sim
         public bool Carry => Kind != Sim.Role.Support;
         public string RarityName => Rarity >= 4 ? "传说" : Rarity == 3 ? "史诗" : "稀有";
         public bool HasUlt => Rarity >= 4;
-        /// <summary>每秒对单体的期望输出（× 攻击力），战力估算用。</summary>
-        public float Dps => Buff.HasValue ? 0 : Coef * Count * (Chan > 0 ? Chan / Tick : 1f) / Interval;
+        /// <summary>每秒对单体的期望输出（× 攻击力），战力估算与数值表核验用（持续施法计入完整施法周期 Interval + Chan）。</summary>
+        public float Dps => Buff.HasValue ? 0 : Coef * Count * (Chan > 0 ? Chan / Tick : 1f) / (Interval + Chan);
     }
 
     public enum StageMode { Main, Daily, Escort }
@@ -187,6 +187,15 @@ namespace Liangshan.Sim
             return dx * dx + dy * dy <= HalfW * HalfW;
         }
 
+        /// <summary>剑气从寨墙中点出手，刃口一路飞到半圆边上。</summary>
+        public static readonly V2 LordOrigin = new V2(0f, WallRowY);
+
+        /// <summary>刃口从寨主扫到 p 的秒数。伤害和画面都按这个时刻落下。</summary>
+        public static float LordHitDelay(V2 p) => (p - LordOrigin).Len / Defs.LordWaveSpeed;
+
+        /// <summary>剑气整段飞行时间：刃口到半圆边。</summary>
+        public static float LordFlightTime => HalfW / Defs.LordWaveSpeed;
+
         public const float SlotGap = 1.36f;
         public const int BaseSlots = 7;
         public const int MaxSlots = 12;
@@ -225,7 +234,7 @@ namespace Liangshan.Sim
                 Shot = ShotKind.Arrow, Coef = 1.42f, Interval = 2.0f, Chain = 1, PierceGrow = 0.18f, AtkName = "穿云箭", AtkIcon = "ic_arrow", Noun = "箭",
                 PassiveName = "百步穿杨", PassiveEff = Eff.Crit, PassiveV = 0.18f, Desc = "一箭穿云，每穿透一敌伤害递增" },
             new HeroDef { Id = HeroId.LingZhen, Name = "凌振", Nick = "轰天雷", Kind = Sim.Role.Bomber, Rarity = 3, Art = "hero_lingzhen", Element = "火系",
-                Shot = ShotKind.Bomb, Coef = 2.55f, Interval = 5.0f, Radius = 1.25f, Knock = 0.32f, AtkName = "霹雳重炮", AtkIcon = "ic_bomb", Noun = "重炮",
+                Shot = ShotKind.Bomb, Coef = 2.85f, Interval = 4.6f, Radius = 1.25f, Knock = 0.32f, AtkName = "霹雳重炮", AtkIcon = "ic_bomb", Noun = "重炮",
                 PassiveName = "火药精通", PassiveEff = Eff.Area, PassiveV = 0.25f, Desc = "重型轰天巨炮，大口径震退敌潮" },
             new HeroDef { Id = HeroId.GongSun, Name = "公孙胜", Nick = "入云龙", Kind = Sim.Role.Mage, Rarity = 4, Art = "hero_gongsun", Element = "雷系",
                 Shot = ShotKind.Lightning, Coef = 2.60f, Interval = 8.5f, Radius = 0.8f, Chain = 4, AtkName = "天罡雷链", AtkIcon = "fx_zap", Noun = "落雷",
@@ -233,18 +242,18 @@ namespace Liangshan.Sim
                 UltTip = "8道天雷劈向敌群\n每道麻痹1秒",
                 PassiveName = "道法自然", PassiveEff = Eff.Chain, PassiveV = 2, Desc = "引一道天雷在敌群间连环弹射，克制重甲" },
             new HeroDef { Id = HeroId.WuSong, Name = "武松", Nick = "行者", Kind = Sim.Role.Fighter, Rarity = 3, Art = "hero_wusong",
-                Shot = ShotKind.Punch, Coef = 2.95f, Interval = 2.7f, Range = 4.8f, Radius = 0.92f, Knock = 0.45f, AtkName = "打虎铁拳", AtkIcon = "wp_ironfist", Proj = "wp_ironfist", Noun = "铁拳",
+                Shot = ShotKind.Punch, Coef = 2.95f, Interval = 2.7f, Range = 4.8f, Radius = 0.92f, Knock = 0.65f, AtkName = "打虎铁拳", AtkIcon = "wp_ironfist", Proj = "wp_ironfist", Noun = "铁拳",
                 PassiveName = "景阳冈打虎", PassiveEff = Eff.Elite, PassiveV = 0.6f, Desc = "势大力沉一记重拳，震退贴墙敌军" },
             new HeroDef { Id = HeroId.ZhangQing, Name = "张清", Nick = "没羽箭", Kind = Sim.Role.Archer, Rarity = 3, Art = "hero_zhangqing",
                 Shot = ShotKind.Stone, Coef = 1.15f, Interval = 2.0f, Radius = 0.32f, Chain = 2, AtkName = "飞石", AtkIcon = "fx_rock0", Noun = "飞石",
                 PassiveName = "百发百中", PassiveEff = Eff.Chain, PassiveV = 2, Desc = "飞石在敌人之间弹射" },
             new HeroDef { Id = HeroId.LinChong, Name = "林冲", Nick = "豹子头", Kind = Sim.Role.Fighter, Rarity = 4, Art = "hero_linchong",
-                Shot = ShotKind.Spear, Coef = 3.40f, Interval = 3.2f, Range = 6.2f, Radius = 0.55f, Knock = 0.15f, AtkName = "丈八蛇矛", AtkIcon = "wp_snakespear", Proj = "wp_snakespear", Noun = "长枪",
-                Ult = UltKind.Frost, UltName = "风雪山神庙", UltIcon = "fx_ice", UltCoef = 9.2f, UltCd = 30, UltRadius = 1.9f, UltStun = 2.5f,
+                Shot = ShotKind.Spear, Coef = 3.40f, Interval = 3.2f, Range = 6.2f, Radius = 0.55f, Knock = 0.30f, AtkName = "丈八蛇矛", AtkIcon = "wp_snakespear", Proj = "wp_snakespear", Noun = "长枪",
+                Ult = UltKind.Frost, UltName = "风雪山神庙", UltIcon = "fx_ice", UltCoef = 13.5f, UltCd = 30, UltRadius = 1.9f, UltStun = 2.5f,
                 UltTip = "风雪冰封一片敌人\n冻住2.5秒",
                 PassiveName = "禁军教头", PassiveEff = Eff.Crit, PassiveV = 0.2f, Desc = "长枪贯穿一列，攻击距离远" },
             new HeroDef { Id = HeroId.LuZhiShen, Name = "鲁智深", Nick = "花和尚", Kind = Sim.Role.Fighter, Rarity = 3, Art = "hero_luzhishen",
-                Shot = ShotKind.Slam, Coef = 3.80f, Interval = 3.5f, Range = 5.2f, Radius = 1.2f, Knock = 0.35f, AtkName = "水磨禅杖", AtkIcon = "wp_staff", Proj = "wp_staff", Noun = "禅杖",
+                Shot = ShotKind.Slam, Coef = 3.80f, Interval = 3.5f, Range = 5.2f, Radius = 1.2f, Knock = 0.55f, AtkName = "水磨禅杖", AtkIcon = "wp_staff", Proj = "wp_staff", Noun = "禅杖",
                 PassiveName = "大闹五台山", PassiveEff = Eff.Speed, PassiveV = 0.2f, Desc = "浑铁禅杖腾空砸地，大范围震退" },
             new HeroDef { Id = HeroId.WuYong, Name = "吴用", Nick = "智多星", Kind = Sim.Role.Support, Rarity = 3, Art = "hero_wuyong", Element = "风系",
                 Shot = ShotKind.Wind, Interval = 28f, Buff = UltKind.Bless, BuffV = 1f, AtkName = "运筹帷幄", AtkIcon = "prop_drum", Noun = "锦囊",
@@ -253,13 +262,13 @@ namespace Liangshan.Sim
 
             // ---------- 传说 ----------
             new HeroDef { Id = HeroId.LuJunyi, Name = "卢俊义", Nick = "玉麒麟", Kind = Sim.Role.Fighter, Rarity = 4, Art = "hero_lujunyi",
-                Shot = ShotKind.Spear, Coef = 3.70f, Interval = 3.2f, Range = 6.0f, Radius = 0.8f, Knock = 0.2f, AtkName = "麒麟枪", AtkIcon = "wp_spear", Proj = "wp_spear", Noun = "长枪",
-                Ult = UltKind.Sweep, UltName = "麒麟踏阵", UltIcon = "fx_wave", UltCoef = 8.5f, UltCd = 30, UltN = 5,
+                Shot = ShotKind.Spear, Coef = 3.70f, Interval = 3.2f, Range = 6.0f, Radius = 0.8f, Knock = 0.32f, AtkName = "麒麟枪", AtkIcon = "wp_spear", Proj = "wp_spear", Noun = "长枪",
+                Ult = UltKind.Sweep, UltName = "麒麟踏阵", UltIcon = "fx_wave", UltCoef = 10.0f, UltCd = 30, UltN = 5,
                 UltTip = "枪扫墙前一整排\n五段击飞",
                 PassiveName = "河北三绝", PassiveEff = Eff.Crit, PassiveV = 0.15f, Desc = "宽幅枪扫，一次挑翻一列" },
             new HeroDef { Id = HeroId.GuanSheng, Name = "关胜", Nick = "大刀", Kind = Sim.Role.Fighter, Rarity = 4, Art = "hero_guansheng",
-                Shot = ShotKind.Slam, Coef = 4.35f, Interval = 3.5f, Range = 5.4f, Radius = 1.3f, Knock = 0.35f, AtkName = "青龙偃月刀", AtkIcon = "wp_broadsword", Proj = "wp_broadsword", Noun = "大刀",
-                Ult = UltKind.Sweep, UltName = "拖刀计", UltIcon = "fx_shock", UltCoef = 18f, UltCd = 30, UltN = 5,
+                Shot = ShotKind.Slam, Coef = 4.35f, Interval = 3.5f, Range = 5.4f, Radius = 1.3f, Knock = 0.55f, AtkName = "青龙偃月刀", AtkIcon = "wp_broadsword", Proj = "wp_broadsword", Noun = "大刀",
+                Ult = UltKind.Sweep, UltName = "拖刀计", UltIcon = "fx_shock", UltCoef = 11.5f, UltCd = 30, UltN = 5,
                 UltTip = "大刀横扫墙前\n五段重劈",
                 PassiveName = "武圣遗风", PassiveEff = Eff.Elite, PassiveV = 0.5f, Desc = "偃月重刀腾空劈斩，范围大伤害高" },
             new HeroDef { Id = HeroId.YanQing, Name = "燕青", Nick = "浪子", Kind = Sim.Role.Archer, Rarity = 4, Art = "hero_yanqing",
@@ -268,8 +277,8 @@ namespace Liangshan.Sim
                 UltTip = "瞄准场上最强敌人\n一箭重创",
                 PassiveName = "浪子连弩", PassiveEff = Eff.Speed, PassiveV = 0.2f, Desc = "唯一三连轻弩射手，场上满四位再添一矢" },
             new HeroDef { Id = HeroId.FanRui, Name = "樊瑞", Nick = "混世魔王", Kind = Sim.Role.Mage, Rarity = 4, Art = "hero_fanrui", Element = "风系",
-                Shot = ShotKind.Wind, Coef = 0.65f, Interval = 14f, Chan = 3f, Tick = 0.25f, Radius = 1.1f, Slow = 1.5f, AtkName = "旋风咒", AtkIcon = "fx_smoke", Noun = "旋风", Tint = "C9D9C2",
-                Ult = UltKind.Tornado, UltName = "飞沙走石", UltIcon = "fx_rock1", UltCoef = 7.7f, UltCd = 30, UltRadius = 2.2f, UltStun = 1f,
+                Shot = ShotKind.Wind, Coef = 0.88f, Interval = 12.0f, Chan = 3f, Tick = 0.25f, Radius = 1.1f, Slow = 1.5f, AtkName = "旋风咒", AtkIcon = "fx_smoke", Noun = "旋风", Tint = "C9D9C2",
+                Ult = UltKind.Tornado, UltName = "飞沙走石", UltIcon = "fx_rock1", UltCoef = 9.0f, UltCd = 30, UltRadius = 2.2f, UltStun = 1f,
                 UltTip = "龙卷风卷起敌群\n眩晕1秒",
                 PassiveName = "妖法", PassiveEff = Eff.Dmg, PassiveV = 0.2f, Desc = "旋风缠住目标持续绞杀，范围减速" },
             new HeroDef { Id = HeroId.HuSanniang, Name = "扈三娘", Nick = "一丈青", Kind = Sim.Role.Control, Rarity = 4, Art = "hero_husanniang",
@@ -290,17 +299,17 @@ namespace Liangshan.Sim
                 UltTip = "全军攻速+60%\n持续8秒",
                 PassiveName = "日行八百", PassiveEff = Eff.Aura, PassiveV = 0.5f, Desc = "给全队缩短冷却，在场冷却转得更快" },
             new HeroDef { Id = HeroId.QinMing, Name = "秦明", Nick = "霹雳火", Kind = Sim.Role.Bomber, Rarity = 4, Art = "hero_qinming", Element = "火系",
-                Shot = ShotKind.Fireball, Coef = 3.20f, Interval = 4.8f, Radius = 1.3f, Dot = 0.45f, AtkName = "霹雳火陨", AtkIcon = "fx_fireball", Noun = "火陨",
+                Shot = ShotKind.Fireball, Coef = 3.40f, Interval = 4.5f, Radius = 1.3f, Dot = 0.45f, AtkName = "霹雳火陨", AtkIcon = "fx_fireball", Noun = "火陨",
                 Ult = UltKind.Meteor, UltName = "霹雳天火", UltIcon = "fx_explode", UltCoef = 3.8f, UltCd = 30, UltN = 10, UltRadius = 1.2f,
                 UltTip = "天降10颗火流星\n砸进敌群",
                 PassiveName = "性如烈火", PassiveEff = Eff.Area, PassiveV = 0.25f, Desc = "天降重型霹雳火陨，大招十颗天火洗地" },
 
             // ---------- 史诗 ----------
             new HeroDef { Id = HeroId.LiKui, Name = "李逵", Nick = "黑旋风", Kind = Sim.Role.Fighter, Rarity = 3, Art = "hero_likui",
-                Shot = ShotKind.Punch, Coef = 2.95f, Interval = 2.9f, Range = 4.8f, Radius = 1.05f, Knock = 0.35f, AtkName = "旋风飞斧", AtkIcon = "wp_axe_spin", Proj = "wp_axe", ProjSpin = true, Noun = "板斧",
+                Shot = ShotKind.Punch, Coef = 2.95f, Interval = 2.9f, Range = 4.8f, Radius = 1.05f, Knock = 0.52f, AtkName = "旋风飞斧", AtkIcon = "wp_axe_spin", Proj = "wp_axe", ProjSpin = true, Noun = "板斧",
                 PassiveName = "黑旋风", PassiveEff = Eff.Area, PassiveV = 0.3f, Desc = "甩出沉重回旋板斧，击退近墙官军" },
             new HeroDef { Id = HeroId.QiaoDaoqing, Name = "乔道清", Nick = "幻魔君", Kind = Sim.Role.Mage, Rarity = 3, Art = "hero_qiaodaoqing", Element = "火系",
-                Shot = ShotKind.Beam, Coef = 0.45f, Interval = 15f, Chan = 3f, Tick = 0.2f, Radius = 0.45f, AtkName = "火焰射线", AtkIcon = "fx_fireball", Noun = "射线", Tint = "FF8A2A",
+                Shot = ShotKind.Beam, Coef = 0.58f, Interval = 11.5f, Chan = 3f, Tick = 0.2f, Radius = 0.45f, AtkName = "火焰射线", AtkIcon = "fx_fireball", Noun = "射线", Tint = "FF8A2A",
                 PassiveName = "幻术", PassiveEff = Eff.Crit, PassiveV = 0.15f, Desc = "喷出火焰射线持续灼烧，法伤克制重甲" },
             new HeroDef { Id = HeroId.ZhuWu, Name = "朱武", Nick = "神机军师", Kind = Sim.Role.Control, Rarity = 3, Art = "hero_zhuwu", Element = "风系",
                 Shot = ShotKind.Wind, Coef = 1.9f, Interval = 6.0f, Radius = 1.6f, Slow = 3f, AtkName = "八阵图", AtkIcon = "prop_book", Noun = "阵法", Tint = "7FB4FF",
@@ -309,18 +318,18 @@ namespace Liangshan.Sim
                 Shot = ShotKind.Spear, Coef = 2.95f, Interval = 4.6f, Range = 6.0f, Radius = 0.6f, Slow = 2f, AtkName = "钩镰枪", AtkIcon = "wp_hookspear", Proj = "wp_hookspear", Noun = "钩镰", Tint = "FFD27A",
                 PassiveName = "金枪班", PassiveEff = Eff.Cav, PassiveV = 0.5f, Desc = "钩镰绊马，克制骑兵与连环马" },
             new HeroDef { Id = HeroId.ShanTinggui, Name = "单廷珪", Nick = "圣水将", Kind = Sim.Role.Mage, Rarity = 3, Art = "hero_shantinggui", Element = "水系",
-                Shot = ShotKind.Beam, Coef = 0.42f, Interval = 15f, Chan = 3f, Tick = 0.2f, Radius = 0.5f, Slow = 1.5f, AtkName = "圣水射线", AtkIcon = "fx_icecrystal", Noun = "射线", Tint = "6FC8FF",
+                Shot = ShotKind.Beam, Coef = 0.54f, Interval = 11.5f, Chan = 3f, Tick = 0.2f, Radius = 0.5f, Slow = 1.5f, AtkName = "圣水射线", AtkIcon = "fx_icecrystal", Noun = "射线", Tint = "6FC8FF",
                 PassiveName = "圣水灌顶", PassiveEff = Eff.Dmg, PassiveV = 0.2f, Desc = "水柱持续冲刷一条线，沿途减速" },
             new HeroDef { Id = HeroId.WeiDingguo, Name = "魏定国", Nick = "神火将", Kind = Sim.Role.Bomber, Rarity = 3, Art = "hero_weidingguo", Element = "火系",
-                Shot = ShotKind.Bomb, Coef = 1.65f, Interval = 4.8f, Radius = 1.15f, Dot = 0.65f, AntiHeal = true, AtkName = "猛火油罐", AtkIcon = "ic_bomb", Noun = "火罐", Tint = "FF7A3A",
+                Shot = ShotKind.Bomb, Coef = 1.85f, Interval = 4.5f, Radius = 1.15f, Dot = 0.70f, AntiHeal = true, AtkName = "猛火油罐", AtkIcon = "ic_bomb", Noun = "火罐", Tint = "FF7A3A",
                 PassiveName = "神火焚营", PassiveEff = Eff.Burn, PassiveV = 0.45f, Desc = "投出猛火油罐铺开火海，持续灼烧并减疗" },
 
             // ---------- 稀有 ----------
             new HeroDef { Id = HeroId.ShiXiu, Name = "石秀", Nick = "拼命三郎", Kind = Sim.Role.Fighter, Rarity = 2, Art = "hero_shixiu",
-                Shot = ShotKind.Punch, Coef = 1.85f, Interval = 2.2f, Range = 4.8f, Radius = 0.72f, Knock = 0.22f, AtkName = "拼命快刀", AtkIcon = "wp_jian", Proj = "wp_jian", ProjSize = 1.0f, Noun = "利刃",
+                Shot = ShotKind.Punch, Coef = 1.85f, Interval = 2.2f, Range = 4.8f, Radius = 0.72f, Knock = 0.34f, AtkName = "拼命快刀", AtkIcon = "wp_jian", Proj = "wp_jian", ProjSize = 1.0f, Noun = "利刃",
                 PassiveName = "拼命", PassiveEff = Eff.Crit, PassiveV = 0.2f, Desc = "寒钢快刀凌厉一斩，暴击极高" },
             new HeroDef { Id = HeroId.XieZhen, Name = "解珍", Nick = "两头蛇", Kind = Sim.Role.Archer, Rarity = 2, Art = "hero_xiezhen",
-                Shot = ShotKind.Arrow, Coef = 1.12f, Interval = 1.9f, AtkName = "穿林猎弓", AtkIcon = "ic_arrow", Noun = "箭",
+                Shot = ShotKind.Arrow, Coef = 1.18f, Interval = 1.9f, AtkName = "穿林猎弓", AtkIcon = "ic_arrow", Noun = "箭",
                 PassiveName = "登州猎户", PassiveEff = Eff.Fly, PassiveV = 0.5f, Desc = "精准穿林单箭点杀，专克飞禽" },
             new HeroDef { Id = HeroId.XieBao, Name = "解宝", Nick = "双尾蝎", Kind = Sim.Role.Archer, Rarity = 2, Art = "hero_xiebao",
                 Shot = ShotKind.Arrow, Coef = 1.15f, Interval = 2.1f, Chain = 1, Dot = 0.35f, AtkName = "倒钩毒叉", AtkIcon = "wp_fork", Proj = "wp_fork", Noun = "钢叉",
@@ -329,7 +338,7 @@ namespace Liangshan.Sim
                 Shot = ShotKind.Stone, Coef = 2.00f, Interval = 3.8f, Radius = 0.45f, Stun = 0.8f, StunChance = 0.35f, AtkName = "金砖镇魔", AtkIcon = "wp_goldbrick", Proj = "wp_goldbrick", ProjSpin = true, Noun = "金砖", Tint = "FFD24A",
                 PassiveName = "风火轮", PassiveEff = Eff.Speed, PassiveV = 0.2f, Desc = "祭出一块镇魔金砖从天砸落，高几率击晕" },
             new HeroDef { Id = HeroId.KongLiang, Name = "孔亮", Nick = "独火星", Kind = Sim.Role.Bomber, Rarity = 2, Art = "hero_kongliang", Element = "火系",
-                Shot = ShotKind.Bomb, Coef = 1.65f, Interval = 3.9f, Radius = 0.95f, AtkName = "独火雷", AtkIcon = "ic_bomb", Noun = "火雷",
+                Shot = ShotKind.Bomb, Coef = 1.82f, Interval = 3.7f, Radius = 0.95f, AtkName = "独火雷", AtkIcon = "ic_bomb", Noun = "火雷",
                 PassiveName = "独火星", PassiveEff = Eff.Area, PassiveV = 0.22f, Desc = "掷出一枚高爆独火雷，炸翻扎堆步卒" },
             new HeroDef { Id = HeroId.TangLong, Name = "汤隆", Nick = "金钱豹子", Kind = Sim.Role.Support, Rarity = 2, Art = "hero_tanglong",
                 Shot = ShotKind.Stone, Interval = 24f, Buff = UltKind.Forge, BuffV = 0.4f, AtkName = "打造神兵", AtkIcon = "ic_gear", Noun = "神兵", Tint = "A8AEB8",
@@ -342,13 +351,13 @@ namespace Liangshan.Sim
                 Shot = ShotKind.Wind, Coef = 1.3f, Interval = 6.0f, Radius = 1.3f, Stun = 1.2f, AtkName = "天罗地网", AtkIcon = "wp_net", Proj = "wp_net", ProjSpin = true, Noun = "渔网", Tint = "D8C08A",
                 PassiveName = "活阎罗", PassiveEff = Eff.Area, PassiveV = 0.3f, Desc = "撒网定住一片小兵" },
             new HeroDef { Id = HeroId.ShiQian, Name = "时迁", Nick = "鼓上蚤", Kind = Sim.Role.Support, Rarity = 2, Art = "hero_shiqian",
-                Shot = ShotKind.Arrow, Interval = 18f, Buff = UltKind.Steal, BuffV = 1f, AtkName = "顺手牵羊", AtkIcon = "ic_coins", Noun = "银两",
+                Shot = ShotKind.Arrow, Interval = 15f, Buff = UltKind.Steal, BuffV = 1f, AtkName = "顺手牵羊", AtkIcon = "ic_coins", Noun = "银两",
                 Aura = AuraKind.Coin, AuraV = 0.1f,
-                PassiveName = "鼓上蚤", PassiveEff = Eff.Aura, PassiveV = 0.5f, Desc = "定时偷来银两，在场击杀多掉银两" },
+                PassiveName = "鼓上蚤", PassiveEff = Eff.Aura, PassiveV = 0.5f, Desc = "定时偷银并破绽强敌，在场击杀多掉银两" },
             new HeroDef { Id = HeroId.JiangJing, Name = "蒋敬", Nick = "神算子", Kind = Sim.Role.Support, Rarity = 2, Art = "hero_jiangjing",
-                Shot = ShotKind.Stone, Interval = 22f, Buff = UltKind.Interest, BuffV = 0.15f, AtkName = "神机妙算", AtkIcon = "ic_coins", Noun = "利息", Tint = "FFD24A",
+                Shot = ShotKind.Stone, Interval = 18f, Buff = UltKind.Interest, BuffV = 0.18f, AtkName = "神机妙算", AtkIcon = "ic_coins", Noun = "利息", Tint = "FFD24A",
                 Aura = AuraKind.Interest, AuraV = 0.01f,
-                PassiveName = "精打细算", PassiveEff = Eff.Aura, PassiveV = 0.5f, Desc = "定时结算一大笔利息，在场银两生利息" },
+                PassiveName = "精打细算", PassiveEff = Eff.Aura, PassiveV = 0.5f, Desc = "结算利息并鼓舞攻速，在场银两生利息" },
         };
 
         public static HeroDef Hero(HeroId id) => Heroes[(int)id];
@@ -381,49 +390,49 @@ namespace Liangshan.Sim
 
         public static readonly EnemyDef[] Enemies =
         {
-            E(EnemyKind.Soldier, "官兵", "en_soldier", 70, 0.58f, 12, 0.95f, 2, "最常见的官军步卒，需多番射击方能击退"),
-            new EnemyDef { Kind = EnemyKind.Shield, Name = "盾兵", Art = "en_shield", Hp = 156, Speed = 0.40f, WallDps = 18, Size = 1.15f, Coin = 4,
+            E(EnemyKind.Soldier, "官兵", "en_soldier", 70, 0.424f, 12, 0.95f, 2, "最常见的官军步卒，需多番射击方能击退"),
+            new EnemyDef { Kind = EnemyKind.Shield, Name = "盾兵", Art = "en_shield", Hp = 156, Speed = 0.292f, WallDps = 18, Size = 1.15f, Coin = 4,
                 Desc = "举着大盾，减免物理伤害，怕法术轰击", PhysResist = 0.25f, MagicWeak = 0.20f, StopY = Layout.StopY },
-            E(EnemyKind.Cavalry, "骑兵", "en_cavalry", 56, 0.92f, 11, 1.15f, 3, "跑得最快，冲到墙下才停"),
-            E(EnemyKind.Crossbow, "弩手", "en_crossbow", 50, 0.56f, 11, 0.95f, 3, "停在半路放箭，近战够不着", stopY: 0.6f),
-            E(EnemyKind.Elite, "教头", "en_elite", 980, 0.36f, 70, 1.6f, 45, "官军教头，血厚攻高", EnemyRank.Elite),
-            E(EnemyKind.Porter, "生辰纲", "en_porter", 480, 0.5f, 0, 1.25f, 20, "挑着财宝的脚夫，只在劫生辰纲时出现"),
-            E(EnemyKind.Boss, "黄安", "en_boss", 5600, 0.17f, 185, 2.6f, 200, "济州团练使，首个来犯的官军首领", EnemyRank.Boss),
-            new EnemyDef { Kind = EnemyKind.Hawk, Name = "鹰隼", Art = "en_hawk", Hp = 42, Speed = 0.80f, WallDps = 11, Size = 0.9f, Coin = 3,
+            E(EnemyKind.Cavalry, "骑兵", "en_cavalry", 56, 0.672f, 11, 1.15f, 3, "跑得最快，冲到墙下才停"),
+            E(EnemyKind.Crossbow, "弩手", "en_crossbow", 50, 0.409f, 11, 0.95f, 3, "停在半路放箭，近战够不着", stopY: 0.6f),
+            E(EnemyKind.Elite, "教头", "en_elite", 980, 0.263f, 70, 1.6f, 48, "官军教头，血厚攻高", EnemyRank.Elite),
+            E(EnemyKind.Porter, "生辰纲", "en_porter", 480, 0.365f, 0, 1.25f, 20, "挑着财宝的脚夫，只在劫生辰纲时出现"),
+            E(EnemyKind.Boss, "黄安", "en_boss", 5600, 0.124f, 185, 2.6f, 135, "济州团练使，首个来犯的官军首领", EnemyRank.Boss),
+            new EnemyDef { Kind = EnemyKind.Hawk, Name = "鹰隼", Art = "en_hawk", Hp = 42, Speed = 0.585f, WallDps = 11, Size = 0.9f, Coin = 3,
                 Desc = "飞行单位，战士打不到，射手克制", Flying = true, ArcherWeak = 0.45f, StopY = Layout.StopY + 0.5f },
-            new EnemyDef { Kind = EnemyKind.Armored, Name = "铁甲兵", Art = "en_armored", Hp = 172, Speed = 0.40f, WallDps = 20, Size = 1.15f, Coin = 5,
+            new EnemyDef { Kind = EnemyKind.Armored, Name = "铁甲兵", Art = "en_armored", Hp = 172, Speed = 0.292f, WallDps = 20, Size = 1.15f, Coin = 5,
                 Desc = "重甲：大幅减免物理伤害，怕火雷风法术", PhysResist = 0.45f, MagicWeak = 0.40f, StopY = Layout.StopY },
-            E(EnemyKind.FireBomb, "火药兵", "en_firebomb", 62, 0.80f, 195, 0.95f, 4, "冲到墙下自爆；半路击杀会炸伤身边官军"),
-            new EnemyDef { Kind = EnemyKind.ChainHorse, Name = "连环马", Art = "en_chainhorse", Hp = 820, Speed = 0.48f, WallDps = 64, Size = 1.7f, Coin = 40,
+            E(EnemyKind.FireBomb, "火药兵", "en_firebomb", 62, 0.585f, 195, 0.95f, 4, "冲到墙下自爆；半路击杀会炸伤身边官军"),
+            new EnemyDef { Kind = EnemyKind.ChainHorse, Name = "连环马", Art = "en_chainhorse", Hp = 820, Speed = 0.351f, WallDps = 64, Size = 1.7f, Coin = 45,
                 Desc = "铁索相连的重骑，物理减伤，钩镰与法术克制", Rank = EnemyRank.Elite, PhysResist = 0.35f, MagicWeak = 0.20f, StopY = Layout.StopY },
-            E(EnemyKind.Luan, "栾廷玉", "en_luan", 6800, 0.17f, 180, 2.6f, 220, "祝家庄教师，飞锤砸晕好汉", EnemyRank.Boss),
-            E(EnemyKind.ShiWen, "史文恭", "en_shiwen", 7600, 0.15f, 175, 2.6f, 240, "曾头市教师，冲锋突进，残血狂暴", EnemyRank.Boss),
-            E(EnemyKind.HuYan, "呼延灼", "en_huyan", 8800, 0.16f, 180, 2.7f, 260, "双鞭将，不断召来连环骑兵", EnemyRank.Boss),
-            E(EnemyKind.GaoQiu, "高俅", "en_gaoqiu", 10200, 0.15f, 190, 2.6f, 300, "殿帅府太尉，踢火球砸墙，带护盾", EnemyRank.Boss),
-            E(EnemyKind.Diver, "水鬼", "en_diver", 58, 0.66f, 12, 0.95f, 3, "时不时潜进水里，潜着时刀枪不入"),
-            E(EnemyKind.Farmer, "庄客", "en_farmer", 38, 0.72f, 9, 0.9f, 2, "祝家庄的庄客，扛着钉耙成群涌来"),
-            E(EnemyKind.Hound, "恶犬", "en_hound", 22, 1.14f, 6, 0.75f, 1, "两条一群，跑得飞快"),
-            new EnemyDef { Kind = EnemyKind.Rattan, Name = "藤牌手", Art = "en_rattan", Hp = 72, Speed = 0.48f, WallDps = 15, Size = 1.05f, Coin = 4,
+            E(EnemyKind.Luan, "栾廷玉", "en_luan", 6800, 0.124f, 180, 2.6f, 150, "祝家庄教师，飞锤砸晕好汉", EnemyRank.Boss),
+            E(EnemyKind.ShiWen, "史文恭", "en_shiwen", 7600, 0.110f, 175, 2.6f, 160, "曾头市教师，冲锋突进，残血狂暴", EnemyRank.Boss),
+            E(EnemyKind.HuYan, "呼延灼", "en_huyan", 8800, 0.117f, 180, 2.7f, 170, "双鞭将，不断召来连环骑兵", EnemyRank.Boss),
+            E(EnemyKind.GaoQiu, "高俅", "en_gaoqiu", 10200, 0.110f, 190, 2.6f, 185, "殿帅府太尉，踢火球砸墙，带护盾", EnemyRank.Boss),
+            E(EnemyKind.Diver, "水鬼", "en_diver", 58, 0.482f, 12, 0.95f, 3, "时不时潜进水里，潜着时刀枪不入"),
+            E(EnemyKind.Farmer, "庄客", "en_farmer", 38, 0.526f, 9, 0.9f, 2, "祝家庄的庄客，扛着钉耙成群涌来"),
+            E(EnemyKind.Hound, "恶犬", "en_hound", 22, 0.833f, 6, 0.75f, 1, "两条一群，跑得飞快"),
+            new EnemyDef { Kind = EnemyKind.Rattan, Name = "藤牌手", Art = "en_rattan", Hp = 72, Speed = 0.351f, WallDps = 15, Size = 1.05f, Coin = 4,
                 Desc = "藤牌能挡下最先的两次攻击，并减免物理伤害", PhysResist = 0.20f, StopY = Layout.StopY },
-            E(EnemyKind.Taoist, "妖道", "en_taoist", 76, 0.50f, 10, 1.0f, 5, "站在后面作法，给身边官军回血", stopY: 1.6f),
-            E(EnemyKind.Berserker, "敢死刀手", "en_berserker", 104, 0.60f, 18, 1.0f, 4, "残血时拼命：两秒内受伤减半，狂奔冲墙"),
-            new EnemyDef { Kind = EnemyKind.Catapult, Name = "投石车", Art = "en_catapult", Hp = 245, Speed = 0.32f, WallDps = 28, Size = 1.4f, Coin = 7,
+            E(EnemyKind.Taoist, "妖道", "en_taoist", 76, 0.365f, 10, 1.0f, 5, "站在后面作法，给身边官军回血", stopY: 1.6f),
+            E(EnemyKind.Berserker, "敢死刀手", "en_berserker", 104, 0.438f, 18, 1.0f, 4, "残血时拼命：两秒内受伤减半，狂奔冲墙"),
+            new EnemyDef { Kind = EnemyKind.Catapult, Name = "投石车", Art = "en_catapult", Hp = 245, Speed = 0.234f, WallDps = 28, Size = 1.4f, Coin = 7,
                 Desc = "远远停下抛石砸墙，打不退", PhysResist = 0.25f, StopY = 2.8f },
-            new EnemyDef { Kind = EnemyKind.Lantern, Name = "孔明灯", Art = "en_lantern", Hp = 38, Speed = 0.52f, WallDps = 165, Size = 0.9f, Coin = 3,
+            new EnemyDef { Kind = EnemyKind.Lantern, Name = "孔明灯", Art = "en_lantern", Hp = 38, Speed = 0.380f, WallDps = 165, Size = 0.9f, Coin = 3,
                 Desc = "飘到墙上就炸，战士够不着，射手克制", Flying = true, ArcherWeak = 0.45f, StopY = Layout.StopY + 0.5f },
-            E(EnemyKind.Scout, "斥候", "en_scout", 48, 0.86f, 11, 0.9f, 3, "挨打时常常闪身躲开，往前一窜"),
-            E(EnemyKind.Brute, "力士", "en_brute", 250, 0.38f, 24, 1.35f, 7, "背篓里藏着三个官兵，打倒就跳出来"),
-            E(EnemyKind.HeTao, "何涛", "en_hetao", 5100, 0.17f, 180, 2.6f, 200, "济州缉捕使臣，驾车船而来，召唤水鬼", EnemyRank.Boss),
-            E(EnemyKind.ZhuChaofeng, "祝朝奉", "en_zhucf", 6800, 0.16f, 175, 2.6f, 220, "祝家庄庄主，坐轿撒钱，买来金光护体", EnemyRank.Boss),
-            E(EnemyKind.ZengKui, "曾魁", "en_zengkui", 7600, 0.16f, 175, 2.6f, 240, "曾家四虎，骑猛虎扑跃突进", EnemyRank.Boss),
-            new EnemyDef { Kind = EnemyKind.HanTao, Name = "韩滔", Art = "en_hantao", Hp = 8800, Speed = 0.16f, WallDps = 180, Size = 2.7f, Coin = 260,
+            E(EnemyKind.Scout, "斥候", "en_scout", 48, 0.628f, 11, 0.9f, 3, "挨打时常常闪身躲开，往前一窜"),
+            E(EnemyKind.Brute, "力士", "en_brute", 250, 0.278f, 24, 1.35f, 7, "背篓里藏着三个官兵，打倒就跳出来"),
+            E(EnemyKind.HeTao, "何涛", "en_hetao", 5100, 0.124f, 180, 2.6f, 130, "济州缉捕使臣，驾车船而来，召唤水鬼", EnemyRank.Boss),
+            E(EnemyKind.ZhuChaofeng, "祝朝奉", "en_zhucf", 6800, 0.117f, 175, 2.6f, 145, "祝家庄庄主，坐轿撒钱，买来金光护体", EnemyRank.Boss),
+            E(EnemyKind.ZengKui, "曾魁", "en_zengkui", 7600, 0.117f, 175, 2.6f, 155, "曾家四虎，骑猛虎扑跃突进", EnemyRank.Boss),
+            new EnemyDef { Kind = EnemyKind.HanTao, Name = "韩滔", Art = "en_hantao", Hp = 8800, Speed = 0.117f, WallDps = 180, Size = 2.7f, Coin = 165,
                 Desc = "百胜将，推铁头撞车猛撞寨墙，物理减伤", Rank = EnemyRank.Boss, PhysResist = 0.35f, MagicWeak = 0.25f, StopY = Layout.StopY },
-            E(EnemyKind.LiuMenglong, "刘梦龙", "en_liuml", 10200, 0.15f, 190, 2.7f, 300, "水军节度使，推云梯楼车，楼上弓手齐射", EnemyRank.Boss, stopY: 0.4f),
+            E(EnemyKind.LiuMenglong, "刘梦龙", "en_liuml", 10200, 0.110f, 190, 2.7f, 180, "水军节度使，推云梯楼车，楼上弓手齐射", EnemyRank.Boss, stopY: 0.4f),
         };
 
         public static EnemyDef Enemy(EnemyKind k) => Enemies[(int)k];
 
-        public static readonly PerkDef[] Perks = BuildPerks();
+        public static PerkDef[] Perks { get; private set; } = BuildPerks();
 
         /// <summary>
         /// 每位好汉 7 条：前 4 条进强化三选一（同一条可叠 Max 级），后 3 条是满星额外技能，合成满星时三选一、只给一次。
@@ -460,7 +469,7 @@ namespace Liangshan.Sim
                 {
                     Id = key + "_top", Hero = h, Name = "最强" + (d.Noun ?? "一击"), Opt = 2, Weight = 1.3f,
                     Eff = sup ? Eff.UltCd : Eff.Top, V = sup ? 0.3f : TopDmg,
-                    Desc = sup ? $"「{d.AtkName}」\n冷却 -30%" : $"场上最高星的{d.Name}\n伤害 +{Pct(TopDmg)}，体积 +25%",
+                    Desc = sup ? $"「{d.AtkName}」\n冷却 -30%" : $"场上最高星的{d.Name}\n伤害 +{Pct(TopDmg)}，体积 +20%",
                 });
                 if (d.HasUlt)
                     list.Add(new PerkDef
@@ -563,14 +572,15 @@ namespace Liangshan.Sim
             list.Add(Trade("heavy", "千钧之力", Eff.Dmg, 0.95f, Eff.Speed, -0.28f, "pace", $"{n}伤害 +95%\n攻速 -28%"));
             list.Add(Trade("quick", "快如闪电", Eff.Speed, 0.65f, Eff.Dmg, -0.22f, "pace", $"攻速 +65%\n{n}伤害 -22%"));
             bool many = d.Chan <= 0 && (d.Shot == ShotKind.Arrow || d.Shot == ShotKind.Bomb || d.Shot == ShotKind.Fireball || d.Shot == ShotKind.Punch || d.Shot == ShotKind.Lasso);
+            var cb = Balance.Current.Combat;
             if (many && (d.Shot == ShotKind.Punch || d.Shot == ShotKind.Lasso))
                 list.Add(Trade("wide", "连环追击", Eff.Count, 1, Eff.Dmg, -0.15f, null, (d.Shot == ShotKind.Punch ? "每次出手多斩 1 击" : "套索同时多锁 1 人") + "\n单次伤害 -15%"));
             else if (many)
-                list.Add(Trade("wide", "齐射", Eff.Count, 2, Eff.Dmg, -0.15f, null, $"{n}数量 +2\n单发伤害 -15%"));
+                list.Add(Trade("wide", "齐射", Eff.Count, 2, Eff.Dmg, cb.WideMultiDmgPenalty, null, $"{n}数量 +2\n单发伤害 {Pct(cb.WideMultiDmgPenalty)}"));
             else if (d.Shot == ShotKind.Stone)
                 list.Add(Trade("wide", "满天飞石", Eff.Chain, 2, Eff.Dmg, -0.18f, null, $"{n}弹射 +2 次\n伤害 -18%"));
             else
-                list.Add(Trade("wide", "大开大合", Eff.Area, 0.7f, Eff.Speed, -0.2f, null, $"{n}范围 +70%\n攻速 -20%"));
+                list.Add(Trade("wide", "大开大合", Eff.Area, cb.WideAreaBonus, Eff.Speed, cb.WideAreaSpeedPenalty, null, $"{n}范围 +{Pct(cb.WideAreaBonus)}\n攻速 {Pct(cb.WideAreaSpeedPenalty)}"));
 
             bool fire = d.Element == "火系";
             Eff me;
@@ -613,8 +623,17 @@ namespace Liangshan.Sim
             // 蔚蓝星球式跨职业联动 & 逆风翻盘词条：碎冰追击、众星捧月共鸣、绝境斩杀。
             if (d.Kind == Sim.Role.Control)
             {
-                list.Add(new PerkDef { Id = key + "_shatter", Hero = d.Id, Name = "落井下石", Kind = PerkKind.Value, Eff = Eff.Vuln, V = 0.30f, Weight = 1.15f, Desc = "被减速或定身的敌人\n4 秒内所受伤害 +30%" });
-                list.Add(new PerkDef { Id = key + "_exec", Hero = d.Id, Name = "困兽犹斗", Kind = PerkKind.Value, Eff = Eff.Stun, V = 0.4f, Max = 2, Weight = 1.0f, Desc = "控制时间 +0.4 秒\n残血墙下触发率翻倍" });
+                list.Add(new PerkDef { Id = key + "_shatter", Hero = d.Id, Name = "落井下石", Kind = PerkKind.Value, Eff = Eff.Vuln, V = 0.30f, Weight = 1.15f, Desc = "命中的敌人 4 秒内\n所受伤害 +30%" });
+                bool hardStun = d.Stun > 0 && d.StunChance <= 0;
+                bool slowOnly = d.Stun <= 0 && d.Slow > 0;
+                list.Add(new PerkDef
+                {
+                    Id = key + "_exec", Hero = d.Id, Name = "困兽犹斗", Kind = PerkKind.Value,
+                    Eff = slowOnly ? Eff.Slow : Eff.Stun, V = slowOnly ? 1.0f : (hardStun ? 0.4f : 0.25f), Max = 2, Weight = 1.0f,
+                    Desc = slowOnly ? "减速时间 +1 秒\n近墙敌军额外减速 1 秒"
+                        : hardStun ? "定身时间 +0.4 秒\n近墙敌军额外定身 0.4 秒"
+                        : "击晕几率 +25%\n近墙敌军触发率翻倍",
+                });
             }
             else
             {
@@ -628,10 +647,17 @@ namespace Liangshan.Sim
         }
 
         /// <summary>局内普通强化要一眼看得出变强：伤害、范围、攻速类在表里的基础值上放大，确保拿钱买词条远优于无脑盲目召唤。</summary>
-        static float Boost(Eff e) => e == Eff.Dmg ? 1.75f : e == Eff.Area ? 1.48f : e == Eff.Speed ? 1.35f : e == Eff.Crit ? 1.25f : 1f;
+        static float Boost(Eff e)
+        {
+            var c = Balance.Current.Combat;
+            return e == Eff.Dmg ? c.PerkDmgBoost : e == Eff.Area ? c.PerkAreaBoost : e == Eff.Speed ? c.PerkSpeedBoost : e == Eff.Crit ? c.PerkCritBoost : 1f;
+        }
 
         /// <summary>5 级解锁的「爆发」：每次出手有几率打出巨型一击；15 级起触发率再加、必定暴击。20 级解锁的「最强」：场上星级最高的那一位加伤害。</summary>
-        public const float SurgeChance = 0.4f, SurgeDmg = 3.6f, SurgePlusChance = 0.1f, TopDmg = 1.45f;
+        public static float SurgeChance => Balance.Current.Combat.SurgeChance;
+        public static float SurgeDmg => Balance.Current.Combat.SurgeDmg;
+        public static float SurgePlusChance => Balance.Current.Combat.SurgePlusChance;
+        public static float TopDmg => Balance.Current.Combat.TopDmg;
 
         public static class OptNames
         {
@@ -652,7 +678,9 @@ namespace Liangshan.Sim
         }
 
         public static string AwakenName(HeroId h) => OptNames.Awaken[(int)h];
-        public const float AwakenDmgBonus = 0.45f, AwakenSpeedBonus = 0.20f, AwakenAuraBonus = 0.40f;
+        public static float AwakenDmgBonus => Balance.Current.Combat.AwakenDmgBonus;
+        public static float AwakenSpeedBonus => Balance.Current.Combat.AwakenSpeedBonus;
+        public static float AwakenAuraBonus => Balance.Current.Combat.AwakenAuraBonus;
 
         /// <summary>上阵异职业羁绊：2/3/4 种不同职业上阵时，全军最终伤害 +3% / +7% / +12%。</summary>
         public static int DistinctRoles(HeroId[] lineup, out int mask)
@@ -756,7 +784,7 @@ namespace Liangshan.Sim
                 case Eff.Fly: return $"对飞行敌人\n伤害 +{Pct(v)}";
                 case Eff.Cav: return $"对骑兵、连环马\n伤害 +{Pct(v)}";
                 case Eff.Surge: return $"{Pct(v)}几率爆发成巨型{n}\n伤害 +{Pct(SurgeDmg - 1f)}";
-                case Eff.Top: return $"场上最高星的{d.Name}\n伤害 +{Pct(v)}，体积 +25%";
+                case Eff.Top: return $"场上最高星的{d.Name}\n伤害 +{Pct(v)}，体积 +20%";
                 case Eff.Blast: return $"{n}命中后爆炸\n周围敌人受 {Pct(v)} 伤害";
                 case Eff.Burn: return $"命中的敌人持续 {BurnDur:0} 秒\n共受 {Pct(v)} 伤害";
                 case Eff.Vuln: return $"命中的敌人 {VulnDur:0} 秒内\n受到伤害 +{Pct(v)}";
@@ -803,8 +831,8 @@ namespace Liangshan.Sim
         /// 3 星基础 3.30x（约理论值 82.5%，靠解锁 3 星核心形态质变与放大强化词条拉开上限）；
         /// 4 星满星觉醒 4.20x（合体巨型猛将 + 免费触发一次满星专属三选一 + 吃满「众星捧月 / 最强一击 / 大招与三合一奥义」乘区）。
         /// </summary>
-        public static readonly float[] StarMul = { 1f, 2.0f, 3.3f, 4.2f };
-        public static readonly float[] StarSpeed = { 1f, 1.04f, 1.10f, 1.20f };
+        public static float[] StarMul => Balance.Current.Combat.StarMul;
+        public static float[] StarSpeed => Balance.Current.Combat.StarSpeed;
         /// <summary>法师的「数量」强化：每级持续施法多这么多秒。</summary>
         public const float ChanPerCount = 0.75f;
 
@@ -814,9 +842,10 @@ namespace Liangshan.Sim
         /// <summary>灼烧/中毒持续秒数、每跳间隔；破绽持续秒数。</summary>
         public const float BurnDur = 3f, BurnEvery = 0.5f, VulnDur = 4f;
 
-        public const float WaveTime = 24f;
+        public static float WaveTime => Balance.Current.WaveStage.WaveTime;
         /// <summary>清场后自然衔接下一波，无需漫长空等或倒计时弹框。</summary>
-        public const float WaveMinTime = 7f, ClearBreath = 0.8f;
+        public static float WaveMinTime => Balance.Current.WaveStage.WaveMinTime;
+        public static float ClearBreath => Balance.Current.WaveStage.ClearBreath;
         /// <summary>一股兵最多在这么几秒内全部出门。</summary>
         public const float PackSpreadMax = 4.2f;
 
@@ -825,38 +854,80 @@ namespace Liangshan.Sim
             ? new[] { (0.3f, 0.55f), (6.5f, 0.45f) }
             : new[] { (0.3f, 0.38f), (5.8f, 0.34f), (11.5f, 0.28f) };
 
-        /// <summary>寨主宋江的战斗技能：自动释放，剑气从寨墙扫到城门（第1波尾声首放救场，避免开场替好汉清屏）。</summary>
+        /// <summary>寨主宋江的战斗技能：自动释放，剑气朝面前的人推过去（第1波尾声首放救场，避免开场替好汉清屏）。</summary>
         public const string LordSkillName = "替天行道";
-        public const float LordPctBase = 1.8f, LordCdBase = 40f, LordFirstCast = 21f, LordWaveSpeed = 16f;
-        /// <summary>冷却转满时半圆里没人，最多再等这么久；再没人就空过这一轮，圈重新转，不能停在满圈上。</summary>
+        public static float LordPctBase => Balance.Current.Combat.LordPctBase;
+        public static float LordCdBase => Balance.Current.Combat.LordCdBase;
+        public static float LordFirstCast => Balance.Current.Combat.LordFirstCast;
+        /// <summary>剑气刃口每秒走的格数。要快，慢了像一块布飘过去。</summary>
+        public const float LordWaveSpeed = 16f;
+        /// <summary>冷却转满时剑气够不着人，最多再等这么久；再没人就空过这一轮，圈重新转，不能停在满圈上。</summary>
         public const float LordHold = 2.5f;
-        public const int SummonsPerSlot = 5;
+        public static int SummonsPerSlot => Balance.Current.Economy.SummonsPerSlot;
+        public static int EnhanceUnlockSummons => Balance.Current.Economy.EnhanceUnlockSummons;
         public const int LevelsPerChapter = 10;
 
-        static readonly int[] SummonTable = { 10, 20, 30, 45, 65, 90, 120, 160, 210, 270, 340, 420, 510, 610, 720, 840, 970, 1110 };
-
-        /// <summary>第 n+1 次召唤的价格：前期平缓铺场（前6次260银两），中后期陡升（迫使玩家把银两投入强化词条与合成，单局通常召10~13次）。</summary>
+        /// <summary>第 n+1 次召唤的价格：严格按召唤价格表取值，不走线性外推（超出表长时维持最后一格价格）。</summary>
         public static int SummonCost(int n)
         {
-            if (n < SummonTable.Length) return SummonTable[n];
-            int k = n - SummonTable.Length + 1;
-            return SummonTable[SummonTable.Length - 1] + 150 * k + 15 * k * (k - 1) / 2;
+            var tbl = Balance.Current.Economy.SummonTable;
+            if (tbl == null || tbl.Length == 0) return 10;
+            return tbl[System.Math.Max(0, System.Math.Min(n, tbl.Length - 1))];
         }
 
-        static readonly int[] EnhanceTable = { 100, 180, 260, 360, 460, 580, 700, 840, 1000 };
+        /// <summary>第 n+1 次局内强化的价格：严格按强化价格表取值，不走线性递增（超出表长时维持最后一格价格）。</summary>
+        public static int EnhanceCost(int n)
+        {
+            var tbl = Balance.Current.Economy.EnhanceTable;
+            if (tbl == null || tbl.Length == 0) return 100;
+            return tbl[System.Math.Max(0, System.Math.Min(n, tbl.Length - 1))];
+        }
 
-        /// <summary>局内强化价格：对标蔚蓝星球平滑涨价（100、180、260、360……），单局能买 6~7 次词条稳凑三合一奥义。</summary>
-        public static int EnhanceCost(int n) => n < EnhanceTable.Length ? EnhanceTable[n] : EnhanceTable[EnhanceTable.Length - 1] + 180 * (n - EnhanceTable.Length + 1);
-        /// <summary>波次同种怪血量斜率：对标蔚蓝星球「10波怪量暴涨8倍、单怪血量涨约1.1倍」，不买词条中后期刮痧崩盘，买齐词条爽快清屏。</summary>
-        public static float HpScale(int wave) => 1f + 0.115f * (wave - 1);
-        /// <summary>小兵「厚度」：前2波扎实耐打（确保开场1星任何职业都需2~4击点杀，绝不一刀秒），中后期靠怪潮密度+肉盾抗性检验构筑。</summary>
-        public static float Tough(int wave) => Bulk * (wave == 1 ? 1.34f : wave == 2 ? 1.14f : 1f);
-        public const float Bulk = 1.56f;
-        /// <summary>赏银守恒：单局10波总银两约 2850~3150，只够「召12次 + 买6次强化」；若无脑只召唤不买强化，单价飙升至400+必崩盘。</summary>
-        public static float ToughCoin(float tough) => 2.30f * (tough / Bulk);
-        /// <summary>每波小兵数：对标《永远的蔚蓝星球》割草曲线（第 1 波 10 只 → 第 10 波 95 只，共 482 只），成型后爽快清屏爆银两。</summary>
-        static readonly int[] WaveCounts = { 10, 15, 22, 30, 40, 50, 62, 74, 84, 95 };
-        public static int WaveCount(int wave) => wave <= WaveCounts.Length ? WaveCounts[System.Math.Max(1, wave) - 1] : WaveCounts[WaveCounts.Length - 1] + 9 * (wave - WaveCounts.Length);
+        /// <summary>波次同种怪血量斜率：10波怪量暴涨近10倍、单怪血量涨约1.04倍，不买词条中后期崩盘，买齐词条爽快割草。</summary>
+        public static float HpScale(int wave) => 1f + Balance.Current.WaveStage.HpScaleSlope * (wave - 1);
+
+        /// <summary>小兵「厚度」：前4波平滑收敛过渡（杜绝第3波比第1波脆的倒挂，开场1星需多击点杀）。</summary>
+        public static float Tough(int wave)
+        {
+            var ws = Balance.Current.WaveStage;
+            var et = ws.EarlyWaveTough;
+            float mul = et != null && wave >= 1 && wave <= et.Length ? et[wave - 1] : 1f;
+            return ws.Bulk * mul;
+        }
+
+        public static float Bulk => Balance.Current.WaveStage.Bulk;
+
+        /// <summary>击杀赏银：小兵随波次肉度温和递增（绝不倒挂缩水）；精英与首领按面板赏银乘 BigKillCoinMul（默认 1.0 所见即所得）。</summary>
+        public static int KillCoin(EnemyDef def, int wave, float coinAura)
+        {
+            var eco = Balance.Current.Economy;
+            float raw = def.Big
+                ? def.Coin * eco.BigKillCoinMul
+                : def.Coin * eco.KillCoinMul * (1f + eco.KillCoinWaveSlope * System.Math.Max(0, wave - 1));
+            return System.Math.Max(0, (int)System.Math.Round(raw * (1f + coinAura)));
+        }
+
+        /// <summary>每撑过/击退一波发放的守城军饷（w 为刚刚完成的波次 1..Waves-1）。</summary>
+        public static int WaveClearBonus(int completedWave)
+        {
+            var eco = Balance.Current.Economy;
+            return System.Math.Max(0, eco.WaveBonusBase + eco.WaveBonusPerWave * completedWave);
+        }
+
+        /// <summary>首领血量压过阶段线时爆出的钱袋银两。</summary>
+        public static int BossPhaseDropCoin(int wave)
+        {
+            var eco = Balance.Current.Economy;
+            return System.Math.Max(0, eco.BossDropCoinBase + eco.BossDropCoinPerWave * wave);
+        }
+
+        /// <summary>每波小兵数：对标《永远的蔚蓝星球》割草曲线（第 1 波 10 只 → 第 10 波 95 只，共 482 只）。</summary>
+        public static int WaveCount(int wave)
+        {
+            var ws = Balance.Current.WaveStage;
+            var wc = ws.WaveCounts;
+            return wave <= wc.Length ? wc[System.Math.Max(1, wave) - 1] : wc[wc.Length - 1] + ws.WaveCountOverflowStep * (wave - wc.Length);
+        }
 
         // ---------------- 关卡渐进兵种编排（每关仅出 2~3 种小兵，新兵种逐关解锁、波内逐步登场） ----------------
 
@@ -995,9 +1066,9 @@ namespace Liangshan.Sim
                 Levels = new[] { "济州城", "十节度", "王焕", "荆忠", "党世英", "水泊芦荡", "刘梦龙", "牛邦喜", "梁山水寨", "擒高俅" } },
         };
 
-        /// <summary>主线每关只来一个首领（第 4 波压上来，慢慢逼近，第 7、8 波前后才倒）和第 9 波一个押纲精英，生辰纲一共掉两次。</summary>
+        /// <summary>主线每关只来一个首领（第 4 波压上来，慢慢逼近，倒下掉唯一一次生辰纲）和第 9 波一个精英（仅掉赏银）。</summary>
         static readonly int[] MainEliteWaves = { 9 };
-        public const float BossPace = 0.4f;
+        public static float BossPace => Balance.Current.WaveStage.BossPace;
         static readonly Role[] BuffCycle = { Sim.Role.Mage, Sim.Role.Archer, Sim.Role.Fighter, Sim.Role.Bomber, Sim.Role.Control, Sim.Role.Archer, Sim.Role.Mage, Sim.Role.Fighter };
 
         /// <summary>
@@ -1016,6 +1087,7 @@ namespace Liangshan.Sim
 
         public static float StageHp(int n)
         {
+            var ws = Balance.Current.WaveStage;
             float raw = HpTune(n) * SmoothStagePower(n) * StageEscalation(n);
             int idx = (n - 1) % LevelsPerChapter + 1;
             if (idx == 5) raw *= 1.07f;
@@ -1023,11 +1095,15 @@ namespace Liangshan.Sim
             if (n <= 1) return raw;
             // 保证每关严格单调上升且前期斜率饱满（第1~5关每关至少+18%，第6~15关至少+12%，后续至少+7.5%紧咬养成）
             float prev = StageHp(n - 1);
-            float minStep = n <= 5 ? 1.18f : n <= 15 ? 1.12f : 1.075f;
+            float minStep = n <= 5 ? ws.StageMinStep1To5 : n <= 15 ? ws.StageMinStep6To15 : ws.StageMinStep16Plus;
             return System.Math.Max(raw, prev * minStep);
         }
 
-        static float HpTune(int n) => Curve(n, new[] { 1f, 5f, 10f, 25f, 40f, 50f }, new[] { 1.42f, 1.22f, 1.26f, 1.52f, 1.54f, 1.58f });
+        static float HpTune(int n)
+        {
+            var ws = Balance.Current.WaveStage;
+            return Curve(n, ws.HpTuneStages, ws.HpTuneValues);
+        }
 
         static float StageEscalation(int n) => 1f + 0.26f * System.Math.Min(1f, (n - 1) / 5f) + 0.005f * (n - 1);
 
@@ -1039,14 +1115,36 @@ namespace Liangshan.Sim
             return ys[ys.Length - 1];
         }
 
-        public static float StageAtk(int n) => Meta.ExpectedWall(n) * (1.16f + 0.022f * (n - 1));
+        public static float StageAtk(int n)
+        {
+            float a = Meta.ExpectedWall(n) * (1.16f + 0.022f * (n - 1));
+            // 第4关移速放慢后，白板号会靠多出来的走位时间滚起阵容。拆墙伤害略抬，让摸到寨墙的官军能把这关压回去。
+            if (n == 4) a *= 1.18f;
+            return a;
+        }
 
-        public static readonly LevelDef[] Levels = BuildLevels();
+        public static LevelDef[] Levels { get; private set; } = BuildLevels();
         public static int LevelCount => Levels.Length;
         public static LevelDef Level(int no) => Levels[System.Math.Max(1, System.Math.Min(no, Levels.Length)) - 1];
 
+        static Defs()
+        {
+            Balance.InitWithCodeDefaults();
+        }
+
+        internal static void EnsureInitialized() { _ = Heroes.Length; }
+
+        /// <summary>当 BalanceConfig 参数变更时重算派生词条表与 50 关关卡表。</summary>
+        public static void RebuildDerived()
+        {
+            Perks = BuildPerks();
+            Levels = BuildLevels();
+        }
+
         static LevelDef[] BuildLevels()
         {
+            var ws = Balance.Current.WaveStage;
+            var eco = Balance.Current.Economy;
             var list = new List<LevelDef>();
             for (int c = 0; c < Chapters.Length; c++)
             {
@@ -1069,17 +1167,21 @@ namespace Liangshan.Sim
                     {
                         No = n, Chapter = c + 1, Index = i, Name = ch.Levels[i - 1], Bg = ch.Bg,
                         Intro = chBoss ? $"首领 {Enemy(boss).Name} 亲至，守住寨墙" : n == 1 ? "击退十波官军，寨墙不能倒" : ch.Intro,
+                        BossWave = ws.MainBossWave,
+                        RageWave = ws.MainRageWave,
                         EliteWaves = MainEliteWaves,
                         EliteKinds = StageElites(n), Troops = StageTroops(n),
                         BossKind = boss,
                         BossMul = bossMul,
                         HpMul = StageHp(n), AtkMul = StageAtk(n),
+                        WallHp = ws.WallBaseHp,
+                        StartCoins = eco.StartCoins,
                         CountMul = 1f + 0.006f * (n - 1) + (i == 10 ? 0.06f : 0f),
                     };
                     if (n > 1)
                     {
                         d.BuffRole = BuffCycle[(n * 3 + c) % BuffCycle.Length];
-                        d.BuffPct = chBoss ? 0.5f : 0.35f;
+                        d.BuffPct = chBoss ? ws.StageBuffBoss : ws.StageBuffNormal;
                     }
                     list.Add(d);
                 }
@@ -1092,12 +1194,16 @@ namespace Liangshan.Sim
         {
             int n = System.Math.Max(1, System.Math.Min(LevelCount, cleared + 2));
             var b = Level(n);
+            var ws = Balance.Current.WaveStage;
+            var eco = Balance.Current.Economy;
             var d = new LevelDef
             {
                 No = n, Chapter = b.Chapter, Index = b.Index, Name = "校场演武", Bg = b.Bg, Intro = "守满十波，夺校场头名",
+                BossWave = ws.MainBossWave, RageWave = ws.MainRageWave,
                 EliteWaves = MainEliteWaves, EliteKinds = b.EliteKinds, Troops = b.Troops,
                 BossKind = BossOrder[(day % BossOrder.Length + BossOrder.Length) % BossOrder.Length], BossMul = 1.15f,
                 HpMul = b.HpMul * 1.08f, AtkMul = b.AtkMul, CountMul = b.CountMul + 0.08f,
+                WallHp = ws.WallBaseHp, StartCoins = eco.StartCoins,
                 BuffRole = BuffCycle[(day % BuffCycle.Length + BuffCycle.Length) % BuffCycle.Length], BuffPct = 0.6f,
                 Mode = StageMode.Daily,
             };
@@ -1109,11 +1215,14 @@ namespace Liangshan.Sim
         {
             int n = System.Math.Max(1, System.Math.Min(LevelCount, cleared));
             var b = Level(n);
+            var ws = Balance.Current.WaveStage;
+            var eco = Balance.Current.Economy;
             return new LevelDef
             {
                 No = n, Chapter = b.Chapter, Index = b.Index, Name = "黄泥冈劫纲", Bg = "battle_bg", Intro = "截下生辰纲，挑担越多赏越多",
                 Waves = 6, BossWave = 0, RageWave = 5, EliteWaves = new[] { 4 }, PorterWaves = new[] { 1, 2, 3, 4, 5, 6 }, PorterCount = 3,
                 EliteKinds = b.EliteKinds, Troops = Mix1, HpMul = b.HpMul * 0.9f, AtkMul = b.AtkMul, CountMul = 0.6f,
+                WallHp = ws.WallBaseHp, StartCoins = eco.StartCoins,
                 Mode = StageMode.Escort,
             };
         }

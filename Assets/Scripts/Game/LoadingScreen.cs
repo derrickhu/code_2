@@ -27,7 +27,7 @@ namespace Liangshan
         RectTransform _fill, _head;
         Text _status;
         float _born;
-        bool _hold;
+        bool _hold, _boot;
         List<string> _packs;
 
         public static bool InWeChat
@@ -42,10 +42,12 @@ namespace Liangshan
             }
         }
 
-        public static LoadingScreen Open()
+        /// <summary>boot 才铺启动大图，进度走满写「开始游戏」。进战斗等图包用纯色进度，不复用这张封面。</summary>
+        public static LoadingScreen Open(bool boot = true)
         {
             var go = new GameObject("Loading");
             var s = go.AddComponent<LoadingScreen>();
+            s._boot = boot;
             s.Build();
             return s;
         }
@@ -92,9 +94,9 @@ namespace Liangshan
             _stage.anchorMin = _stage.anchorMax = new Vector2(0.5f, 0.5f);
             _stage.sizeDelta = new Vector2(ArtW, ArtH);
             var img = _stage.gameObject.AddComponent<Image>();
-            img.sprite = Splash();
+            img.sprite = _boot ? Splash() : null;
             img.raycastTarget = false;
-            if (img.sprite == null) img.color = Pal.Hex("140D09");
+            img.color = img.sprite == null ? Pal.Hex("140D09") : Color.white;
 
             BuildBar();
             Canvas.ForceUpdateCanvases();
@@ -157,7 +159,8 @@ namespace Liangshan
             if (_fill == null) return;
             p = Mathf.Clamp01(p);
             _fill.sizeDelta = new Vector2(Mathf.Lerp(BarH, BarW, p), BarH);
-            if (_status != null) _status.text = p >= 0.999f ? "开始游戏" : $"正在加载资源  {Mathf.RoundToInt(p * 100)}%";
+            if (_status != null)
+                _status.text = _boot && p >= 0.999f ? "开始游戏" : $"正在加载资源  {Mathf.RoundToInt(p * 100)}%";
         }
 
         static Sprite Splash()

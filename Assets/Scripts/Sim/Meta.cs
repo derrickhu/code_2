@@ -431,7 +431,7 @@ namespace Liangshan.Sim
         /// 10 级被动质变，15 级「爆发」必暴且减冷却，20 级解锁「最强」且抹除所有取舍卡负面减伤代价，25、30 级突破。
         /// </summary>
         public static readonly int[] UnlockLv = { 1, 5, 10, 15, 20, 25, 30 };
-        public const int UltLv = 5, SurgeLv = 5, PassiveLv = 10, SurgePlusLv = 15, TopLv = 20, NoPenaltyLv = 25;
+        public const int UltLv = 5, SurgeLv = 5, PassiveLv = 10, SurgePlusLv = 15, TopLv = 20, NoPenaltyLv = 20;
 
         public static PerkDef OptPerk(HeroId h, int opt)
         {
@@ -705,7 +705,7 @@ namespace Liangshan.Sim
             return Math.Max(1, n);
         }
 
-        /// <summary>首通送好汉：按稀有→史诗→传说平滑递增，第 15 关首通保送传说林冲，配合第 6 关开放传说招募，首日即可畅玩传说大招。</summary>
+        /// <summary>推演用的入伙节奏：稀有→史诗→传说。结算不再直接送人，玩家拿首通招募令自己去擂鼓。</summary>
         static readonly (int lv, HeroId h)[] Unlocks =
         {
             (3, HeroId.RuanXiaoqi), (5, HeroId.TangLong), (7, HeroId.HuaRong), (9, HeroId.WuSong), (12, HeroId.LingZhen),
@@ -759,7 +759,6 @@ namespace Liangshan.Sim
             {
                 r.Add(Cur.Ingot, st.IsChapterBoss ? 150 : 50);
                 r.Add(Cur.Token, st.IsChapterBoss ? 3 : 1);
-                r.Unlock = UnlockAt(n);
             }
             return r;
         }

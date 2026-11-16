@@ -42,25 +42,40 @@ namespace Liangshan
             g.alpha = on ? 1f : 0f;
         }
 
-        /// <summary>任何命中掉血统一附赠利落受击十字爆芒（白金内核 + 暖金边晕，瞬间点亮打击点）。</summary>
+        /// <summary>任何命中掉血统一附赠高张力打击爆芒（明亮冲击光环 + 鲜烈十字刀芒 + 纯白星芒 + 飞溅火花，每一击肉眼可见炸裂！）。</summary>
         public void HitPop(Vector2 pos, float scale, bool crit)
         {
-            float sz = (crit ? 0.95f : 0.62f) * scale;
-            var glow = Take(Art.Img("fx_hit"), pos, sz * 0.5f, 9545, crit ? Pal.Hex("FF9638").A(0.95f) : Pal.Hex("FFC266").A(0.82f), true);
-            var core = Take(Art.Sparkle, pos, sz * 0.6f, 9546, Color.white, true);
+            float sz = (crit ? 1.45f : 1.05f) * scale;
+            Color glowCol = crit ? Pal.Hex("FF8A24") : Pal.Hex("FFC24A");
+            var flash = Take(Art.SoftDot, pos, sz * 1.35f, 9543, glowCol.A(crit ? 0.65f : 0.45f), true);
+            var ring = Take(Art.Ring, pos, sz * 0.35f, 9544, Color.Lerp(Color.white, glowCol, 0.35f).A(0.92f), true);
+            var glow = Take(Art.Img("fx_hit"), pos, sz * 0.55f, 9545, glowCol.A(0.95f), true);
+            var core = Take(Art.Sparkle, pos, sz * 0.72f, 9546, Color.white, true);
             float rot = UnityEngine.Random.Range(0f, 90f);
             glow.transform.localRotation = Quaternion.Euler(0, 0, rot);
             core.transform.localRotation = Quaternion.Euler(0, 0, rot + 45f);
-            Anim(glow.gameObject, 0.14f, k =>
+            Anim(flash.gameObject, 0.14f, k =>
             {
-                glow.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.45f, 1.18f, Tween.OutCubic(k));
-                glow.color = glow.color.A((crit ? 0.95f : 0.82f) * (1f - k * k));
+                flash.transform.localScale = Vector3.one * sz * Mathf.Lerp(1.1f, 1.85f, Tween.OutCubic(k));
+                flash.color = glowCol.A((crit ? 0.65f : 0.45f) * (1f - k) * (1f - k));
             });
-            Anim(core.gameObject, 0.12f, k =>
+            Anim(ring.gameObject, 0.20f, k =>
             {
-                core.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.5f, 1.05f, Tween.OutCubic(k));
+                ring.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.35f, 1.28f, Tween.OutCubic(k));
+                ring.color = ring.color.A(0.92f * (1f - k));
+            });
+            Anim(glow.gameObject, 0.18f, k =>
+            {
+                glow.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.5f, 1.28f, Tween.OutCubic(k));
+                glow.color = glowCol.A(0.95f * (1f - k * k));
+            });
+            Anim(core.gameObject, 0.15f, k =>
+            {
+                core.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.55f, 1.15f, Tween.OutCubic(k));
                 core.color = Color.white.A(1f - k);
             });
+            Sparks(Art.SoftDot, pos, crit ? 7 : 4, crit ? 0.14f : 0.10f, crit ? 4.4f : 3.4f,
+                crit ? Pal.Hex("FFDF7A") : Pal.Hex("FFF6D8"), 0.24f, 9548, 5f, true);
         }
 
         /// <summary>Unity 的空对象用 == 判断。缺失组件直接拿去改 alpha，会报 FloatLayer 上没有 CanvasGroup。</summary>
@@ -317,53 +332,190 @@ namespace Liangshan
             });
         }
 
-        /// <summary>寨主剑气：金色月牙从 y0 推到 y1，宽度收进替天行道的半圆里。</summary>
-        public void SwordWave(float y0, float y1, float speed, float width, Color c)
+        public static readonly Color QiIce = new Color(0.78f, 0.97f, 1f), QiCyan = new Color(0.30f, 0.80f, 1f), QiDeep = new Color(0.08f, 0.36f, 0.95f), QiShade = new Color(0.03f, 0.10f, 0.36f);
+
+        /// <summary>
+        /// 寨主剑气：月牙刃口朝人群飞到半圆边上，同一刻一道贴地半圆余波扫满整个范围。
+        /// 刃口到某点的时刻和伤害一致（Layout.LordHitDelay）。
+        /// 剑身普通混合保证亮地面上看得见，刃口和柔光叠加发亮；身后有残影、风痕、地面剑痕和刃尖碎屑。
+        /// </summary>
+        public void SwordWave(Vector2 from, Vector2 to)
         {
-            float travel = (y1 - y0) / speed;
-            const float fade = 0.25f;
-            float dur = travel + fade;
-            Vector2 At(float t) => new V2(0, y0 + speed * Mathf.Min(t, travel)).ToV();
-            float Alpha(float t) => t < 0.08f ? t / 0.08f : t > travel ? 1 - (t - travel) / fade : 1f;
-            float Wide(float y)
-            {
-                float dy = y - Layout.WallRowY;
-                float r = Layout.HalfW;
-                if (dy < 0f || dy >= r) return 0f;
-                return Mathf.Min(width, 2f * Mathf.Sqrt(r * r - dy * dy));
-            }
-            var glow = Take(Art.Crescent, At(0), width, 9590, c.A(0.7f), true);
-            var core = Take(Art.Crescent, At(0), width, 9591, Color.white, true);
-            Anim(glow.gameObject, dur, k =>
+            var d = to - from;
+            var dir = d.sqrMagnitude < 1e-4f ? Vector2.up : d.normalized;
+            var side = new Vector2(dir.y, -dir.x);
+            float speed = Defs.LordWaveSpeed;
+            float reach = Layout.HalfW;
+            float fly = Layout.LordFlightTime;
+            const float tail = 0.2f, bladeW = 5f;
+            float dur = fly + tail;
+            float deg = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+            var rot = Quaternion.Euler(0, 0, deg - 90f);
+
+            var glow = Take(Art.Img("fx_qi_glow"), from, bladeW, 9588, QiDeep.A(0));
+            var blade = Take(Art.Img("fx_qi_blade"), from, bladeW, 9590, Color.white.A(0));
+            var edge = Take(Art.Img("fx_qi_edge"), from, bladeW, 9592, Color.white.A(0), true);
+            var shade = Take(Art.Img("fx_qi_blade"), from, bladeW, 9589, QiShade.A(0));
+            var echo = Take(Art.Img("fx_qi_blade"), from, bladeW, 9587, Color.white.A(0));
+            var wake = Take(Art.Img("fx_qi_streak"), from, 1f, 9584, QiCyan.A(0), true);
+            wake.transform.localRotation = Quaternion.Euler(0, 0, deg);
+            glow.transform.localRotation = blade.transform.localRotation = edge.transform.localRotation = rot;
+            shade.transform.localRotation = echo.transform.localRotation = rot;
+
+            float lastGhost = 0f, lastChip = 0f;
+            int winds = 0;
+            float Scale(float t) =>
+                Mathf.Lerp(0.42f, 1f, Tween.OutCubic(Mathf.Clamp01(t / 0.1f))) * Mathf.Lerp(1f, 1.22f, Mathf.Clamp01(t / fly))
+                * (t > fly ? 1f + 0.5f * Tween.OutCubic((t - fly) / tail) : 1f);
+            float Lead(float t) => Mathf.Min(speed * t, reach) + (t > fly ? speed * 0.35f * (t - fly) : 0f);
+
+            Anim(blade.gameObject, dur, k =>
             {
                 float t = k * dur;
-                float w = Wide(At(t).y);
-                glow.transform.localPosition = At(t) + new Vector2(0, -0.15f);
-                glow.transform.localScale = new Vector3(w * 1.05f, Mathf.Max(0.2f, w) * 1.2f, 1f);
-                glow.color = c.A(0.75f * Alpha(t));
-            });
-            Anim(core.gameObject, dur, k =>
-            {
-                float t = k * dur;
-                float w = Wide(At(t).y);
-                core.transform.localPosition = At(t);
-                core.transform.localScale = new Vector3(w, Mathf.Max(0.2f, w) * 1.05f, 1f);
-                core.color = Color.white.A(0.95f * Alpha(t));
-            });
-            for (int i = 1; i <= 3; i++)
-            {
-                var ghost = Take(Art.Crescent, At(0), width, 9585, c.A(0), true);
-                float lag = i * 0.06f;
-                Anim(ghost.gameObject, dur, k =>
+                float s = Scale(t);
+                float w = bladeW * s;
+                var lead = from + dir * Lead(t);
+                var c = lead - dir * (0.2f * w);
+                float a = t < 0.04f ? t / 0.04f : t > fly ? 1f - Tween.InCubic((t - fly) / tail) : 1f;
+                float glowW = w * 1.4f;
+
+                blade.transform.localPosition = c;
+                blade.transform.localScale = Vector3.one * w;
+                blade.color = Color.white.A(a * 0.95f);
+                edge.transform.localPosition = c;
+                edge.transform.localScale = Vector3.one * w;
+                edge.color = Color.white.A(a * (0.8f + 0.2f * Mathf.Sin(t * 95f)));
+                shade.transform.localPosition = c - dir * (0.05f * w);
+                shade.transform.localScale = new Vector3(w * 1.06f, w * 1.12f, 1f);
+                shade.color = QiShade.A(a * 0.42f);
+                float ew = w * 0.8f;
+                echo.transform.localPosition = lead - dir * (0.16f * w + 0.2f * ew);
+                echo.transform.localScale = Vector3.one * ew;
+                echo.color = Color.white.A(a * 0.62f * Mathf.Clamp01((t - 0.03f) / 0.05f));
+                glow.transform.localPosition = lead - dir * (0.17f * glowW);
+                glow.transform.localScale = Vector3.one * glowW;
+                glow.color = QiDeep.A(a * 0.3f);
+
+                float run = Mathf.Max(0.05f, Lead(t) - 0.15f * w);
+                wake.transform.localPosition = from + dir * (run * 0.5f);
+                wake.transform.localScale = new Vector3(run, 0.55f * s / 0.09375f, 1f);
+                wake.color = QiCyan.A(0.35f * a * Mathf.Clamp01(1.2f - t / dur));
+
+                if (t - lastGhost >= 0.035f && t < fly)
                 {
-                    float t = k * dur;
-                    float tt = Mathf.Max(0, t - lag);
-                    float w = Wide(At(tt).y);
-                    ghost.transform.localPosition = At(tt);
-                    ghost.transform.localScale = new Vector3(w, Mathf.Max(0.2f, w), 1f);
-                    ghost.color = c.A(0.35f / i * Alpha(t) * (t > lag ? 1 : 0));
-                });
-            }
+                    lastGhost = t;
+                    Ghost(c, w, rot);
+                }
+                if (t - lastChip >= 0.05f && t < fly)
+                {
+                    lastChip = t;
+                    var tipBack = c + dir * (0.015f * w);
+                    Sparks(Art.SoftDot, tipBack + side * (0.47f * w), 2, 0.07f, 2.6f, QiIce, 0.28f, 9593, 2f, true);
+                    Sparks(Art.SoftDot, tipBack - side * (0.47f * w), 2, 0.07f, 2.6f, QiIce, 0.28f, 9593, 2f, true);
+                }
+                if (winds < 7 && t >= winds * fly / 7f)
+                {
+                    winds++;
+                    float off = UnityEngine.Random.Range(-0.55f, 0.55f) * w;
+                    WindStreak(lead - dir * 0.2f + side * off, dir, UnityEngine.Random.Range(1.1f, 2f));
+                }
+            });
+            Anim(edge.gameObject, dur, _ => { });
+            Anim(shade.gameObject, dur, _ => { });
+            Anim(echo.gameObject, dur, _ => { });
+            Anim(glow.gameObject, dur, _ => { });
+            Anim(wake.gameObject, dur, _ => { });
+
+            Scar(from, dir, reach);
+            HalfShock(from, reach, fly);
+
+            CutLine(from + dir * 0.7f, deg + 90f, 3.4f, QiCyan, 0.24f, 0.13f, 9594);
+            Flash(from + dir * 0.5f, 3.2f, QiCyan.A(0.75f), 0.28f, 9585);
+            LightPool(from + dir * 0.6f, 4.2f, QiCyan.A(0.7f), 0.45f, 94);
+            GroundWave(from, 1.8f, QiIce, 0.4f, 95, 0.45f);
+            Sparks(Art.Img("fx_star"), from + dir * 0.6f, 8, 0.2f, 4.5f, QiIce, 0.4f, 9595, 1f, true);
+
+            var end = from + dir * reach;
+            var pop = Take(Art.SoftDot, end, 2.4f, 9585, QiCyan.A(0), true);
+            Anim(pop.gameObject, 0.26f, k =>
+            {
+                pop.transform.localScale = new Vector3(1f, 0.6f, 1f) * 2.4f * Mathf.Lerp(0.6f, 1.3f, Tween.OutCubic(k));
+                pop.color = QiCyan.A(0.55f * (1f - k) * (1f - k));
+            }, true, fly);
+        }
+
+        /// <summary>剑身残影：叠加青光，原地一放就淡、略拉长。</summary>
+        void Ghost(Vector2 pos, float w, Quaternion rot)
+        {
+            var g = Take(Art.Img("fx_qi_blade"), pos, w, 9586, QiCyan.A(0.32f), true);
+            g.transform.localRotation = rot;
+            Anim(g.gameObject, 0.15f, k =>
+            {
+                g.transform.localScale = new Vector3(w * (1f + 0.05f * k), w * (1f - 0.15f * k), 1f);
+                g.color = QiCyan.A(0.32f * (1f - k) * (1f - k));
+            });
+        }
+
+        /// <summary>剑气两侧刮过的风痕：亮头在前，随刃口一起往前冲，很快散掉。</summary>
+        void WindStreak(Vector2 pos, Vector2 dir, float len)
+        {
+            var sr = Take(Art.Img("fx_qi_streak"), pos, 1f, 9587, QiIce.A(0), true);
+            sr.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg);
+            var start = pos;
+            Anim(sr.gameObject, 0.2f, k =>
+            {
+                float l = len * Mathf.Lerp(0.4f, 1f, Tween.OutCubic(k));
+                sr.transform.localPosition = start + dir * (Defs.LordWaveSpeed * 0.2f * k - l * 0.5f);
+                sr.transform.localScale = new Vector3(l, 0.16f / 0.09375f * (1f - 0.5f * k), 1f);
+                sr.color = QiIce.A(0.75f * (1f - k));
+            });
+        }
+
+        /// <summary>地上被剑气犁开的一道痕：随刃口往前长，暗槽打底、青光描芯，留一会儿再淡。</summary>
+        void Scar(Vector2 from, Vector2 dir, float reach)
+        {
+            float deg = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+            float grow = reach / Defs.LordWaveSpeed;
+            const float hold = 0.45f, fade = 0.5f;
+            float dur = grow + hold + fade;
+            var spr = Art.Img("fx_qi_scar");
+            var groove = Take(spr, from, 1f, 91, new Color(0.06f, 0.10f, 0.20f, 0f));
+            var shine = Take(spr, from, 1f, 92, QiCyan.A(0), true);
+            groove.transform.localRotation = shine.transform.localRotation = Quaternion.Euler(0, 0, deg);
+            float Len(float t) => Mathf.Max(0.05f, reach * Mathf.Clamp01(t / grow));
+            float Fade(float t) => t < grow + hold ? 1f : 1f - (t - grow - hold) / fade;
+            Anim(groove.gameObject, dur, k =>
+            {
+                float t = k * dur, len = Len(t);
+                groove.transform.localPosition = from + dir * (len * 0.5f);
+                groove.transform.localScale = new Vector3(len, 0.42f / 0.09375f, 1f);
+                groove.color = new Color(0.06f, 0.10f, 0.20f, 0.32f * Fade(t));
+            });
+            Anim(shine.gameObject, dur, k =>
+            {
+                float t = k * dur, len = Len(t);
+                float cool = t < grow ? 0f : Mathf.Clamp01((t - grow) / hold);
+                shine.transform.localPosition = from + dir * (len * 0.5f);
+                shine.transform.localScale = new Vector3(len, 0.36f / 0.09375f * Mathf.Lerp(1f, 0.45f, cool), 1f);
+                shine.color = QiCyan.A(0.85f * Fade(t) * Mathf.Lerp(1f, 0.3f, cool));
+            });
+        }
+
+        /// <summary>贴地半圆余波：和刃口同速扫到半圆边，告诉玩家整个黄圈里的人都挨了这一剑。</summary>
+        void HalfShock(Vector2 from, float reach, float fly)
+        {
+            var sr = Take(Art.Img("fx_qi_ring"), from, 0.1f, 9583, QiCyan.A(0), true);
+            float dur = fly + 0.12f;
+            Anim(sr.gameObject, dur, k =>
+            {
+                float t = k * dur;
+                float r = Mathf.Clamp(Defs.LordWaveSpeed * t, 0.1f, reach * 1.04f);
+                float size = r / 0.48f;
+                sr.transform.localPosition = from + new Vector2(0, size * 0.25f);
+                sr.transform.localScale = Vector3.one * size;
+                float a = 0.24f * (t < fly ? 1f : 1f - (t - fly) / 0.12f);
+                sr.color = QiCyan.A(a);
+            });
         }
 
         public void Ring(Vector2 pos, float radius, Color c, float dur = 0.4f, int order = 9400)
@@ -668,12 +820,20 @@ namespace Liangshan
             }
         }
 
-        // ---------- 漂字 ----------
+        // ---------- 漂字（大网格防撞散列：保证密集怪堆跳字颗颗分明，绝不左右紧贴或上下叠字） ----------
 
-        float _lastNumTime;
-        Vector2 _lastNumWorld;
-        int _numCluster;
-        static readonly float[] ClusterOffsets = { 0f, -0.34f, 0.34f, -0.58f, 0.58f, -0.18f, 0.18f };
+        readonly Dictionary<int, (float time, int seq)> _numCells = new Dictionary<int, (float, int)>();
+        static readonly Vector2[] CellSpread =
+        {
+            new Vector2(0f, 0f),
+            new Vector2(-0.82f, 0.32f),
+            new Vector2(0.82f, 0.32f),
+            new Vector2(0f, 0.62f),
+            new Vector2(-1.18f, 0.58f),
+            new Vector2(1.18f, 0.58f),
+            new Vector2(-0.56f, 0.92f),
+            new Vector2(0.56f, 0.92f),
+        };
 
         public void Number(Vector2 world, string s, Color c, int size, float rise = 0.6f, float dur = 0.65f, bool pop = false)
         {
@@ -687,46 +847,39 @@ namespace Liangshan
             else
             {
                 t = Ui.Label(_textLayer, "", 40, Color.white, Vector2.zero, new Vector2(500, 120), TextAnchor.MiddleCenter, Fonts.Heavy, "num");
-                Ui.Stroke(t, Pal.Hex("0E1620"), 3.4f);
+                Ui.Stroke(t, Pal.Hex("0C141E"), 3.6f);
                 var rt0 = t.rectTransform;
                 rt0.anchorMin = rt0.anchorMax = new Vector2(0.5f, 1f);
             }
             _liveTexts++;
 
-            // 同一区域短时间内多段跳字自动按高度阶梯+扇形排开，彻底杜绝数字上下叠字
+            // 按 2.4x1.8 大号世界扇区合并计数，0.50 秒内同一团怪群的所有跳字全部摊开到不同列与阶梯！
             float now = Time.time;
-            float driftX;
-            if (now - _lastNumTime < 0.35f && (world - _lastNumWorld).sqrMagnitude < 0.95f)
-            {
-                _numCluster = (_numCluster + 1) % ClusterOffsets.Length;
-                driftX = ClusterOffsets[_numCluster] * 1.45f;
-                world.y += (_numCluster % 4) * 0.28f;
-            }
-            else
-            {
-                _numCluster = 0;
-                driftX = UnityEngine.Random.Range(-0.18f, 0.18f);
-                _lastNumWorld = world;
-            }
-            _lastNumTime = now;
+            int cellKey = (Mathf.RoundToInt(world.x / 2.4f) * 73856093) ^ (Mathf.RoundToInt(world.y / 1.8f) * 19349663);
+            int seq = 0;
+            if (_numCells.TryGetValue(cellKey, out var prev) && now - prev.time < 0.50f)
+                seq = (prev.seq + 1) % CellSpread.Length;
+            _numCells[cellKey] = (now, seq);
+            var sp = CellSpread[seq];
+            float driftX = Mathf.Clamp(world.x + sp.x, -4.6f, 4.6f) - world.x;
+            world.y += sp.y;
 
             t.text = s;
             t.fontSize = size;
             t.color = c;
             var rt = t.rectTransform;
-            var p0 = new Vector2((world.x + driftX * 0.65f) * 100f, -Ui.FromTop(world.y));
-            float arcX = driftX * 56f;
+            var p0 = new Vector2((world.x + driftX) * 100f, -Ui.FromTop(world.y));
+            float arcX = driftX * 26f;
             float peakY = rise * 100f;
             rt.anchoredPosition = p0;
             rt.localScale = Vector3.one;
             Anim(t.gameObject, dur, k =>
             {
-                // 轻快弹跳抛物线：初段冲顶微悬停，尾段利落消散
-                float yCurve = k < 0.58f ? Tween.OutCubic(k / 0.58f) : 1f - 0.10f * Tween.InCubic((k - 0.58f) / 0.42f);
+                float yCurve = k < 0.55f ? Tween.OutCubic(k / 0.55f) : 1f - 0.12f * Tween.InCubic((k - 0.55f) / 0.45f);
                 rt.anchoredPosition = p0 + new Vector2(arcX * Tween.OutCubic(k), peakY * yCurve);
                 float sc = pop
-                    ? (k < 0.14f ? Mathf.Lerp(1.68f, 0.96f, Tween.OutCubic(k / 0.14f)) : k < 0.26f ? Mathf.Lerp(0.96f, 1.04f, (k - 0.14f) / 0.12f) : 1f)
-                    : (k < 0.11f ? Mathf.Lerp(0.68f, 1.16f, Tween.OutCubic(k / 0.11f)) : k < 0.24f ? Mathf.Lerp(1.16f, 1f, (k - 0.11f) / 0.13f) : 1f);
+                    ? (k < 0.13f ? Mathf.Lerp(1.82f, 0.95f, Tween.OutCubic(k / 0.13f)) : k < 0.25f ? Mathf.Lerp(0.95f, 1.06f, (k - 0.13f) / 0.12f) : 1f)
+                    : (k < 0.11f ? Mathf.Lerp(0.62f, 1.24f, Tween.OutCubic(k / 0.11f)) : k < 0.24f ? Mathf.Lerp(1.24f, 1f, (k - 0.11f) / 0.13f) : 1f);
                 rt.localScale = Vector3.one * sc;
                 t.color = c.A(k < 0.68f ? 1f : 1f - (k - 0.68f) / 0.32f);
             });

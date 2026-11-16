@@ -89,7 +89,7 @@ namespace Liangshan.Sim
         {
             new StarTrait { Star = 2, Name = "缚紧", Desc = "定身时间 +0.5 秒", Stun = 0.5f },
             new StarTrait { Star = 3, Name = "拖拽", Desc = "套中的敌人被往回强拽 0.9 格", Pull = 0.9f },
-            new StarTrait { Star = 4, Name = "天罗地网", Desc = "定身再 +0.6 秒，落点震慑范围 +35%", Stun = 0.6f, Area = 0.35f },
+            new StarTrait { Star = 4, Name = "天罗地网", Desc = "定身再 +0.6 秒，落点震慑周围敌人", Stun = 0.6f, Area = 0.35f },
         };
 
         static readonly StarTrait[] Support =
