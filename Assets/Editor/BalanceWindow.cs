@@ -199,8 +199,8 @@ namespace Liangshan.EditorTools
 
             Section("常规银两流速（杀怪赏银 + 波次守城军饷 + 首领分段爆币）", () =>
             {
-                e.KillCoinMul = EditorGUILayout.Slider("小怪基础赏银倍率 (KillCoinMul)", e.KillCoinMul, 0.5f, 6.0f);
-                e.KillCoinWaveSlope = EditorGUILayout.Slider("小怪每波赏银涨幅 (KillCoinWaveSlope)", e.KillCoinWaveSlope, 0f, 0.25f);
+                e.KillCoinMul = EditorGUILayout.Slider("小怪基础赏银倍率 (1=按表直掉)", e.KillCoinMul, 0.5f, 6.0f);
+                e.KillCoinWaveSlope = EditorGUILayout.Slider("小怪每波赏银涨幅 (0=全波次恒定)", e.KillCoinWaveSlope, 0f, 0.60f);
                 e.BigKillCoinMul = EditorGUILayout.Slider("首领/精英直接赏银倍率 (1=按表直掉)", e.BigKillCoinMul, 0.2f, 3.0f);
                 EditorGUILayout.Space(4);
                 e.WaveBonusBase = EditorGUILayout.IntField("每波击退军饷基数 (WaveBonusBase)", e.WaveBonusBase);
@@ -309,7 +309,7 @@ namespace Liangshan.EditorTools
             Section("单局 10 波刷怪与血量厚度节奏", () =>
             {
                 w.WaveCounts = DrawIntArray("第 1~10 波基础刷怪数", w.WaveCounts);
-                w.HpScaleSlope = EditorGUILayout.Slider("每波血量线性斜率 (HpScaleSlope)", w.HpScaleSlope, 0.02f, 0.30f);
+                w.HpScaleSlope = EditorGUILayout.Slider("每波血量线性斜率 (HpScaleSlope)", w.HpScaleSlope, 0.05f, 2.0f);
                 w.Bulk = EditorGUILayout.Slider("全局小怪基础厚度 (Bulk)", w.Bulk, 0.8f, 3.0f);
                 w.EarlyWaveTough = DrawFloatArray("前 N 波耐打修正倍率 (EarlyWaveTough)", w.EarlyWaveTough);
                 EditorGUILayout.BeginHorizontal();
@@ -434,7 +434,7 @@ namespace Liangshan.EditorTools
             GUILayout.Label("筛选兵阶:", GUILayout.Width(65));
             _enemyRankFilter = GUILayout.Toolbar(_enemyRankFilter + 1, new[] { "全部 (29)", "普通小兵", "精英怪", "首领 Boss" }, GUILayout.Width(360)) - 1;
             GUILayout.FlexibleSpace();
-            GUILayout.Label("提示：物理抗性受 P-8 红线保护封顶 0.50；首领/精英赏银在 BigKillCoinMul=1 时即为实掉银两。", EditorStyles.miniLabel);
+            GUILayout.Label("提示：物理抗性受 P-8 红线保护封顶 0.50；全兵种局内赏银与面板完全一致（不做波次加成）。", EditorStyles.miniLabel);
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
@@ -447,7 +447,7 @@ namespace Liangshan.EditorTools
             GUILayout.Label("物抗PhysR", GUILayout.Width(72));
             GUILayout.Label("法易伤MagW", GUILayout.Width(78));
             GUILayout.Label("射易伤ArcW", GUILayout.Width(78));
-            GUILayout.Label("第1波实掉银两", GUILayout.Width(95));
+            GUILayout.Label("局内实掉银两", GUILayout.Width(95));
             EditorGUILayout.EndHorizontal();
 
             for (int i = 0; i < _cfg.Enemies.Length && i < Defs.Enemies.Length; i++)

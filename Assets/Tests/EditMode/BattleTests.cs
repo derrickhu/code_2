@@ -100,6 +100,101 @@ namespace Liangshan.Tests
         }
 
         [Test]
+        public void ArrowPierceFollowsTheLineAndSkipsTheSameRank()
+        {
+            var b = new Battle(1, new[] { HeroId.HuaRong, HeroId.XieZhen, HeroId.ShiXiu, HeroId.KongLiang });
+            var soldier = Defs.Enemy(EnemyKind.Soldier);
+            var first = new Enemy { Id = 1, Def = soldier, Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0f, 1f) };
+            var beside = new Enemy { Id = 2, Def = soldier, Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(1.35f, 1.08f) };
+            var behind = new Enemy { Id = 3, Def = soldier, Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0.12f, 2.5f) };
+            var further = new Enemy { Id = 4, Def = soldier, Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0.05f, 4.2f) };
+            b.Enemies.Add(first);
+            b.Enemies.Add(beside);
+            b.Enemies.Add(behind);
+            b.Enemies.Add(further);
+            var from = new V2(0f, -5f);
+            b.Shots.Add(new Shot
+            {
+                Id = 1, Kind = ShotKind.Arrow, Hero = HeroId.HuaRong, From = from, To = first.Pos, TargetId = first.Id,
+                Dur = 0.01f, Damage = 100f, Pierce = 1,
+            });
+            b.Update(0.05f);
+            Assert.Less(first.Hp, first.MaxHp, "第一目标被射中");
+            Assert.AreEqual(beside.MaxHp, beside.Hp, "同一排旁边的人不算穿透");
+            Assert.Less(behind.Hp, behind.MaxHp, "直线上身后那个人被贯穿");
+            Assert.AreEqual(further.MaxHp, further.Hp, "穿透 +1 打到身后第一个就停");
+
+            behind.Hp = behind.MaxHp;
+            first.Hp = first.MaxHp;
+            b.Shots.Add(new Shot
+            {
+                Id = 2, Kind = ShotKind.Arrow, Hero = HeroId.HuaRong, From = from, To = first.Pos, TargetId = first.Id,
+                Dur = 0.01f, Damage = 100f, Pierce = 2,
+            });
+            b.Update(0.05f);
+            Assert.Less(behind.Hp, behind.MaxHp);
+            Assert.Less(further.Hp, further.MaxHp, "穿透 +2 才打到身后第二个");
+            Assert.AreEqual(beside.MaxHp, beside.Hp);
+        }
+
+        [Test]
+        public void PiercingArrowKeepsFlyingToTheSecondEnemy()
+        {
+            var b = new Battle(1, new[] { HeroId.HuaRong, HeroId.XieZhen, HeroId.ShiXiu, HeroId.KongLiang });
+            var soldier = Defs.Enemy(EnemyKind.Soldier);
+            var first = new Enemy { Id = 1, Def = soldier, Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0f, 1f) };
+            var behind = new Enemy { Id = 2, Def = soldier, Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0.1f, 2.8f) };
+            b.Enemies.Add(first);
+            b.Enemies.Add(behind);
+            var from = b.Slots[0].Pos;
+            var shot = new Shot
+            {
+                Id = 7, Kind = ShotKind.Arrow, Hero = HeroId.HuaRong, From = from, To = first.Pos, TargetId = first.Id,
+                Dur = 1f, Damage = 50f, Pierce = 1,
+            };
+            // 跟正式出手一样：落点收到身后那个人，飞行时间按这段路算。
+            var dir = first.Pos - from;
+            float dist = (float)System.Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y);
+            dir = new V2(dir.X / dist, dir.Y / dist);
+            float along = (behind.Pos.X - from.X) * dir.X + (behind.Pos.Y - from.Y) * dir.Y;
+            shot.To = from + dir * along;
+            shot.Dur = 0.26f + along / 16f;
+            b.Shots.Add(shot);
+            b.Update(0.05f);
+            float still = (shot.To.X - from.X) * dir.X + (shot.To.Y - from.Y) * dir.Y;
+            Assert.Greater(still, dist + 0.8f, "飞过第一个人之后，箭还要往直线上的第二个人飞");
+            Assert.AreEqual(first.MaxHp, first.Hp, "还在飞，不该提前结算");
+        }
+
+        [Test]
+        public void XieZhenHasZeroPierceWithoutPerkEvenAtHighStar()
+        {
+            var b = new Battle(2, new[] { HeroId.XieZhen, HeroId.HuaRong, HeroId.ShiXiu, HeroId.KongLiang });
+            var soldier = Defs.Enemy(EnemyKind.Soldier);
+            var first = new Enemy { Id = 10, Def = soldier, Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(b.Slots[0].Pos.X, 0.8f) };
+            var behind = new Enemy { Id = 11, Def = soldier, Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(b.Slots[0].Pos.X, 2.2f) };
+            b.Enemies.Add(first);
+            b.Enemies.Add(behind);
+
+            // 即使解珍升到 2/3/4 星，只要没选「穿杨」穿透词条，射出的箭 Pierce 必须严格为 0，绝不偷穿身后怪！
+            b.Slots[0].Unit = new Unit { Id = 1, Hero = HeroId.XieZhen, Star = 3, Cd = 0.01f };
+            for (int i = 0; i < 60 && b.Shots.Count == 0; i++) b.Update(1f / 60f);
+            Assert.IsNotEmpty(b.Shots);
+            foreach (var s in b.Shots) Assert.AreEqual(0, s.Pierce, "未点穿透词条的解珍不得自带穿透");
+            for (int i = 0; i < 60; i++) b.Update(1f / 60f);
+            Assert.Less(first.Hp, first.MaxHp, "首目标正常命中");
+            Assert.AreEqual(behind.MaxHp, behind.Hp, "未点穿透词条时身后目标绝不掉血");
+
+            // 选了「穿杨」（xiezhen_3）词条后，解珍正式获得 +1 穿透，贯穿直线上身后敌人！
+            b.Choices = new[] { Defs.Perk("xiezhen_3") };
+            b.Phase = Phase.Choosing;
+            b.Pick(0);
+            b.Slots[0].Unit.Cd = 0.01f;
+            for (int i = 0; i < 90; i++) b.Update(1f / 60f);
+            Assert.Less(behind.Hp, behind.MaxHp, "选了穿杨词条后解珍正常贯穿身后目标");
+        }
+
+        [Test]
         public void SummonAndEnhancePricesFollowTable()
         {
             CollectionAssert.AreEqual(
@@ -116,6 +211,26 @@ namespace Liangshan.Tests
             Assert.AreEqual(100, open.Coins);
             for (int i = 0; i < 3; i++) Assert.IsNotNull(open.Summon());
             Assert.IsFalse(open.CanSummon, "开局保持固定召唤 3 人不变");
+        }
+
+        [Test]
+        public void FlyingCoinsStayUnspendableUntilReleased()
+        {
+            var b = new Battle(1, Lineup);
+            for (int i = 0; i < 3; i++) Assert.IsNotNull(b.Summon());
+            Assert.AreEqual(40, b.SpendableCoins);
+            b.Coins += 20;
+            b.HoldCoins(20);
+            Assert.AreEqual(60, b.Coins);
+            Assert.AreEqual(40, b.SpendableCoins);
+            Assert.IsFalse(b.CanSummon, "银币还在飞，不能拿去召唤");
+            Assert.IsNull(b.Summon());
+            Assert.AreEqual(60, b.Coins, "没召唤成功不能扣钱");
+            b.ReleaseCoins(20);
+            Assert.AreEqual(60, b.SpendableCoins);
+            Assert.IsTrue(b.CanSummon);
+            Assert.IsNotNull(b.Summon());
+            Assert.AreEqual(15, b.Coins);
         }
 
         [Test]
@@ -303,35 +418,87 @@ namespace Liangshan.Tests
             b.Slots[0].Unit = new Unit { Hero = HeroId.GongSun, Star = 4 };
             for (int i = 0; i < 300 && b.Phase == Phase.Running; i++) b.Update(1f / 30f);
             Assert.AreEqual(Phase.Reels, b.Phase);
-            Assert.IsTrue(b.NextIsJackpot);
+            Assert.IsFalse(b.NextIsJackpot, "首领掉落宝箱应为真实随机摇奖，不再写死必中全同色");
             var r = b.SpinReels();
-            Assert.IsTrue(r[0] == r[1] && r[1] == r[2] && r[2] == r[3]);
-            b.ApplyReels(r);
-            Assert.IsFalse(b.NextIsJackpot);
+            Assert.AreEqual(5, r.Length);
+            Assert.LessOrEqual(b.ReelPerks.Length, 2, "单次摇奖强化严控最多2条，绝不一次爆多条飞天");
+            var forced = b.SpinReels(true);
+            Assert.IsTrue(Battle.IsAllSame(forced), "鸿运重转必出全同色大奖");
+            b.ApplyReels(forced);
+
+            // 验证多次摇奖具备真实随机性（既有银两+好汉混合局，且滚轮好汉头像与发出的强化一一对应）
+            bool sawMixed = false;
+            for (int seed = 1; seed <= 40; seed++)
+            {
+                var sb = new Battle(seed, Lineup, Defs.Level(5)) { Phase = Phase.Reels, PendingReels = 1 };
+                Put(sb, 0, Lineup[0]);
+                var sr = sb.SpinReels();
+                if (!Battle.IsAllSame(sr)) sawMixed = true;
+                Assert.LessOrEqual(sb.ReelPerks.Length, 2);
+                if (sb.ReelPerks.Length > 0)
+                {
+                    var grantedHeroes = new System.Collections.Generic.HashSet<HeroId>(sb.ReelPerks.Select(p => p.Hero));
+                    for (int i = 0; i < sr.Length; i++)
+                        if (sr[i] == Reel.Perk) Assert.IsTrue(grantedHeroes.Contains(sb.ReelCellHeroes[i]));
+                }
+            }
+            Assert.IsTrue(sawMixed, "老虎机应高概率摇出银两与好汉混合结果");
         }
 
         [Test]
         public void MainLevelsHaveOneBossAndDropTreasureTwice()
         {
+            var seenElites = new System.Collections.Generic.HashSet<EnemyKind>();
             foreach (var st in Defs.Levels)
             {
-                Assert.AreEqual(4, st.BossWave, st.Name);
-                CollectionAssert.AreEqual(new[] { 9 }, st.EliteWaves, st.Name);
+                if (st.IsChapterBoss)
+                {
+                    Assert.AreEqual(4, st.BossWave, st.Name);
+                    CollectionAssert.AreEqual(new[] { 9 }, st.EliteWaves, st.Name);
+                }
+                else
+                {
+                    Assert.AreEqual(0, st.BossWave, st.Name + " 普通关不出大首领，由双精英挑大梁");
+                    CollectionAssert.AreEqual(new[] { 4, 9 }, st.EliteWaves, st.Name);
+                }
+                foreach (var ek in st.EliteKinds) seenElites.Add(ek);
             }
-            var b = new Battle(3, Lineup, Defs.Level(12));
-            var boss = new Enemy { Id = 999, Def = Defs.Enemy(Defs.Level(12).BossKind), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0, 7) };
+            Assert.AreEqual(9, seenElites.Count, "全部9种特色精英均在50关主线中实际登场");
+
+            var b = new Battle(3, Lineup, Defs.Level(10));
+            var boss = new Enemy { Id = 999, Def = Defs.Enemy(Defs.Level(10).BossKind), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0, 7) };
             b.Enemies.Add(boss);
             for (int i = 0; i < 30; i++) b.Update(1f / 30f);
-            Assert.AreEqual(boss.Def.Speed * Defs.BossPace, 7 - boss.Pos.Y, 0.01f, "首领压阵要慢慢逼近");
+            Assert.AreEqual(boss.Def.Speed * Defs.BossPace, 7 - boss.Pos.Y, 0.01f, "首领压阵要稳步逼近");
+            // 对标蔚蓝星球：第4波登场的首领走 ~32s（第5波中段）推进至路中，走 ~72s（第7波）抵近寨墙施压
+            var marchBoss = new Enemy { Id = 1000, Def = Defs.Enemy(Defs.Level(5).BossKind), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(0, Layout.SpawnY) };
+            var bMarch = new Battle(7, Lineup, Defs.Level(5));
+            bMarch.Wall = bMarch.WallMax = 1e9f;
+            bMarch.Enemies.Add(marchBoss);
+            for (int i = 0; i < 32 * 30; i++) bMarch.Update(1f / 30f);
+            Assert.LessOrEqual(marchBoss.Pos.Y, 3.4f, "首领在第5波中段应已走到接近战场中间");
+            for (int i = 0; i < 42 * 30; i++) bMarch.Update(1f / 30f);
+            float bossStop = marchBoss.Def.StopY + marchBoss.Def.Size * 0.18f;
+            Assert.LessOrEqual(marchBoss.Pos.Y, bossStop + 0.05f, "首领在第7波应抵达寨墙根构成真实压迫");
 
-            // 精英怪阵亡只给赏银，不再触发第二个生辰纲（全关仅首领掉唯一一次生辰纲）
+            // 普通关第4波守关主精英倒下必掉唯一一次生辰纲，第9波压轴精英只给赏银不再出第二个生辰纲
+            var bNormal = new Battle(5, Lineup, Defs.Level(12));
+            var leadElite = new Enemy { Id = 997, Def = Defs.Enemy(Defs.Level(12).LeaderKind), Hp = 1, MaxHp = 1, Pos = new V2(0, 3), IsStageLeader = true };
+            bNormal.Enemies.Add(leadElite);
+            bNormal.Slots[0].Unit = new Unit { Hero = HeroId.XieZhen, Star = 4 };
+            for (int i = 0; i < 120 && bNormal.Phase == Phase.Running; i++) bNormal.Update(1f / 30f);
+            Assert.IsTrue(leadElite.Dead);
+            Assert.AreEqual(Phase.Reels, bNormal.Phase, "普通关第4波守关主精英倒下掉落唯一生辰纲");
+            Assert.IsFalse(bNormal.NextIsJackpot);
+            bNormal.ApplyReels(bNormal.SpinReels());
+
             var bElite = new Battle(4, Lineup, Defs.Level(5));
             var elite = new Enemy { Id = 998, Def = Defs.Enemy(EnemyKind.Elite), Hp = 1, MaxHp = 1, Pos = new V2(0, 3) };
             bElite.Enemies.Add(elite);
             bElite.Slots[0].Unit = new Unit { Hero = HeroId.GongSun, Star = 4 };
             for (int i = 0; i < 120; i++) bElite.Update(1f / 30f);
             Assert.IsTrue(elite.Dead);
-            Assert.AreEqual(0, bElite.PendingReels, "精英阵亡不得再掉落第二个生辰纲");
+            Assert.AreEqual(0, bElite.PendingReels, "第9波常规精英阵亡不得再掉落第二个生辰纲");
             Assert.AreEqual(Phase.Running, bElite.Phase);
         }
 
@@ -561,22 +728,61 @@ namespace Liangshan.Tests
         }
 
         [Test]
+        public void WuYongBlessKicksInWhenTheOrbLandsAndHalvesEachInterval()
+        {
+            var b = new Battle(6, Lineup);
+            var wy = Put(b, 0, HeroId.WuYong);
+            var archer = Put(b, 1, HeroId.HuaRong);
+            var plain = Put(b, 2, HeroId.HuaRong);
+            Dummy(b);
+            wy.Cd = 999f;
+            archer.Cd = 4f;
+            archer.BlessN = 3;
+            archer.BlessMul = 2f;
+            archer.BlessWait = 0.5f;
+
+            b.Update(0.25f);
+            Assert.AreEqual(3, archer.BlessN, "法球没落地前不消耗层数");
+            float before = archer.Cd;
+            b.Update(0.3f);
+            Assert.Less(archer.Cd, before * 0.5f + 0.01f, "法球落地那一刻正在走的冷却立刻减半");
+            Assert.AreEqual(3, archer.BlessN);
+
+            archer.Cd = 0.001f;
+            plain.Cd = 0.001f;
+            b.Update(0.01f);
+            Assert.AreEqual(2, archer.BlessN, "每次出手消耗一层");
+            Assert.AreEqual(plain.Cd * 0.5f, archer.Cd, 0.02f, "受祝福的这一次出手间隔减半");
+        }
+
+        [Test]
         public void WuYongBlessesACarryAndSpeedsItsCooldown()
         {
             var b = new Battle(6, Lineup);
-            Put(b, 0, HeroId.WuYong);
+            var wy = Put(b, 0, HeroId.WuYong);
             var archer = Put(b, 1, HeroId.HuaRong);
+            archer.Cd = 5f;
             Dummy(b);
-            bool buffed = false;
-            for (int i = 0; i < 30 && !buffed; i++)
+            bool selfCast = false, targetBuffed = false;
+            for (int i = 0; i < 30 && (!selfCast || !targetBuffed); i++)
             {
                 b.Update(1f / 30f);
-                buffed = b.Events.Any(e => e.Type == Ev.Buff && e.EnemyId == 1);
+                selfCast |= b.Events.Any(e => e.Type == Ev.Buff && e.Slot == 0 && e.EnemyId == -1);
+                targetBuffed |= b.Events.Any(e => e.Type == Ev.Buff && e.EnemyId == 1);
                 b.Events.Clear();
             }
-            Assert.IsTrue(buffed);
-            Assert.Greater(archer.BlessN, 0);
+            Assert.IsTrue(selfCast, "吴用自身也应发出施法动作与法阵事件，绝不能原地站桩无反应");
+            Assert.IsTrue(targetBuffed);
+            Assert.Greater(wy.Casts, 0);
+            Assert.AreEqual(3, archer.BlessN);
             Assert.Greater(archer.BlessMul, 1.5f);
+
+            // 场上唯一输出已有剩余祝福层数时，吴用再次冷却转好也应能正常出手刷新，不得哑火卡死
+            wy.Cd = 0.01f;
+            archer.Cd = 5f;
+            archer.BlessN = 1;
+            b.Update(0.05f);
+            Assert.AreEqual(3, archer.BlessN, "队友已有祝福层数时吴用仍可正常出手刷新至满层");
         }
 
         [Test]
@@ -987,10 +1193,13 @@ namespace Liangshan.Tests
         [Test]
         public void BalanceManagementSystemAndSmoothedEconomyWork()
         {
-            // 1. 小兵击杀赏银随波次温和上升，彻底消除第3波跌回5银两的倒挂；小兵有效血量前5波单调上升
+            // 1. 官兵固定掉落 16 银，所有怪物全波次赏银恒定（不做第1波或波次加成，所见即所得）；小兵有效血量单调上升
             var soldier = Defs.Enemy(EnemyKind.Soldier);
-            Assert.GreaterOrEqual(Defs.KillCoin(soldier, 3, 0f), Defs.KillCoin(soldier, 1, 0f));
-            Assert.Greater(Defs.KillCoin(soldier, 10, 0f), Defs.KillCoin(soldier, 1, 0f));
+            Assert.AreEqual(16, soldier.Coin);
+            for (int w = 1; w <= 10; w++)
+                Assert.AreEqual(16, Defs.KillCoin(soldier, w, 0f), $"第{w}波官兵实掉银两应恒为16");
+            foreach (var e in Defs.Enemies)
+                Assert.AreEqual(e.Coin, Defs.KillCoin(e, 1, 0f), $"{e.Name} 面板赏银应等于局内实掉银两");
             for (int w = 2; w <= 10; w++)
                 Assert.GreaterOrEqual(Defs.Tough(w) * Defs.HpScale(w), Defs.Tough(w - 1) * Defs.HpScale(w - 1) * 0.99f);
 

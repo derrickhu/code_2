@@ -1,0 +1,15 @@
+Two sprite sheets of 2D Chibi SD Chinese Song-dynasty enemy elite captains matching the exact art style, line weight, shading, metallic highlights, and chibi proportions (big head ~1:1.6 body ratio, clean dark outlines, rich painted textures) of the reference character sprites (en_elite.png and en_chainhorse.png).
+
+Sheet A (2x2 grid, 4 elite captains on pure solid light grey background #E6E6E6, generous spacing between cells, NO TEXT, no labels, no borders):
+1. Top-Left (en_waterchief): Song-dynasty Elite Naval Commander (水军统制), muscular shirtless/half-armored river pirate general with teal dragon-scale shoulder armor, dark blue headband with gold crest, glowing water droplets around waist, wielding a heavy golden three-pronged trident, dynamic forward walking pose.
+2. Top-Right (en_crossbowcapt): Song-dynasty Elite Heavy Crossbow Captain (神臂弩统领), stern bearded officer in dark iron lamellar armor with crimson cape and bronze helmet, holding a massive gold-trimmed double-prod siege crossbow aimed forward.
+3. Bottom-Left (en_goldeneagle): Armored Giant Golden War Eagle King (披甲金雕王), fierce giant golden-feathered raptor in mid-flight wings spread, wearing Song-dynasty dark steel helmet with red plume and golden chest armor plate, sharp glowing talons.
+4. Bottom-Right (en_ironpagoda): Heavy Iron Pagoda Juggernaut (铁浮屠重卫), hulking towering Song/Jurchen cataphract warrior completely encased in thick dark-steel plate and scale armor, horned iron face-mask helmet with red tassel, carrying a massive spiked iron tower shield and heavy mace.
+
+Sheet B (2x2 grid, 3 elite captains + 1 spare variant on pure solid light grey background #E6E6E6, generous spacing between cells, NO TEXT, no labels, no borders):
+1. Top-Left (en_highpriest): Elite Dark Taoist Warlock (护法妖师), sinister bearded sorcerer in ornate purple-black and gold Yin-Yang Taoist robes, tall golden lotus crown, holding a glowing green healing gourd staff and floating paper talismans.
+2. Top-Right (en_giantbrute): Elite Siege Giant Carrier (背嵬巨力士), burly giant strongman warrior in bronze-plated leather armor and horned headband, carrying a huge iron-reinforced war basket on his back with gleaming steel blades peeking out from the top, wielding twin iron hammers.
+3. Bottom-Left (en_firecart): Elite Dragon Fire Cannon Cart (神火轰天车), ornate Song-dynasty armored wooden siege war-wagon pushed forward on heavy iron wheels, featuring a sculpted golden-bronze dragon-head cannon barrel with glowing orange embers inside and crimson war banners.
+4. Bottom-Right: Spare variant of Dragon Fire Cannon Cart.
+
+CRITICAL CONSTRAINTS: NO TEXT, no letters, no numbers, no Chinese characters, no watermarks, no grid lines, full body including feet/wheels completely inside each quadrant.

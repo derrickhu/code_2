@@ -76,6 +76,32 @@ def main() -> None:
         size = (OUT / dst).stat().st_size // 1024
         print(f"{dst}: {len(text)} 字, {size} KB, 缺字 {''.join(missing) or '无'}")
     shutil.copy(SRC / "OFL-NotoSansSC.txt", LICENSES / "OFL-NotoSansSC.txt")
+    for src, dst, family, chars, lic in EXTRA_FONTS:
+        font = TTFont(SRC / src)
+        want = chars or text
+        cmap = font.getBestCmap()
+        missing = [c for c in want if ord(c) not in cmap and not c.isspace() and ord(c) > 0x7F]
+        opts = subset.Options()
+        opts.layout_features = ["*"]
+        opts.name_IDs = ["*"]
+        opts.name_languages = ["*"]
+        opts.notdef_outline = True
+        sub = subset.Subsetter(opts)
+        sub.populate(text=want)
+        sub.subset(font)
+        rename(font, family)
+        font.save(OUT / dst)
+        size = (OUT / dst).stat().st_size // 1024
+        print(f"{dst}: {len(want)} 字, {size} KB, 缺字 {len(missing)} 个（运行时回落到思源黑体）")
+        shutil.copy(SRC / lic, LICENSES / lic)
+
+
+# 战斗跳字：伤害数字用 Lilita One（圆胖粗体，手游伤害数字常用），招式名用马善政毛笔楷书（水浒题材）。
+# chars 为空表示用游戏内全部用字。
+EXTRA_FONTS = [
+    ("LilitaOne-Regular.ttf", "Number.ttf", "Liangshan Number", "".join(chr(c) for c in range(0x20, 0x7F)) + "×", "OFL-LilitaOne.txt"),
+    ("MaShanZheng-Regular.ttf", "Brush.ttf", "Liangshan Brush", "", "OFL-MaShanZheng.txt"),
+]
 
 
 if __name__ == "__main__":

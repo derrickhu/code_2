@@ -243,7 +243,8 @@ namespace Liangshan
             Add(EnemyKind.Soldier);
             Add(EnemyKind.Cavalry);
             Add(EnemyKind.Diver);
-            Add(st.BossKind);
+            Add(EnemyKind.Berserker);
+            if (st.BossWave > 0) Add(st.BossKind);
             foreach (var k in st.EliteKinds) Add(k);
             foreach (var t in st.Troops) Add(t.Kind);
             if (st.PorterWaves.Length > 0) Add(EnemyKind.Porter);
@@ -372,8 +373,13 @@ namespace Liangshan
             if (_bonus2Star)
             {
                 _bonus2Star = false;
+                Profile.S.AdStart2Star++;
+                Profile.Save();
                 _battle.B.Coins += 80;
                 _battle.B.Summon(true, 2);
+                // 面板数字只在花钱时往下走，直接加的银两要当场拨上去。
+                _battle.Hud.QueueCoin(80);
+                _battle.Hud.Banner("援军已到", "一位好汉以2星入场，银两 +80", Pal.Gold, "ic_star", true);
             }
             if (_autoSkill >= 0)
             {
@@ -1004,6 +1010,182 @@ namespace Liangshan
                     Shot("ui_home_boss_" + n);
                     yield return WaitReal(0.2f);
                 }
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-codexshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                var s = Meta.NewSave(20261117);
+                s.Cleared = 12;
+                s.Selected = 12;
+                s.HeroLv[(int)HeroId.GongSun] = 5;
+                s.HeroLv[(int)HeroId.QinMing] = 4;
+                s.HeroLv[(int)HeroId.LingZhen] = 5;
+                s.Seen[(int)EnemyKind.Soldier] = 2;
+                s.Seen[(int)EnemyKind.Shield] = 2;
+                s.Seen[(int)EnemyKind.Cavalry] = 1;
+                s.Seen[(int)EnemyKind.Crossbow] = 2;
+                s.Seen[(int)EnemyKind.Hawk] = 1;
+                s.Seen[(int)EnemyKind.Armored] = 2;
+                s.Seen[(int)EnemyKind.FireBomb] = 2;
+                s.Seen[(int)EnemyKind.Diver] = 1;
+                s.Seen[(int)EnemyKind.Farmer] = 2;
+                s.Seen[(int)EnemyKind.Hound] = 2;
+                s.Seen[(int)EnemyKind.Taoist] = 2;
+                s.Seen[(int)EnemyKind.Elite] = 2;
+                s.Seen[(int)EnemyKind.WaterChief] = 2;
+                s.Seen[(int)EnemyKind.CrossbowCapt] = 2;
+                s.Seen[(int)EnemyKind.GoldenEagle] = 1;
+                s.Seen[(int)EnemyKind.IronPagoda] = 2;
+                s.Seen[(int)EnemyKind.HighPriest] = 1;
+                s.Seen[(int)EnemyKind.ChainHorse] = 2;
+                s.Seen[(int)EnemyKind.GiantBrute] = 2;
+                s.Seen[(int)EnemyKind.FireCart] = 0;
+                s.Seen[(int)EnemyKind.Boss] = 2;
+                s.Seen[(int)EnemyKind.Luan] = 1;
+                Profile.Use(s);
+                ShowHome(HomeScreen.TabFort);
+                yield return WaitReal(0.6f);
+                MetaUi.Codex(_home.Layer, 1);
+                yield return WaitReal(0.75f);
+                Shot("ui_codex_elites");
+                yield return WaitReal(0.25f);
+                MetaUi.CodexDetail(_home.Layer, EnemyKind.IronPagoda, 1);
+                yield return WaitReal(0.75f);
+                Shot("ui_codex_elite_detail");
+                yield return WaitReal(0.25f);
+                ShowHome(HomeScreen.TabBattle);
+                yield return WaitReal(0.75f);
+                Shot("ui_home_stage12_elite");
+                yield return WaitReal(0.35f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-wuyongshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                var s = Meta.NewSave(20261117);
+                s.HeroLv[(int)HeroId.WuYong] = 5;
+                s.Lineup = new[] { (int)HeroId.HuaRong, (int)HeroId.WuYong, (int)HeroId.WuSong, (int)HeroId.LingZhen };
+                Profile.Use(s);
+                Play(Defs.Level(5));
+                while (_battle == null) yield return null;
+                var b = _battle.B;
+                yield return WaitReal(0.55f); // 等第1波官兵走出城门，触发吴用出手施法
+                b.Slots[0].Unit = new Unit { Id = 802, Hero = HeroId.WuYong, Star = 1, Cd = 0.05f };
+                b.Slots[4].Unit = new Unit { Id = 801, Hero = HeroId.HuaRong, Star = 2, Cd = 6f };
+                yield return WaitReal(0.32f);
+                Shot("ui_wuyong_windup");
+                yield return WaitReal(0.58f);
+                Shot("ui_wuyong_midflight");
+                yield return WaitReal(0.65f);
+                Shot("ui_wuyong_receive");
+                for (int i = 0; i < 8; i++)
+                {
+                    yield return WaitReal(0.12f);
+                    Shot("ui_wuyong_land" + i);
+                }
+                Shot("ui_wuyong_landed");
+                yield return WaitReal(0.7f);
+                Shot("ui_wuyong_badge");
+                yield return WaitReal(0.25f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-textshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                var s = Meta.NewSave(20261117);
+                s.TutorialDone = 1;
+                Profile.Use(s);
+                Play(Defs.Level(1));
+                while (_battle == null) yield return null;
+                yield return WaitReal(0.4f);
+                var fx = WorldFx.I;
+                fx.Say(new Vector2(-2.6f, 4.6f), "386", WorldFx.Tx.Hit);
+                fx.Say(new Vector2(0f, 4.6f), "1.2K", WorldFx.Tx.Crit);
+                fx.Say(new Vector2(2.6f, 4.6f), "742", WorldFx.Tx.Slash);
+                fx.Say(new Vector2(-2.6f, 2.6f), "+35", WorldFx.Tx.Gain);
+                fx.Say(new Vector2(0f, 2.6f), "+120", WorldFx.Tx.Heal);
+                fx.Say(new Vector2(2.6f, 2.6f), "-58", WorldFx.Tx.Wall);
+                fx.Say(new Vector2(-2.2f, 0.6f), "攻速提升 ×3次", WorldFx.Tx.Buff, Pal.Hex("FFC83A"), 1.1f);
+                fx.Say(new Vector2(2.4f, 0.6f), "冷却缩短", WorldFx.Tx.Buff, Pal.Hex("6CC4FF"));
+                fx.Say(new Vector2(-2.4f, -1.2f), "晕眩", WorldFx.Tx.Status, Pal.Hex("B8C8FF"));
+                fx.Say(new Vector2(0f, -1.2f), "格挡", WorldFx.Tx.Status, Pal.Hex("E8D8A0"));
+                fx.Say(new Vector2(2.4f, -1.2f), "破绽 易伤+25%", WorldFx.Tx.Status, Pal.Hex("E496FF"), 1.1f);
+                fx.Say(new Vector2(-1.6f, -3.0f), "运筹帷幄", WorldFx.Tx.Skill, Pal.Hex("FFD24A"), 0.85f);
+                fx.Say(new Vector2(1.9f, -3.0f), "流星飞锤", WorldFx.Tx.Skill, Pal.Hex("FFB070"), 0.96f);
+                yield return WaitReal(0.2f);
+                Shot("ui_text_pop");
+                yield return WaitReal(0.25f);
+                Shot("ui_text_hold");
+                yield return WaitReal(3.5f);
+                Shot("ui_text_battle0");
+                yield return WaitReal(1.2f);
+                Shot("ui_text_battle1");
+                yield return WaitReal(0.25f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-bookshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                var s = Meta.NewSave(20261117);
+                s.TutorialDone = 1;
+                Profile.Use(s);
+                Play(Defs.Level(1));
+                while (_battle == null) yield return null;
+                var b = _battle.B;
+                yield return WaitReal(0.35f);
+                Shot("ui_book_idle");
+                for (int i = 0; i < Defs.EnhanceUnlockSummons; i++) { b.Coins += b.SummonCost; b.Summon(); }
+                b.Coins = 220;
+                yield return WaitReal(0.55f);
+                Shot("ui_book_lit_a");
+                yield return WaitReal(0.95f);
+                Shot("ui_book_lit_b");
+                yield return WaitReal(0.25f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-weaponshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                var s = Meta.NewSave(20261117);
+                s.TutorialDone = 1;
+                s.HeroLv[(int)HeroId.LiKui] = 5;
+                s.HeroLv[(int)HeroId.HuaRong] = 5;
+                s.HeroLv[(int)HeroId.LinChong] = 5;
+                s.HeroLv[(int)HeroId.XieZhen] = 5;
+                s.Lineup = new[] { (int)HeroId.LiKui, (int)HeroId.HuaRong, (int)HeroId.LinChong, (int)HeroId.XieZhen };
+                Profile.Use(s);
+                Play(Defs.Level(1));
+                while (_battle == null) yield return null;
+                var b = _battle.B;
+                var soldier = Defs.Enemy(EnemyKind.Soldier);
+                b.Enemies.Add(new Enemy { Id = 901, Def = soldier, Hp = 5000, MaxHp = 5000, Pos = new V2(b.Slots[1].Pos.X, -0.4f) });
+                b.Enemies.Add(new Enemy { Id = 902, Def = soldier, Hp = 5000, MaxHp = 5000, Pos = new V2(b.Slots[3].Pos.X, 1.4f) });
+                b.Enemies.Add(new Enemy { Id = 903, Def = soldier, Hp = 5000, MaxHp = 5000, Pos = new V2(b.Slots[3].Pos.X + 0.08f, 3.2f) });
+                b.Enemies.Add(new Enemy { Id = 904, Def = soldier, Hp = 5000, MaxHp = 5000, Pos = new V2(b.Slots[5].Pos.X, 0.4f) });
+                b.Slots[1].Unit = new Unit { Id = 701, Hero = HeroId.LiKui, Star = 2, Cd = 0.05f };
+                b.Slots[3].Unit = new Unit { Id = 702, Hero = HeroId.HuaRong, Star = 2, Cd = 0.05f };
+                b.Slots[5].Unit = new Unit { Id = 703, Hero = HeroId.LinChong, Star = 2, Cd = 0.05f };
+                yield return WaitReal(0.22f);
+                Shot("ui_weapon_midflight");
+                yield return WaitReal(0.18f);
+                Shot("ui_weapon_impact");
+                for (int i = 0; i < 3; i++)
+                {
+                    yield return WaitReal(0.07f);
+                    Shot("ui_weapon_impact" + i);
+                }
+                yield return WaitReal(0.25f);
                 Application.Quit(0);
                 yield break;
             }

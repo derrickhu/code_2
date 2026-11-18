@@ -11,9 +11,9 @@ namespace Liangshan
         static string P(float v) => $"{v * 100:0.#}%";
         static string Sec(float v) => O(v.ToString("0.#") + "秒");
 
-        public static string Atk(HeroDef d, Battle b = null, float panelAtk = 0f)
+        public static string Atk(HeroDef d, Battle b = null, float panelAtk = 0f, int star = 0)
         {
-            if (d.Buff.HasValue) return Buff(d, b);
+            if (d.Buff.HasValue) return Buff(d, b, star);
             var h = d.Id;
             int count = b?.CountOf(h) ?? d.Count;
             int chain = b?.ChainOf(h) ?? d.Chain;
@@ -101,31 +101,51 @@ namespace Liangshan
             return t;
         }
 
-        /// <summary>辅助的技能：给队友加持，不打伤害。</summary>
-        static string Buff(HeroDef d, Battle b)
+        /// <summary>辅助的技能：给队友加持，不打伤害。对标《蔚蓝星球》直白人话：传入 star 时直接显示当前星级的确切数值，不写难懂公式。</summary>
+        static string Buff(HeroDef d, Battle b, int star = 0)
         {
-            float boost = b?.BuffBoost(d.Id) ?? 1f;
+            int st = System.Math.Max(1, star);
+            float starBoost = star > 0 ? 1f + StarTraits.Fx(d, st).Buff : 1f;
+            float boost = (b?.BuffBoost(d.Id) ?? 1f) * starBoost;
             string t;
             switch (d.Buff.Value)
             {
                 case UltKind.Bless:
-                    t = $"祝福一位输出好汉（{O("3星")}起两位）：接下来{O("2+星级")}次技能冷却速度{O("+" + P(d.BuffV * boost))}";
+                {
+                    int hits = 2 + st;
+                    string who = star >= 3 ? $"随机 {O(2)} 位输出好汉" : $"随机输出好汉" + (star == 0 ? $"（{O("3星")}起同时祝福2位）" : "");
+                    string cnt = star > 0 ? $"{O(hits + "次")}" : $"{O("3次")}（每升1星再+1次）";
+                    string cut = O(P(1f - 1f / (1f + d.BuffV * boost)));
+                    t = $"祝福{who}：法球落地时，冷却立刻缩短 {cut}。\n之后 {cnt}，出手间隔缩短 {cut}";
                     break;
+                }
                 case UltKind.Rush:
-                    t = $"其余好汉的技能和大招冷却立即缩短{O(P(d.BuffV * boost))}（每星再{O("+10%")}）";
+                {
+                    float cut = System.Math.Min(0.8f, (d.BuffV + 0.1f * (st - 1)) * boost);
+                    t = $"挥舞甲马令，其余好汉的技能与大招冷却立即缩短 {O(P(cut))}" + (star == 0 ? $"（每升1星再 {O("+10%")}）" : "");
                     break;
+                }
                 case UltKind.Mend:
-                    t = $"为寨墙回复最大生命的{O(P(d.BuffV * boost))}×星级，并解除所有好汉的晕眩";
+                {
+                    float heal = d.BuffV * st * (1f + (b?.Stat(d.Id, Eff.Aura) ?? 0f)) * boost;
+                    t = $"施药救治防线，为寨墙回复 {O(P(heal))} 最大生命" + (star == 0 ? "（随星级成倍提升）" : "") + "，并解除全场好汉晕眩";
                     break;
+                }
                 case UltKind.Forge:
-                    t = $"打造神兵：{Sec(8)}内全军伤害{O("+" + P(d.BuffV * boost))}起（星级越高越多）";
+                {
+                    float dmgUp = d.BuffV * (0.9f + 0.1f * st) * boost;
+                    t = $"开炉淬炼神兵：{Sec(8)}内全军好汉伤害提升 {O("+" + P(dmgUp))}" + (star == 0 ? "（星级越高增幅越大）" : "");
                     break;
+                }
                 case UltKind.Steal:
-                    t = $"偷来银两：{O("28+12×星级+5×波次")}" + (boost > 1.01f ? $"，再{O("×" + boost.ToString("0.##"))}" : "")
-                        + $"，并破绽最强敌军{Sec(Defs.VulnDur)}（受伤{O("+25%")}）";
+                {
+                    int baseCoin = (int)System.Math.Round((28 + 12 * st + (b?.Wave ?? 1) * 5) * boost);
+                    string coinTxt = b != null || star > 0 ? $"{O(baseCoin + " 银两")}" : $"{O("40+ 银两")}（随星级与波次递增）";
+                    t = $"飞身顺手牵羊，立即偷取 {coinTxt}，并看破最强敌军破绽 {Sec(Defs.VulnDur)}（使其受伤 {O("+25%")}）";
                     break;
+                }
                 case UltKind.Interest:
-                    t = $"立即获得当前银两{O(P(d.BuffV * boost))}的利息（{O("45~260")}），并鼓舞全军攻速{O("+25%")}持续{Sec(5)}";
+                    t = $"拨动铁算盘立即结算当前银两 {O(P(d.BuffV * boost))} 的红利（保底 {O("45")}，最高 {O("260")} 银两），并鼓舞全军攻速 {O("+25%")} 持续 {Sec(5)}";
                     break;
                 default: t = ""; break;
             }

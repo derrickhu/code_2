@@ -58,6 +58,8 @@ namespace Liangshan.Sim
         /// <summary>三套阵容方案，每套 4 位；Preset 为当前方案。</summary>
         public int[] Presets;
         public int Preset;
+        /// <summary>三套方案的自定义名字。空着就显示「方案1」这样的默认名。</summary>
+        public string[] PresetNames;
         public int Cleared, Selected = 1;
         /// <summary>寨主天赋已点亮的节点数。</summary>
         public int Talent;
@@ -108,10 +110,14 @@ namespace Liangshan.Sim
         public int NextTotemId = 1, TotemPity;
         /// <summary>聚义信物已消耗点数、每周半价碎片计数、跳过招募动画、整日2倍速日期、今日无损撤退与广告计数、首次出橙标记。</summary>
         public int CreditSpent, ShardWeek, SkipRecruitAnim, Speed2Day, FreeRetreats, AdStart2Star, AdTakeAll, LegendPulled;
+        /// <summary>最近一次主线战败的关卡号。援军开局只在这一关还没打过时出现。</summary>
+        public int LostStage;
         public int[] WeeklyShardBought = new int[0];
         /// <summary>排行榜主线进度奖励领取位、今日已点赞次数、玩家自定义名号。</summary>
         public int RankClaimed, RankLikes;
         public string Nick = "";
+        /// <summary>敌军图鉴三大分类（小怪/精英/首领）收集宝箱已领取位。</summary>
+        public int CodexBox;
     }
 
     public enum Cur { Ingot, Copper, Iron, Token, Stamina, Shard, Page, Tome, Silk, Meteor, GearBox, AnyShard, Refine, Hammer }
@@ -252,6 +258,14 @@ namespace Liangshan.Sim
                 for (int i = 0; i < PresetCount; i++) Array.Copy(s.Lineup, 0, s.Presets, i * 4, 4);
             }
             s.Preset = Math.Max(0, Math.Min(PresetCount - 1, s.Preset));
+            if (s.PresetNames == null || s.PresetNames.Length != PresetCount)
+            {
+                var oldNames = s.PresetNames;
+                s.PresetNames = new string[PresetCount];
+                if (oldNames != null)
+                    for (int i = 0; i < Math.Min(oldNames.Length, PresetCount); i++) s.PresetNames[i] = oldNames[i] ?? "";
+            }
+            for (int i = 0; i < PresetCount; i++) if (s.PresetNames[i] == null) s.PresetNames[i] = "";
             s.Selected = Math.Max(1, Math.Min(s.Selected, Math.Min(Defs.LevelCount, s.Cleared + 1)));
             if (s.RecruitLv < 1) s.RecruitLv = 1;
         }
@@ -382,6 +396,27 @@ namespace Liangshan.Sim
             Array.Copy(s.Lineup, 0, s.Presets, i * 4, 4);
         }
 
+        public static string PresetName(SaveData s, int i)
+        {
+            if (s.PresetNames != null && i >= 0 && i < s.PresetNames.Length)
+            {
+                string n = s.PresetNames[i];
+                if (!string.IsNullOrWhiteSpace(n)) return n.Trim();
+            }
+            return "方案" + (i + 1);
+        }
+
+        /// <summary>写下方案名。留空或写回默认名，就还叫方案。</summary>
+        public static void SetPresetName(SaveData s, int i, string name)
+        {
+            if (i < 0 || i >= PresetCount) return;
+            if (s.PresetNames == null || s.PresetNames.Length != PresetCount) s.PresetNames = new string[PresetCount];
+            name = (name ?? "").Trim().Replace("\n", "").Replace("\r", "");
+            if (name.Length > 6) name = name.Substring(0, 6);
+            if (name == "方案" + (i + 1)) name = "";
+            s.PresetNames[i] = name;
+        }
+
         // ---------------- 好汉 ----------------
 
         public static bool Owned(SaveData s, HeroId h) => s.HeroLv[(int)h] > 0;
@@ -433,6 +468,40 @@ namespace Liangshan.Sim
         public static readonly int[] UnlockLv = { 1, 5, 10, 15, 20, 25, 30 };
         public const int UltLv = 5, SurgeLv = 5, PassiveLv = 10, SurgePlusLv = 15, TopLv = 20, NoPenaltyLv = 20;
 
+        /// <summary>被动从几级开始生效。名字和 5 级选项撞车的，跟 5 级走，图标也在这一级点亮。</summary>
+        public static int PassiveUnlock(HeroId h)
+        {
+            var surge = OptPerk(h, 1);
+            return surge != null && surge.Name == Defs.Hero(h).PassiveName ? SurgeLv : PassiveLv;
+        }
+
+        /// <summary>里程碑里点到的技能。同一行可能有两个名字，同一个名字也可能出现在不同级。</summary>
+        public enum TalentSkill { Attack, Ult, Passive, Surge, SurgePlus, Top, Other }
+
+        /// <summary>
+        /// 按这一行认技能，不能只按名字。吴用 5 级选项和 10 级被动都叫「锦囊妙计」，
+        /// 15 级又提一次这个名字，说的是强化效果，不是被动。
+        /// </summary>
+        public static TalentSkill TalentSkillOf(HeroId h, int row, string name)
+        {
+            var d = Defs.Hero(h);
+            switch (row)
+            {
+                case 0: return TalentSkill.Attack;
+                case 1: return !string.IsNullOrEmpty(d.UltName) && name == d.UltName ? TalentSkill.Ult : TalentSkill.Surge;
+                case 2: return TalentSkill.Passive;
+                case 3: return TalentSkill.SurgePlus;
+                case 4: return TalentSkill.Top;
+                default:
+                    if (name == d.AtkName) return TalentSkill.Attack;
+                    if (!string.IsNullOrEmpty(d.UltName) && name == d.UltName) return TalentSkill.Ult;
+                    if (name == d.PassiveName) return TalentSkill.Passive;
+                    var top = OptPerk(h, 2);
+                    if (top != null && name == top.Name) return TalentSkill.Top;
+                    return TalentSkill.Other;
+            }
+        }
+
         public static PerkDef OptPerk(HeroId h, int opt)
         {
             foreach (var p in Defs.Perks) if (p.Hero == h && p.Opt == opt) return p;
@@ -450,7 +519,9 @@ namespace Liangshan.Sim
                     : $"解锁「{OptPerk(h, 1).Name}」选项（局内强化可抽到）";
                 case 2: return h == HeroId.YanQing
                     ? $"获得被动「{d.PassiveName}」，场上满4位时弩箭+1，伤害 +20%"
-                    : $"获得被动「{d.PassiveName}」，伤害 +20%";
+                    : PassiveUnlock(h) < PassiveLv
+                        ? $"「{d.PassiveName}」伤害 +20%"
+                        : $"获得被动「{d.PassiveName}」，伤害 +20%";
                 case 3: return h == HeroId.HuaRong
                     ? $"场上满4位花荣穿透+1，「{OptPerk(h, 1).Name}」必暴，冷却 -10%"
                     : d.Buff.HasValue ? $"「{OptPerk(h, 1).Name}」效果翻倍，技能冷却 -10%" : $"「{OptPerk(h, 1).Name}」必定暴击、几率 +10%，技能冷却 -10%";
@@ -488,7 +559,7 @@ namespace Liangshan.Sim
         {
             var d = Defs.Hero(h);
             lv = Math.Max(1, lv);
-            return (int)(PowerDps(d) * BaseAtk * HeroDmg(lv) * (lv >= 30 ? 1.2f : 1f) * (lv >= PassiveLv ? 1.08f : 1f) * (lv >= SurgeLv ? 1.06f : 1f) * (lv >= TopLv ? 1.06f : 1f) * 10);
+            return (int)(PowerDps(d) * BaseAtk * HeroDmg(lv) * (lv >= 30 ? 1.2f : 1f) * (lv >= PassiveUnlock(h) ? 1.08f : 1f) * (lv >= SurgeLv ? 1.06f : 1f) * (lv >= TopLv ? 1.06f : 1f) * 10);
         }
 
         /// <summary>好汉 1 星真实基础攻击力（局外详情页与局内 1 星 0 词条面板完全同源一致）。</summary>
@@ -671,7 +742,7 @@ namespace Liangshan.Sim
                 lo.HeroSpeed[h] = lv >= 30 ? 1.2f : 1f;
                 lo.SkillCd[h] = lv >= 15 ? 0.9f : 1f;
                 lo.SkillPow[h] = lv >= 25 ? 1.15f : 1f;
-                lo.Passive[h] = lv >= PassiveLv;
+                lo.Passive[h] = lv >= PassiveUnlock((HeroId)h);
                 lo.Lv[h] = lv;
             }
             TalentSum(s.Talent, out var tAtk, out var tCrit, out var tCritDmg, out var tWall, out var tCoins, out var tSpeed);
@@ -768,7 +839,11 @@ namespace Liangshan.Sim
         {
             s.Battles++;
             Progress(s, Act.Battle);
-            if (!win) return;
+            if (!win)
+            {
+                if (st.Mode == StageMode.Main) s.LostStage = st.No;
+                return;
+            }
             s.Wins++;
             Progress(s, Act.Win);
             if (st.Mode != StageMode.Main) return;
@@ -1175,7 +1250,52 @@ namespace Liangshan.Sim
 
         // ---------------- 图鉴 ----------------
 
+        public static int CodexGroupOf(EnemyDef d) => d.IsBoss ? 2 : d.Big ? 1 : 0;
+
         public static int CodexReward(EnemyDef d) => d.IsBoss ? 100 : d.Big ? 50 : 20;
+
+        public static (int seen, int total) CodexProgress(SaveData s, int group)
+        {
+            int seen = 0, total = 0;
+            foreach (var d in Defs.Enemies)
+            {
+                if (CodexGroupOf(d) != group) continue;
+                total++;
+                if (s.Seen[(int)d.Kind] > 0) seen++;
+            }
+            return (seen, total);
+        }
+
+        /// <summary>各分类集齐一定数量后的里程碑宝箱门槛（约过半即可开，不必苦等最后一章）。</summary>
+        public static int CodexBoxNeed(int group)
+        {
+            int total = 0;
+            foreach (var d in Defs.Enemies) if (CodexGroupOf(d) == group) total++;
+            return group == 0 ? Math.Min(total, 10) : Math.Min(total, 5);
+        }
+
+        public static Item[] CodexBoxRewards(int group) => group == 2
+            ? new[] { new Item(Cur.Ingot, 300), new Item(Cur.Token, 2), new Item(Cur.Hammer, 2) }
+            : group == 1
+                ? new[] { new Item(Cur.Ingot, 160), new Item(Cur.Token, 1), new Item(Cur.Refine, 2) }
+                : new[] { new Item(Cur.Ingot, 180), new Item(Cur.Token, 1) };
+
+        public static bool CodexBoxTaken(SaveData s, int group) => (s.CodexBox & (1 << group)) != 0;
+
+        public static bool CanClaimCodexBox(SaveData s, int group)
+        {
+            if (group < 0 || group >= 3 || CodexBoxTaken(s, group)) return false;
+            return CodexProgress(s, group).seen >= CodexBoxNeed(group);
+        }
+
+        public static Item[] ClaimCodexBox(SaveData s, int group)
+        {
+            if (!CanClaimCodexBox(s, group)) return null;
+            s.CodexBox |= 1 << group;
+            var got = CodexBoxRewards(group);
+            foreach (var it in got) Give(s, it);
+            return got;
+        }
 
         public static bool ClaimCodex(SaveData s, EnemyKind k)
         {
@@ -1185,12 +1305,16 @@ namespace Liangshan.Sim
             return true;
         }
 
-        public static int CodexBadge(SaveData s)
+        public static int CodexGroupBadge(SaveData s, int group)
         {
-            int n = 0;
-            foreach (var v in s.Seen) if (v == 1) n++;
+            int n = CanClaimCodexBox(s, group) ? 1 : 0;
+            foreach (var d in Defs.Enemies)
+                if (CodexGroupOf(d) == group && s.Seen[(int)d.Kind] == 1) n++;
             return n;
         }
+
+        public static int CodexBadge(SaveData s) =>
+            CodexGroupBadge(s, 0) + CodexGroupBadge(s, 1) + CodexGroupBadge(s, 2);
 
         public static void MarkSeen(SaveData s, IEnumerable<EnemyKind> kinds)
         {

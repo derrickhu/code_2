@@ -55,7 +55,7 @@ namespace Liangshan
 
             // 兽首大图标（嵌于对应品质雕花方框内）+ 品质角标
             Slot(left, TotemSlot(t.Rarity), 116, new Vector2(-156, lh * 0.5f - 74));
-            Ui.Icon(left, Meta.TotemIcon(t), 96, new Vector2(-156, lh * 0.5f - 72));
+            Ui.Icon(left, Meta.TotemIcon(t), 84, new Vector2(-156, lh * 0.5f - 72));
             var rTag = Ui.Box(left, new Vector2(96, 34), new Vector2(-156, lh * 0.5f - 132), rStroke.A(0.88f), Art.Pill);
             Ui.Outlined(rTag.transform, Meta.TotemRarityNames[t.Rarity], 22, QualGlow(t.Rarity), new Vector2(0, 1), new Vector2(96, 34), Pal.Ink, 1.4f);
 

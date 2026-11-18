@@ -12,9 +12,11 @@ namespace Liangshan.Sim
         public bool Burst;
         /// <summary>被首领飞锤砸晕，期间不出手。</summary>
         public float Stun;
-        /// <summary>吴用的祝福：接下来 BlessN 次出手冷却转速 × BlessMul。</summary>
+        /// <summary>吴用的祝福：生效后接下来 BlessN 次出手，每次出手后的冷却 ÷ BlessMul。</summary>
         public int BlessN;
         public float BlessMul = 1f;
+        /// <summary>法球还在路上的秒数。落地那一刻才生效，并把正在走的冷却立刻缩短。</summary>
+        public float BlessWait;
         /// <summary>时迁「易容百搭」状态：可与任意同星级其他好汉直接合成。</summary>
         public bool Wild;
         /// <summary>该单位累计普攻轮次（用于三合一觉醒「每3轮额外流星齐射/刀气乱舞」节拍触发）。</summary>
@@ -51,10 +53,10 @@ namespace Liangshan.Sim
         public float SlowT, Stun, AtkCd;
         public bool Attacking, Dead, Escaped;
         public float HitT;
-        /// <summary>首领：技能计时、冲锋、护盾、压血分段钱袋已触发次数。</summary>
+        /// <summary>首领或普通关第4波守关主统领（承担压血阶段赏银与本局唯一生辰纲掉落）。</summary>
         public float SkillT, ChargeT, Shield;
         public int BossDrops;
-        public bool ShieldUsed;
+        public bool ShieldUsed, IsStageLeader;
         /// <summary>小兵特技：水鬼潜水、妖道作法、斥候闪身的计时；藤牌剩余格挡；敢死刀手无敌狂奔；黄安战鼓加速。</summary>
         public float AbilT, DiveT, RageT, HasteT;
         public int Guard;
@@ -76,6 +78,8 @@ namespace Liangshan.Sim
         public ShotKind Kind;
         public HeroId Hero;
         public V2 From, To;
+        /// <summary>锁定的第一个目标的最近位置。穿透时 To 在他身后，索敌回退不能跟着落到点走。</summary>
+        public V2 Aim;
         public float T, Dur;
         public float Damage, Radius;
         public int TargetId = -1;
@@ -167,6 +171,22 @@ namespace Liangshan.Sim
         public float Time;
         public readonly LevelDef Stage;
         public int Coins;
+        /// <summary>已经记在账上、但银币还在飞，不能拿去召唤、强化。飞到就放开。</summary>
+        public int HeldCoins { get; private set; }
+        public int SpendableCoins => Math.Max(0, Coins - HeldCoins);
+
+        /// <summary>银币离手：先从可花的钱里扣下，飞到银币点再放开。</summary>
+        public void HoldCoins(int amount)
+        {
+            if (amount > 0) HeldCoins += amount;
+        }
+
+        public void ReleaseCoins(int amount)
+        {
+            if (amount > 0) HeldCoins = Math.Max(0, HeldCoins - amount);
+        }
+
+        public void FlushHeldCoins() => HeldCoins = 0;
         public float Wall, WallMax;
         /// <summary>Summons 只算花钱召唤（定价用）；Recruited 含老虎机送的（扩格用）。</summary>
         public int Summons, Recruited, Enhances, Kills;
@@ -189,7 +209,7 @@ namespace Liangshan.Sim
         /// <summary>辅助光环：攻速、伤害、冷却转速、击杀银两加成、每 4 秒利息比例。</summary>
         public float Aura, DmgAura, ChargeAura, CoinAura, Interest;
         float _interestT;
-        int _highStars, _twoStarMerges;
+        int _highStars, _twoStarMerges, _treasureDropped;
         bool _owePity;
 
         readonly Rng _rng;
@@ -305,7 +325,7 @@ namespace Liangshan.Sim
             return false;
         }
 
-        public bool CanSummon => Phase == Phase.Running && Coins >= SummonCost && HasEmptySlot();
+        public bool CanSummon => Phase == Phase.Running && SpendableCoins >= SummonCost && HasEmptySlot();
 
         public Slot Summon(bool free = false, int star = 1)
         {
@@ -313,7 +333,7 @@ namespace Liangshan.Sim
             if (!HasEmptySlot()) return null;
             if (!free)
             {
-                if (Coins < SummonCost) return null;
+                if (SpendableCoins < SummonCost) return null;
                 Coins -= SummonCost;
             }
             var empty = new List<Slot>();
@@ -321,7 +341,8 @@ namespace Liangshan.Sim
             var slot = empty[_rng.Int(empty.Count)];
             var hero = Lineup[_rng.Int(Lineup.Length)];
             bool wild = hero == HeroId.ShiQian && star < 4 && _rng.Chance(0.28f);
-            slot.Unit = new Unit { Id = _nextId++, Hero = hero, Star = star, Cd = 0.8f, Wild = wild };
+            float firstCd = Defs.Hero(hero).Buff.HasValue ? 2.2f : 0.8f;
+            slot.Unit = new Unit { Id = _nextId++, Hero = hero, Star = star, Cd = firstCd, Wild = wild };
             if (!free) Summons++;
             Recruited++;
             Emit(Ev.Summon, slot.Pos, slot.Index, star, slot.Unit.Hero);
@@ -454,6 +475,7 @@ namespace Liangshan.Sim
                     {
                         sb.Unit.BlessN = 4;
                         sb.Unit.BlessMul = 1.6f;
+                        sb.Unit.BlessWait = 0f;
                         Events.Add(new BattleEvent { Type = Ev.Buff, Pos = sb.Pos, Slot = b, EnemyId = b, Value = 4, Hero = supHero });
                     }
                 }
@@ -502,11 +524,11 @@ namespace Liangshan.Sim
             }
         }
 
-        public bool CanEnhance => Phase == Phase.Running && Coins >= EnhanceCost && RollChoices(false) != null;
+        public bool CanEnhance => Phase == Phase.Running && SpendableCoins >= EnhanceCost && RollChoices(false) != null;
 
         public bool Enhance()
         {
-            if (Phase != Phase.Running || Coins < EnhanceCost) return false;
+            if (Phase != Phase.Running || SpendableCoins < EnhanceCost) return false;
             bool forced = ShotChoices != null && ShotChoices.Length > 0;
             var c = forced ? ShotChoices : RollChoices(true);
             ShotChoices = null;
@@ -678,8 +700,9 @@ namespace Liangshan.Sim
             : Balance.Current.Economy.ReelNormalCells;
 
         /// <summary>
-        /// 老虎机：常规 4 格、首领关 5 格，每格银两或强化（默认 35%）。强化格当场随机给上阵好汉一个强化，一次最多 2 个；
-        /// 全部同色：银两按 ReelJackpotMul 翻倍，或强化给 3 个。首领掉的那次（或看广告鸿运重转）必中全部同色大奖。
+        /// 老虎机（对标《永远的蔚蓝星球》真实随机摇奖）：
+        /// 常规 4 格、首领关 5 格，每格独立随机出银两或好汉头像（不再强制首领必出全同色）。
+        /// 1~2 格好汉汇总发 1 条对应好汉强化，≥3 格好汉最多发 2 条强化（严控上限绝不一次爆多条飞天）；全银两按 ReelJackpotMul 翻倍。
         /// </summary>
         public Reel[] SpinReels(bool forceJackpot = false)
         {
@@ -690,15 +713,42 @@ namespace Liangshan.Sim
             Reel Roll() => _rng.Chance(PerkCellChance) ? Reel.Perk : Reel.Silver;
             var first = Roll();
             for (int i = 0; i < cnt; i++) r[i] = jackpot ? first : Roll();
-            int want = Array.FindAll(r, x => x == Reel.Perk).Length;
-            want = jackpot && first == Reel.Perk ? ReelPerkJackpot : Math.Min(want, ReelPerkMax);
+            int perkCells = Array.FindAll(r, x => x == Reel.Perk).Length;
+            int want = perkCells <= 0 ? 0
+                : perkCells <= 2 ? Math.Min(1, ReelPerkMax)
+                : (jackpot && first == Reel.Perk ? ReelPerkJackpot : Math.Min(2, ReelPerkMax));
             var pool = want > 0 ? RollChoices(true) : null;
+            if (pool != null && pool.Length > 1 && perkCells >= 2)
+                Array.Sort(pool, (a, b) => ReelPerkPriority(b).CompareTo(ReelPerkPriority(a)));
             int got = pool == null ? 0 : Math.Min(want, pool.Length);
             ReelPerks = new PerkDef[got];
             for (int i = 0; i < got; i++) ReelPerks[i] = pool[i];
             // 强化抽不出来（都满级了）的格子折成银两。
             ReelExtraSilver = (want - got) * ReelSilver;
+
+            ReelCellHeroes = new HeroId[cnt];
+            int seenPerk = 0;
+            for (int i = 0; i < cnt; i++)
+            {
+                if (r[i] != Reel.Perk || got == 0)
+                {
+                    ReelCellHeroes[i] = Lineup[0];
+                    continue;
+                }
+                int pickIdx = got == 1 ? 0 : (seenPerk < perkCells - 1 ? 0 : 1);
+                ReelCellHeroes[i] = ReelPerks[Math.Min(pickIdx, got - 1)].Hero;
+                seenPerk++;
+            }
             return r;
+        }
+
+        static int ReelPerkPriority(PerkDef p)
+        {
+            if (p == null) return 0;
+            if (p.Ult) return 4;
+            if (p.Kind == PerkKind.Adv) return 3;
+            if (p.Kind == PerkKind.Morph) return 2;
+            return 1;
         }
 
         public static float PerkCellChance => Balance.Current.Economy.ReelPerkCellChance;
@@ -716,6 +766,8 @@ namespace Liangshan.Sim
         }
         /// <summary>这一转定下的强化。</summary>
         public PerkDef[] ReelPerks { get; private set; } = new PerkDef[0];
+        /// <summary>每个滚轮格对应的好汉头像（仅当该格为 Reel.Perk 时使用，与上方发出的强化卡严格一一对应）。</summary>
+        public HeroId[] ReelCellHeroes { get; private set; } = new HeroId[0];
         public int ReelExtraSilver { get; private set; }
 
         public static bool IsAllSame(Reel[] r)
@@ -725,12 +777,22 @@ namespace Liangshan.Sim
             return true;
         }
 
+        /// <summary>是否触发「超爽!!!」高光（全格相同、双强化大运、或 5 格凑出三银两+对子好汉满堂红）。</summary>
+        public static bool IsBigReelWin(Reel[] r)
+        {
+            if (r == null || r.Length == 0) return false;
+            if (IsAllSame(r)) return true;
+            int perkCells = Array.FindAll(r, x => x == Reel.Perk).Length;
+            int silverCells = r.Length - perkCells;
+            return perkCells >= 3 || (perkCells >= 2 && silverCells >= 3);
+        }
+
         /// <summary>这一转一共给多少银两。</summary>
         public int ReelSilverOf(Reel[] r)
         {
             bool all = IsAllSame(r);
             int n = Array.FindAll(r, x => x == Reel.Silver).Length;
-            float mul = all ? Balance.Current.Economy.ReelJackpotMul : 1f;
+            float mul = all ? Balance.Current.Economy.ReelJackpotMul : (n >= 3 ? 1.55f : n == 2 ? 1.2f : 1f);
             return (int)Math.Round(n * ReelSilver * mul) + ReelExtraSilver;
         }
 
@@ -741,6 +803,7 @@ namespace Liangshan.Sim
             CoinsFromReels += silver;
             foreach (var p in ReelPerks) Grant(p);
             ReelPerks = new PerkDef[0];
+            ReelCellHeroes = new HeroId[0];
             ReelExtraSilver = 0;
             PendingReels = Math.Max(0, PendingReels - 1);
             if (JackpotReels > 0) JackpotReels--;
@@ -918,10 +981,20 @@ namespace Liangshan.Sim
                     s.LaneX = M.Clamp(p.X + (k - 1) * 0.8f, -bx, bx);
                 }
             _bruteDrops.Clear();
+            foreach (var p in _giantBruteDrops)
+                for (int k = 0; k < 4; k++)
+                {
+                    float bx = Layout.RoadMaxX(p.Y + 0.35f, 1.0f);
+                    float ox = (k - 1.5f) * 0.52f;
+                    var s = Spawn(EnemyKind.Berserker, -1, new V2(M.Clamp(p.X + ox, -bx, bx), p.Y + 0.35f));
+                    s.LaneX = M.Clamp(p.X + ox * 1.35f, -bx, bx);
+                }
+            _giantBruteDrops.Clear();
         }
 
-        /// <summary>力士倒下的位置，下一帧从背篓里跳出官兵（不能在伤害结算中途改敌人列表）。</summary>
+        /// <summary>力士与背嵬巨力士倒下的位置，下一帧从背篓里跳出步卒/敢死刀手（不能在伤害结算中途改敌人列表）。</summary>
         readonly List<V2> _bruteDrops = new List<V2>();
+        readonly List<V2> _giantBruteDrops = new List<V2>();
 
         public EnemyKind EliteKind(int w)
         {
@@ -952,7 +1025,8 @@ namespace Liangshan.Sim
             if (Array.IndexOf(Stage.EliteWaves, w) >= 0)
             {
                 var ek = EliteKind(w);
-                _queue.Add((t0 + 6f, ek, _rng.Int(2)));
+                bool wave4Lead = Stage.BossWave == 0 && Stage.Mode == StageMode.Main && w == Balance.Current.WaveStage.MainBossWave;
+                _queue.Add((t0 + (wave4Lead ? 0.8f : 1.0f), ek, wave4Lead ? w % 2 : _rng.Int(2)));
                 Events.Add(new BattleEvent { Type = Ev.EliteComing, Slot = (int)ek, Value = w });
             }
             if (Array.IndexOf(Stage.PorterWaves, w) >= 0)
@@ -960,7 +1034,7 @@ namespace Liangshan.Sim
                     _queue.Add((t0 + 3f + i * 2.2f, EnemyKind.Porter, _rng.Int(2)));
             if (w == Stage.BossWave)
             {
-                _queue.Add((t0 + 2.5f, Stage.BossKind, w % 2));
+                _queue.Add((t0 + 0.8f, Stage.BossKind, w % 2));
                 Events.Add(new BattleEvent { Type = Ev.BossComing, Slot = (int)Stage.BossKind, Value = w });
             }
             if (w == Stage.RageWave)
@@ -975,12 +1049,14 @@ namespace Liangshan.Sim
         Enemy Spawn(EnemyKind kind, int gate, V2? at = null)
         {
             var def = Defs.Enemy(kind);
+            bool stageLead = def.IsBoss || (!at.HasValue && def.Rank == EnemyRank.Elite && Stage.BossWave == 0
+                && Stage.Mode == StageMode.Main && Wave == Balance.Current.WaveStage.MainBossWave);
             float tough = def.Big ? 1f : Defs.Tough(Wave);
-            float hp = def.Hp * Defs.HpScale(Wave) * tough * Stage.HpMul * (def.IsBoss ? Stage.BossMul : 1f);
+            float hp = def.Hp * Defs.HpScale(Wave) * tough * Stage.HpMul * (stageLead ? Stage.BossMul : 1f);
             int g = gate < 0 ? _rng.Int(2) : gate;
             float gx = Layout.GateX[g];
             float rMax = Math.Max(0.8f, Layout.RoadHalfW - def.Size * 0.22f);
-            float lane = def.IsBoss
+            float lane = stageLead
                 ? _rng.Range(-0.35f, 0.35f)
                 : g == 0 ? _rng.Range(-rMax, Math.Min(0.95f, rMax)) : _rng.Range(-Math.Min(0.95f, rMax), rMax);
             var e = new Enemy
@@ -990,10 +1066,13 @@ namespace Liangshan.Sim
                 LaneX = lane,
                 AtkCd = _rng.Range(0.2f, 1f),
                 SkillT = 4f,
+                IsStageLeader = stageLead,
             };
             if (kind == EnemyKind.GaoQiu) e.Shield = hp * 0.2f;
-            if (kind == EnemyKind.Rattan) e.Guard = 2;
-            if (kind == EnemyKind.Diver || kind == EnemyKind.Taoist) e.AbilT = _rng.Range(1f, 3f);
+            if (kind == EnemyKind.FireCart) e.Shield = hp * 0.12f;
+            if (kind == EnemyKind.Rattan || kind == EnemyKind.IronPagoda) e.Guard = 2;
+            if (kind == EnemyKind.Diver || kind == EnemyKind.WaterChief || kind == EnemyKind.Taoist || kind == EnemyKind.HighPriest)
+                e.AbilT = _rng.Range(1f, 3f);
             Seen.Add(kind);
             Enemies.Add(e);
             return e;
@@ -1014,8 +1093,7 @@ namespace Liangshan.Sim
             if (Stage.PorterWaves.Length > 0) Add(EnemyKind.Porter);
             else if (Stage.EliteWaves.Length > 0)
             {
-                foreach (var k in Stage.EliteKinds)
-                    if (k != EnemyKind.Elite) Add(k);
+                foreach (var k in Stage.EliteKinds) Add(k);
             }
             if (Stage.BossWave > 0 && Stage.BossWave <= Stage.Waves)
             {
@@ -1028,7 +1106,8 @@ namespace Liangshan.Sim
 
         float EnemySpeed(Enemy e)
         {
-            float s = e.Def.Speed * (Rage ? Balance.Current.WaveStage.RageSpeedMul : 1f) * (e.Def.IsBoss ? Defs.BossPace : 1f);
+            float pace = e.Def.IsBoss ? Defs.BossPace : (e.IsStageLeader ? Math.Min(1f, 0.295f / Math.Max(0.12f, e.Def.Speed) * Defs.BossPace) : 1f);
+            float s = e.Def.Speed * (Rage ? Balance.Current.WaveStage.RageSpeedMul : 1f) * pace;
             if (e.SlowT > 0) s *= 0.55f;
             if (e.ChargeT > 0) s *= 5f;
             if (e.Def.Kind == EnemyKind.ShiWen && e.Hp < e.MaxHp * 0.5f) s *= 1.3f;
@@ -1055,13 +1134,16 @@ namespace Liangshan.Sim
                 if (e.Def.IsBoss && e.Pos.Y < Layout.EngageY) BossSkills(e, dt);
                 if (e.Stun > 0) { e.Stun -= dt; continue; }
                 float stop = e.Def.StopY + (e.Big ? e.Def.Size * 0.18f : 0f);
-                if (e.Def.Kind == EnemyKind.Taoist && e.AbilT <= 0 && e.Pos.Y < Layout.EngageY) TaoistHeal(e);
+                if ((e.Def.Kind == EnemyKind.Taoist || e.Def.Kind == EnemyKind.HighPriest) && e.AbilT <= 0 && e.Pos.Y < Layout.EngageY)
+                    TaoistHeal(e, e.Def.Kind == EnemyKind.HighPriest);
                 if (e.Pos.Y > stop)
                 {
-                    if (e.Def.Kind == EnemyKind.Diver && e.AbilT <= 0 && e.Pos.Y < Layout.EngageY)
+                    if ((e.Def.Kind == EnemyKind.Diver || e.Def.Kind == EnemyKind.WaterChief) && e.AbilT <= 0 && e.Pos.Y < Layout.EngageY)
                     {
-                        e.AbilT = 5f;
+                        e.AbilT = e.Def.Kind == EnemyKind.WaterChief ? 5.6f : 5f;
                         e.DiveT = 1.2f;
+                        if (e.Def.Kind == EnemyKind.WaterChief)
+                            e.Pos.Y = Math.Max(stop, e.Pos.Y - 0.55f);
                     }
                     e.Attacking = false;
                     float spd = EnemySpeed(e);
@@ -1094,17 +1176,20 @@ namespace Liangshan.Sim
                 e.AtkCd -= dt;
                 if (e.AtkCd > 0) continue;
                 var kind = e.Def.Kind;
-                float period = kind == EnemyKind.Crossbow || kind == EnemyKind.LiuMenglong ? 1.6f : kind == EnemyKind.Catapult ? 3f : 1f;
+                bool boltUnit = kind == EnemyKind.Crossbow || kind == EnemyKind.CrossbowCapt || kind == EnemyKind.LiuMenglong;
+                bool rockUnit = kind == EnemyKind.Catapult || kind == EnemyKind.FireCart;
+                float period = boltUnit ? 1.6f : rockUnit ? 2.8f : 1f;
                 e.AtkCd = period;
                 float dmg = e.Def.WallDps * period * atkMul * e.Tough;
                 if (kind == EnemyKind.ShiWen && e.Hp < e.MaxHp * 0.5f) dmg *= 1.25f;
-                if (kind == EnemyKind.Crossbow || kind == EnemyKind.LiuMenglong || kind == EnemyKind.Catapult)
+                if (boltUnit || rockUnit)
                 {
-                    bool rock = kind == EnemyKind.Catapult;
                     Shots.Add(new Shot
                     {
-                        Id = _nextId++, Kind = rock ? ShotKind.Boulder : ShotKind.Bolt, From = e.Pos + new V2(0, rock ? 0.5f : 0f),
-                        To = new V2(e.Pos.X + (rock ? _rng.Range(-1f, 1f) : 0f), Layout.WallRowY + 0.3f), Dur = rock ? 1.1f : 0.55f, Damage = dmg,
+                        Id = _nextId++, Kind = kind == EnemyKind.FireCart ? ShotKind.Ball : rockUnit ? ShotKind.Boulder : ShotKind.Bolt,
+                        From = e.Pos + new V2(0, rockUnit ? 0.5f : 0f),
+                        To = new V2(e.Pos.X + (rockUnit ? _rng.Range(-1f, 1f) : 0f), Layout.WallRowY + 0.3f),
+                        Dur = rockUnit ? 1.05f : 0.55f, Damage = dmg,
                     });
                     continue;
                 }
@@ -1219,18 +1304,21 @@ namespace Liangshan.Sim
 
         public const float DrumRadius = 3f, TaoistRadius = 2.5f;
 
-        void TaoistHeal(Enemy e)
+        void TaoistHeal(Enemy e, bool boostHaste = false)
         {
             e.AbilT = 5f;
+            float rad = boostHaste ? 2.9f : TaoistRadius;
             bool any = false;
             foreach (var o in Enemies)
             {
-                if (o.Dead || o.Hp >= o.MaxHp || (o.Pos - e.Pos).Len2 > TaoistRadius * TaoistRadius) continue;
+                if (o.Dead || (o.Pos - e.Pos).Len2 > rad * rad) continue;
+                if (boostHaste && !o.Def.IsBoss) o.HasteT = Math.Max(o.HasteT, 2.5f);
+                if (o.Hp >= o.MaxHp) continue;
                 float healMul = o.AntiHeal && o.BurnT > 0 ? 0.4f : 1f;
-                o.Hp = Math.Min(o.MaxHp, o.Hp + o.MaxHp * (o.Def.IsBoss ? 0.03f : 0.12f) * healMul);
+                o.Hp = Math.Min(o.MaxHp, o.Hp + o.MaxHp * (o.Def.IsBoss ? 0.03f : o.Big ? 0.08f : 0.14f) * healMul);
                 any = true;
             }
-            if (any) Events.Add(new BattleEvent { Type = Ev.EnemyHeal, Pos = e.Pos, EnemyId = e.Id, Radius = TaoistRadius });
+            if (any || boostHaste) Events.Add(new BattleEvent { Type = Ev.EnemyHeal, Pos = e.Pos, EnemyId = e.Id, Radius = rad });
         }
 
         void HitWall(float dmg, V2 pos)
@@ -1277,7 +1365,8 @@ namespace Liangshan.Sim
                     float d = (float)Math.Sqrt(d2);
                     float push = (r - d) * 0.5f * Math.Min(1f, dt * 8f);
                     float nx = dx / d, ny = dy / d;
-                    float wa = a.Big ? 0.15f : 1f, wb = b.Big ? 0.15f : 1f;
+                    float wa = a.Big && !b.Big ? 0f : (a.Big ? 0.15f : 1f);
+                    float wb = b.Big && !a.Big ? 0f : (b.Big ? 0.15f : 1f);
                     a.Pos.X -= nx * push * wa;
                     b.Pos.X += nx * push * wb;
                     if (!a.Attacking) a.Pos.Y -= ny * push * wa * 0.5f;
@@ -1432,6 +1521,15 @@ namespace Liangshan.Sim
             return best;
         }
 
+        /// <summary>吴用法球的起手凝珠时长与飞行时长（表现层照这个飞，落地时刻和生效时刻一致）。</summary>
+        public const float BlessWindup = 0.36f;
+        public static float BlessTravel(float dist) => Math.Clamp(0.95f + dist * 0.06f, 0.98f, 1.30f);
+        public static float BlessArrive(V2 from, V2 to)
+        {
+            float dx = to.X - from.X, dy = to.Y - from.Y;
+            return BlessWindup + BlessTravel((float)Math.Sqrt(dx * dx + dy * dy));
+        }
+
         void UpdateUnits(float dt)
         {
             foreach (var s in Slots)
@@ -1440,8 +1538,8 @@ namespace Liangshan.Sim
                 if (u == null) continue;
                 if (u.Stun > 0) { u.Stun -= dt; continue; }
                 var def = u.Def;
+                if (u.BlessWait > 0 && (u.BlessWait -= dt) <= 0 && u.BlessN > 0) u.Cd /= u.BlessMul;
                 float spd = HeroSpeedMul(u.Hero) * AdjSpeedMul(s) * Defs.StarSpeed[u.Star - 1] * (1f + ChargeAura);
-                if (u.BlessN > 0) spd *= u.BlessMul;
                 u.Cd -= dt * spd;
                 if (u.Cd > 0) continue;
                 if (def.Buff.HasValue)
@@ -1452,10 +1550,14 @@ namespace Liangshan.Sim
                 if (Channeling(u)) { u.Cd = 0.1f; continue; }
                 var target = PickTarget(def, s.Pos, -1, u.Star);
                 if (target == null) { u.Cd = 0.1f; continue; }
-                u.Cd = SkillCd(u.Hero);
+                u.Cd = SkillCd(u.Hero) * (1f - StarTraits.Fx(def, u.Star).Cd);
                 float dmg = AtkPower(u.Hero, u.Star);
                 if (u.Burst) { dmg *= 2.2f; u.Burst = false; }
-                if (u.BlessN > 0 && --u.BlessN == 0) u.BlessMul = 1f;
+                if (u.BlessN > 0 && u.BlessWait <= 0)
+                {
+                    u.Cd /= u.BlessMul;
+                    if (--u.BlessN == 0) u.BlessMul = 1f;
+                }
                 float scale = u.Star >= 4 ? 1.32f : u.Star == 3 ? 1.18f : u.Star == 2 ? 1.08f : 1f;
                 if (SlotOf(u.Hero) == s)
                 {
@@ -1596,7 +1698,14 @@ namespace Liangshan.Sim
                     var pool = new List<Slot>();
                     foreach (var s in Slots)
                         if (s.Unit != null && s.Unit.Def.Carry && s.Unit.BlessN == 0) pool.Add(s);
+                    if (pool.Count == 0)
+                    {
+                        foreach (var s in Slots)
+                            if (s.Unit != null && s.Unit.Def.Carry) pool.Add(s);
+                    }
                     if (pool.Count == 0) return false;
+                    u.Casts++;
+                    Events.Add(new BattleEvent { Type = Ev.Buff, Slot = from.Index, Hero = h, Pos = from.Pos, EnemyId = -1 });
                     int n = u.Star >= 3 ? 2 : 1;
                     for (int i = 0; i < n && pool.Count > 0; i++)
                     {
@@ -1605,6 +1714,7 @@ namespace Liangshan.Sim
                         pool.RemoveAt(k);
                         s.Unit.BlessN = 2 + u.Star;
                         s.Unit.BlessMul = 1f + d.BuffV * boost;
+                        s.Unit.BlessWait = BlessArrive(from.Pos, s.Pos);
                         Events.Add(new BattleEvent { Type = Ev.Buff, Slot = from.Index, Hero = h, Pos = s.Pos, EnemyId = s.Index, Value = s.Unit.BlessN });
                     }
                     return true;
@@ -1637,6 +1747,7 @@ namespace Liangshan.Sim
                     {
                         mark.Vuln = mark.VulnT > 0 ? Math.Max(mark.Vuln, 0.25f) : 0.25f;
                         mark.VulnT = Defs.VulnDur;
+                        Events.Add(new BattleEvent { Type = Ev.Buff, Slot = from.Index, Hero = h, Pos = mark.Pos, EnemyId = -2, Value = mark.Id });
                     }
                     break;
                 }
@@ -1650,6 +1761,7 @@ namespace Liangshan.Sim
                     break;
                 }
             }
+            u.Casts++;
             Events.Add(new BattleEvent { Type = Ev.Buff, Slot = from.Index, Hero = h, Pos = from.Pos, EnemyId = -1 });
             return true;
         }
@@ -1704,6 +1816,7 @@ namespace Liangshan.Sim
                         var shot = AddShot(ShotKind.Arrow, h, s.Pos, t, v, 0.35f, ShotDur(ShotKind.Arrow, V2.Dist(s.Pos, t.Pos)), crit);
                         shot.Pierce = chain;
                         shot.T = -i * 0.06f;
+                        AimPierce(shot, s.Pos, t, chain);
                     }
                     break;
                 case ShotKind.Bomb:
@@ -1862,8 +1975,9 @@ namespace Liangshan.Sim
                     {
                         var t = front.Count > 0 ? front[_rng.Int(Math.Min(front.Count, 10))] : target;
                         var sh = AddShot(ShotKind.Arrow, h, s.Pos, t, each * 0.65f * mul, 0.35f, 0.24f + V2.Dist(s.Pos, t.Pos) / 17f, false);
-                        sh.Pierce = chain + 1;
+                        sh.Pierce = chain;
                         sh.T = -0.12f - k * 0.05f;
+                        AimPierce(sh, s.Pos, t, sh.Pierce);
                     }
                     break;
                 case ShotKind.Punch:
@@ -1954,7 +2068,7 @@ namespace Liangshan.Sim
         {
             var s = new Shot
             {
-                Id = _nextId++, Kind = k, Hero = h, From = from, To = t.Pos, TargetId = t.Id, Dur = dur, Damage = dmg, Radius = r,
+                Id = _nextId++, Kind = k, Hero = h, From = from, To = t.Pos, Aim = t.Pos, TargetId = t.Id, Dur = dur, Damage = dmg, Radius = r,
                 Crit = crit, Ult = ult,
             };
             Shots.Add(s);
@@ -1982,7 +2096,9 @@ namespace Liangshan.Sim
                     || !s.Ult && (s.Kind == ShotKind.Punch || s.Kind == ShotKind.Slam)))
                 {
                     var t = Find(s.TargetId);
-                    if (t != null) s.To = t.Pos;
+                    if (t != null) s.Aim = t.Pos;
+                    // 穿透箭的落点在直线上最后一个人。不能每帧吸回第一个人，否则箭飞到他身上就停了。
+                    if (t != null && !ArrowAlreadyPastFirst(s, t)) s.To = t.Pos;
                 }
                 if (s.T < s.Dur) continue;
                 Shots.RemoveAt(i);
@@ -2063,19 +2179,21 @@ namespace Liangshan.Sim
                 case ShotKind.Arrow:
                 {
                     var t = Find(s.TargetId);
-                    if (t == null) t = Nearest(s.To, 0.6f);
-                    var aim = t?.Pos ?? s.To;
+                    var seek = s.Aim.X != 0f || s.Aim.Y != 0f ? s.Aim : s.To;
+                    if (t == null) t = Nearest(seek, 0.6f);
+                    var aim = t?.Pos ?? seek;
                     var dir = aim - s.From;
                     float dist = (float)Math.Sqrt(dir.Len2);
                     dir = dist > 0.01f ? dir * (1f / dist) : new V2(0, 1f);
 
                     if (t != null) Damage(t, s.Damage, s.Hero, s.Crit);
-                    var endPos = aim + dir * (s.Pierce > 0 ? 1.55f + 0.55f * Math.Min(3, s.Pierce) : 0.72f);
+                    // 穿透只认射线上、排在第一目标身后的人。同一排并排的不算，打到第 pierce 个身后的就停。
+                    var hit = LineBehind(s.From, aim, t?.Id ?? -1, s.Pierce);
+                    var endPos = aim + dir * 0.35f;
                     int pierced = 0;
-                    if (s.Pierce > 0)
+                    if (hit.Count > 0)
                     {
                         var hd = Defs.Hero(s.Hero);
-                        var hit = Around(s.To, 1.35f, t?.Id ?? -1, s.Pierce);
                         for (int k = 0; k < hit.Count; k++)
                         {
                             var pe = hit[k];
@@ -2086,15 +2204,15 @@ namespace Liangshan.Sim
                                 Type = Ev.Hit, From = aim, Pos = pe.Pos, Hero = s.Hero,
                                 Shot = ShotKind.Arrow, Radius = 0.35f, Crit = s.Crit, Value = k + 1, EnemyId = pe.Id
                             });
-                            float dEnd = (pe.Pos - s.From).X * dir.X + (pe.Pos - s.From).Y * dir.Y + 0.75f;
-                            endPos = s.From + dir * Math.Max(dist + 1.35f, dEnd);
                             pierced++;
                         }
+                        var last = hit[hit.Count - 1];
+                        endPos = last.Pos;
                     }
                     float blast = Stat(s.Hero, Eff.Blast);
                     if (blast > 0)
                     {
-                        var at = t?.Pos ?? s.To;
+                        var at = t?.Pos ?? seek;
                         float br = BlastR * (blast > 1f ? 1.35f : 1f);
                         Splash(s, at, br, s.Damage * blast, 0f);
                         Events.Add(new BattleEvent { Type = Ev.Explode, Pos = at, Radius = br, Value = 1, Hero = s.Hero });
@@ -2103,7 +2221,7 @@ namespace Liangshan.Sim
                     {
                         Type = Ev.Hit, From = s.From, Pos = endPos, Hero = s.Hero,
                         Shot = ShotKind.Arrow, Radius = s.Radius, Crit = s.Crit || s.Ult,
-                        Value = Math.Max(1, pierced), EnemyId = t?.Id ?? -1
+                        Value = pierced > 0 ? -pierced : 0, EnemyId = t?.Id ?? -1
                     });
                     return;
                 }
@@ -2294,6 +2412,77 @@ namespace Liangshan.Sim
             return best;
         }
 
+        /// <summary>箭射出时把落点延伸到直线上最后一个会被贯穿的人（身后无人时也向前穿出一小截破风距离），飞行时间按这段路算。</summary>
+        void AimPierce(Shot shot, V2 from, Enemy first, int pierce)
+        {
+            if (pierce <= 0 || first == null) return;
+            var dir = first.Pos - from;
+            float dist = (float)Math.Sqrt(dir.Len2);
+            if (dist < 0.01f) return;
+            dir *= 1f / dist;
+            var line = LineBehind(from, first.Pos, first.Id, pierce);
+            if (line.Count == 0)
+            {
+                // 即使发射瞬间身后暂时没扫到第二个怪，穿透箭也向前多飞穿 1.85 格，飞抵瞬间若有后排怪踏入箭路照样贯穿！
+                float probe = dist + 1.85f;
+                shot.To = from + dir * probe;
+                shot.Dur = ShotDur(ShotKind.Arrow, probe);
+                return;
+            }
+            var last = line[line.Count - 1];
+            float reach = (last.Pos.X - from.X) * dir.X + (last.Pos.Y - from.Y) * dir.Y + 0.35f;
+            if (reach <= dist + 0.2f) return;
+            shot.To = from + dir * reach;
+            shot.Dur = ShotDur(ShotKind.Arrow, reach + 0.25f);
+        }
+
+        /// <summary>落点已经设在第一个人后面，飞行中不要再改回他身上。</summary>
+        bool ArrowAlreadyPastFirst(Shot s, Enemy first)
+        {
+            if (s.Kind != ShotKind.Arrow || s.Pierce <= 0) return false;
+            var dir = first.Pos - s.From;
+            float dist = (float)Math.Sqrt(dir.Len2);
+            if (dist < 0.01f) return false;
+            dir *= 1f / dist;
+            float along = (s.To.X - s.From.X) * dir.X + (s.To.Y - s.From.Y) * dir.Y;
+            return along > dist + 0.3f;
+        }
+
+        /// <summary>
+        /// 沿 from→aim 的直线，排在落点身位之后的敌人，由近到远，最多 max 个。
+        /// 同一排（沿射线没有拉开半个身位）不算；射线宽度按真实战场怪物体积放宽，杜绝身后怪擦肩漏穿！
+        /// </summary>
+        List<Enemy> LineBehind(V2 from, V2 aim, int skipId, int max)
+        {
+            var list = new List<Enemy>();
+            if (max <= 0) return list;
+            var dir = aim - from;
+            float dist = (float)Math.Sqrt(dir.Len2);
+            if (dist < 0.01f) dir = new V2(0f, 1f);
+            else dir *= 1f / dist;
+            const float minAhead = 0.42f;
+            const float lane = 0.72f;
+            foreach (var e in Enemies)
+            {
+                if (e.Dead || e.Diving || e.Id == skipId || e.Pos.Y > Layout.EngageY) continue;
+                var relX = e.Pos.X - from.X;
+                var relY = e.Pos.Y - from.Y;
+                float along = relX * dir.X + relY * dir.Y;
+                float side = relX * -dir.Y + relY * dir.X;
+                if (along < dist + minAhead) continue;
+                if (Math.Abs(side) > lane + e.Def.Size * 0.24f) continue;
+                list.Add(e);
+            }
+            list.Sort((a, b) =>
+            {
+                float aa = (a.Pos.X - from.X) * dir.X + (a.Pos.Y - from.Y) * dir.Y;
+                float bb = (b.Pos.X - from.X) * dir.X + (b.Pos.Y - from.Y) * dir.Y;
+                return aa.CompareTo(bb);
+            });
+            if (list.Count > max) list.RemoveRange(max, list.Count - max);
+            return list;
+        }
+
         List<Enemy> Around(V2 p, float r, int skip, int max)
         {
             var list = new List<Enemy>();
@@ -2442,7 +2631,7 @@ namespace Liangshan.Sim
             Events.Add(new BattleEvent { Type = Ev.Damage, Pos = e.Pos, Value = (int)Math.Ceiling(dmg), Hero = h, Crit = crit, EnemyId = e.Id, Shot = lord ? ShotKind.Slash : default });
             if (e.Hp > 0)
             {
-                if (e.Def.IsBoss && Stage.Mode != StageMode.Escort)
+                if ((e.Def.IsBoss || e.IsStageLeader) && Stage.Mode != StageMode.Escort)
                 {
                     var eco = Balance.Current.Economy;
                     while ((e.BossDrops == 0 && eco.BossDropHp1 > 0f && e.Hp <= e.MaxHp * eco.BossDropHp1)
@@ -2463,6 +2652,13 @@ namespace Liangshan.Sim
             e.Dead = true;
             Kills++;
             int coin = Defs.KillCoin(e.Def, Wave, CoinAura);
+            // 普通关第4波守关主精英对齐原第4波统领基础赏银，保证玩家单局经济曲线一分不少
+            if (e.IsStageLeader && !e.Def.IsBoss)
+            {
+                var eco = Balance.Current.Economy;
+                int leadBase = (int)Math.Round(340f * eco.BigKillCoinMul * (1f + CoinAura));
+                if (leadBase > coin) coin = leadBase;
+            }
             Coins += coin;
             CoinsFromKills += coin;
             Events.Add(new BattleEvent { Type = Ev.Kill, Pos = e.Pos, Value = coin, EnemyId = e.Id, Hero = h });
@@ -2484,15 +2680,18 @@ namespace Liangshan.Sim
                 case EnemyKind.Brute:
                     _bruteDrops.Add(e.Pos);
                     break;
+                case EnemyKind.GiantBrute:
+                    _giantBruteDrops.Add(e.Pos);
+                    break;
             }
             if (e.Def.Rank == EnemyRank.Elite) ElitesKilled++;
             if (e.Def.IsBoss) BossesKilled++;
-            // 生辰纲：单局仅首领倒下掉唯一一次（必中同色大奖），精英只掉赏银不再出第二个生辰纲。
-            if (e.Def.IsBoss && Stage.Mode != StageMode.Escort)
+            // 生辰纲：单局仅第4波守关首领或普通关第4波守关主精英倒下掉唯一一次（真实随机摇奖，不再写死必中全同色），第9波压轴精英只掉赏银。
+            if ((e.Def.IsBoss || e.IsStageLeader) && Stage.Mode != StageMode.Escort && _treasureDropped == 0)
             {
+                _treasureDropped++;
                 PendingReels++;
-                JackpotReels++;
-                Events.Add(new BattleEvent { Type = Ev.Treasure, Pos = e.Pos, EnemyId = e.Id, Value = 1 });
+                Events.Add(new BattleEvent { Type = Ev.Treasure, Pos = e.Pos, EnemyId = e.Id, Value = 0 });
             }
         }
 

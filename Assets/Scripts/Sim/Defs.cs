@@ -118,6 +118,8 @@ namespace Liangshan.Sim
         public string Title => Mode == StageMode.Main ? $"第{No}关 · {Name}" : Name;
         public string BossName => Defs.Enemy(BossKind).Name;
         public bool IsChapterBoss => Index == 5 || Index == 10;
+        /// <summary>本关主统领（逢5/10关为守关大首领，普通关为第4波领军精英统领，用于城门前展示与敌情）。</summary>
+        public EnemyKind LeaderKind => BossWave > 0 ? BossKind : (EliteKinds != null && EliteKinds.Length > 0 ? EliteKinds[0] : EnemyKind.Elite);
         public string BuffText => BuffRole.HasValue ? $"{Defs.RoleName(BuffRole.Value)}伤害 +{(int)(BuffPct * 100 + 0.5f)}%" : "";
     }
 
@@ -127,6 +129,7 @@ namespace Liangshan.Sim
         Hawk, Armored, FireBomb, ChainHorse, Luan, ShiWen, HuYan, GaoQiu,
         Diver, Farmer, Hound, Rattan, Taoist, Berserker, Catapult, Lantern, Scout, Brute,
         HeTao, ZhuChaofeng, ZengKui, HanTao, LiuMenglong,
+        WaterChief, CrossbowCapt, GoldenEagle, IronPagoda, HighPriest, GiantBrute, FireCart,
     }
 
     public enum EnemyRank { Minion, Elite, Boss }
@@ -339,7 +342,7 @@ namespace Liangshan.Sim
                 PassiveName = "风火轮", PassiveEff = Eff.Speed, PassiveV = 0.2f, Desc = "祭出一块镇魔金砖从天砸落，高几率击晕" },
             new HeroDef { Id = HeroId.KongLiang, Name = "孔亮", Nick = "独火星", Kind = Sim.Role.Bomber, Rarity = 2, Art = "hero_kongliang", Element = "火系",
                 Shot = ShotKind.Bomb, Coef = 1.82f, Interval = 3.7f, Radius = 0.95f, AtkName = "独火雷", AtkIcon = "ic_bomb", Noun = "火雷",
-                PassiveName = "独火星", PassiveEff = Eff.Area, PassiveV = 0.22f, Desc = "掷出一枚高爆独火雷，炸翻扎堆步卒" },
+                PassiveName = "星火燎原", PassiveEff = Eff.Area, PassiveV = 0.22f, Desc = "掷出一枚高爆独火雷，炸翻扎堆步卒" },
             new HeroDef { Id = HeroId.TangLong, Name = "汤隆", Nick = "金钱豹子", Kind = Sim.Role.Support, Rarity = 2, Art = "hero_tanglong",
                 Shot = ShotKind.Stone, Interval = 24f, Buff = UltKind.Forge, BuffV = 0.4f, AtkName = "打造神兵", AtkIcon = "ic_gear", Noun = "神兵", Tint = "A8AEB8",
                 Aura = AuraKind.Dmg, AuraV = 0.03f,
@@ -390,44 +393,59 @@ namespace Liangshan.Sim
 
         public static readonly EnemyDef[] Enemies =
         {
-            E(EnemyKind.Soldier, "官兵", "en_soldier", 70, 0.424f, 12, 0.95f, 2, "最常见的官军步卒，需多番射击方能击退"),
-            new EnemyDef { Kind = EnemyKind.Shield, Name = "盾兵", Art = "en_shield", Hp = 156, Speed = 0.292f, WallDps = 18, Size = 1.15f, Coin = 4,
+            E(EnemyKind.Soldier, "官兵", "en_soldier", 72, 0.424f, 12, 0.95f, 16, "最常见的官军步卒，需多番射击方能击退"),
+            new EnemyDef { Kind = EnemyKind.Shield, Name = "盾兵", Art = "en_shield", Hp = 164, Speed = 0.292f, WallDps = 18, Size = 1.15f, Coin = 32,
                 Desc = "举着大盾，减免物理伤害，怕法术轰击", PhysResist = 0.25f, MagicWeak = 0.20f, StopY = Layout.StopY },
-            E(EnemyKind.Cavalry, "骑兵", "en_cavalry", 56, 0.672f, 11, 1.15f, 3, "跑得最快，冲到墙下才停"),
-            E(EnemyKind.Crossbow, "弩手", "en_crossbow", 50, 0.409f, 11, 0.95f, 3, "停在半路放箭，近战够不着", stopY: 0.6f),
-            E(EnemyKind.Elite, "教头", "en_elite", 980, 0.263f, 70, 1.6f, 48, "官军教头，血厚攻高", EnemyRank.Elite),
-            E(EnemyKind.Porter, "生辰纲", "en_porter", 480, 0.365f, 0, 1.25f, 20, "挑着财宝的脚夫，只在劫生辰纲时出现"),
-            E(EnemyKind.Boss, "黄安", "en_boss", 5600, 0.124f, 185, 2.6f, 135, "济州团练使，首个来犯的官军首领", EnemyRank.Boss),
-            new EnemyDef { Kind = EnemyKind.Hawk, Name = "鹰隼", Art = "en_hawk", Hp = 42, Speed = 0.585f, WallDps = 11, Size = 0.9f, Coin = 3,
+            E(EnemyKind.Cavalry, "骑兵", "en_cavalry", 64, 0.672f, 11, 1.15f, 24, "跑得最快，冲到墙下才停"),
+            E(EnemyKind.Crossbow, "弩手", "en_crossbow", 56, 0.409f, 11, 0.95f, 22, "停在半路放箭，近战够不着", stopY: 0.6f),
+            E(EnemyKind.Elite, "教头", "en_elite", 1020, 0.310f, 70, 1.6f, 200, "官军教头，血厚攻高", EnemyRank.Elite),
+            E(EnemyKind.Porter, "生辰纲", "en_porter", 480, 0.365f, 0, 1.25f, 120, "挑着财宝的脚夫，只在劫生辰纲时出现"),
+            E(EnemyKind.Boss, "黄安", "en_boss", 5800, 0.295f, 185, 2.6f, 320, "济州团练使，首个来犯的官军首领", EnemyRank.Boss),
+            new EnemyDef { Kind = EnemyKind.Hawk, Name = "鹰隼", Art = "en_hawk", Hp = 46, Speed = 0.585f, WallDps = 11, Size = 0.9f, Coin = 20,
                 Desc = "飞行单位，战士打不到，射手克制", Flying = true, ArcherWeak = 0.45f, StopY = Layout.StopY + 0.5f },
-            new EnemyDef { Kind = EnemyKind.Armored, Name = "铁甲兵", Art = "en_armored", Hp = 172, Speed = 0.292f, WallDps = 20, Size = 1.15f, Coin = 5,
+            new EnemyDef { Kind = EnemyKind.Armored, Name = "铁甲兵", Art = "en_armored", Hp = 180, Speed = 0.292f, WallDps = 20, Size = 1.15f, Coin = 40,
                 Desc = "重甲：大幅减免物理伤害，怕火雷风法术", PhysResist = 0.45f, MagicWeak = 0.40f, StopY = Layout.StopY },
-            E(EnemyKind.FireBomb, "火药兵", "en_firebomb", 62, 0.585f, 195, 0.95f, 4, "冲到墙下自爆；半路击杀会炸伤身边官军"),
-            new EnemyDef { Kind = EnemyKind.ChainHorse, Name = "连环马", Art = "en_chainhorse", Hp = 820, Speed = 0.351f, WallDps = 64, Size = 1.7f, Coin = 45,
+            E(EnemyKind.FireBomb, "火药兵", "en_firebomb", 68, 0.585f, 195, 0.95f, 28, "冲到墙下自爆；半路击杀会炸伤身边官军"),
+            new EnemyDef { Kind = EnemyKind.ChainHorse, Name = "连环马", Art = "en_chainhorse", Hp = 860, Speed = 0.351f, WallDps = 64, Size = 1.7f, Coin = 180,
                 Desc = "铁索相连的重骑，物理减伤，钩镰与法术克制", Rank = EnemyRank.Elite, PhysResist = 0.35f, MagicWeak = 0.20f, StopY = Layout.StopY },
-            E(EnemyKind.Luan, "栾廷玉", "en_luan", 6800, 0.124f, 180, 2.6f, 150, "祝家庄教师，飞锤砸晕好汉", EnemyRank.Boss),
-            E(EnemyKind.ShiWen, "史文恭", "en_shiwen", 7600, 0.110f, 175, 2.6f, 160, "曾头市教师，冲锋突进，残血狂暴", EnemyRank.Boss),
-            E(EnemyKind.HuYan, "呼延灼", "en_huyan", 8800, 0.117f, 180, 2.7f, 170, "双鞭将，不断召来连环骑兵", EnemyRank.Boss),
-            E(EnemyKind.GaoQiu, "高俅", "en_gaoqiu", 10200, 0.110f, 190, 2.6f, 185, "殿帅府太尉，踢火球砸墙，带护盾", EnemyRank.Boss),
-            E(EnemyKind.Diver, "水鬼", "en_diver", 58, 0.482f, 12, 0.95f, 3, "时不时潜进水里，潜着时刀枪不入"),
-            E(EnemyKind.Farmer, "庄客", "en_farmer", 38, 0.526f, 9, 0.9f, 2, "祝家庄的庄客，扛着钉耙成群涌来"),
-            E(EnemyKind.Hound, "恶犬", "en_hound", 22, 0.833f, 6, 0.75f, 1, "两条一群，跑得飞快"),
-            new EnemyDef { Kind = EnemyKind.Rattan, Name = "藤牌手", Art = "en_rattan", Hp = 72, Speed = 0.351f, WallDps = 15, Size = 1.05f, Coin = 4,
+            E(EnemyKind.Luan, "栾廷玉", "en_luan", 6800, 0.295f, 180, 2.6f, 360, "祝家庄教师，飞锤砸晕好汉", EnemyRank.Boss),
+            E(EnemyKind.ShiWen, "史文恭", "en_shiwen", 7600, 0.255f, 175, 2.6f, 400, "曾头市教师，冲锋突进，残血狂暴", EnemyRank.Boss),
+            E(EnemyKind.HuYan, "呼延灼", "en_huyan", 8400, 0.285f, 180, 2.7f, 440, "双鞭将，不断召来连环骑兵", EnemyRank.Boss),
+            E(EnemyKind.GaoQiu, "高俅", "en_gaoqiu", 10200, 0.280f, 190, 2.6f, 480, "殿帅府太尉，踢火球砸墙，带护盾", EnemyRank.Boss),
+            E(EnemyKind.Diver, "水鬼", "en_diver", 64, 0.482f, 12, 0.95f, 24, "时不时潜进水里，潜着时刀枪不入"),
+            E(EnemyKind.Farmer, "庄客", "en_farmer", 48, 0.526f, 9, 0.9f, 14, "祝家庄的庄客，扛着钉耙成群涌来"),
+            E(EnemyKind.Hound, "恶犬", "en_hound", 26, 0.833f, 6, 0.75f, 8, "两条一群，跑得飞快"),
+            new EnemyDef { Kind = EnemyKind.Rattan, Name = "藤牌手", Art = "en_rattan", Hp = 80, Speed = 0.351f, WallDps = 15, Size = 1.05f, Coin = 30,
                 Desc = "藤牌能挡下最先的两次攻击，并减免物理伤害", PhysResist = 0.20f, StopY = Layout.StopY },
-            E(EnemyKind.Taoist, "妖道", "en_taoist", 76, 0.365f, 10, 1.0f, 5, "站在后面作法，给身边官军回血", stopY: 1.6f),
-            E(EnemyKind.Berserker, "敢死刀手", "en_berserker", 104, 0.438f, 18, 1.0f, 4, "残血时拼命：两秒内受伤减半，狂奔冲墙"),
-            new EnemyDef { Kind = EnemyKind.Catapult, Name = "投石车", Art = "en_catapult", Hp = 245, Speed = 0.234f, WallDps = 28, Size = 1.4f, Coin = 7,
+            E(EnemyKind.Taoist, "妖道", "en_taoist", 84, 0.365f, 10, 1.0f, 36, "站在后面作法，给身边官军回血", stopY: 1.6f),
+            E(EnemyKind.Berserker, "敢死刀手", "en_berserker", 112, 0.438f, 18, 1.0f, 32, "残血时拼命：两秒内受伤减半，狂奔冲墙"),
+            new EnemyDef { Kind = EnemyKind.Catapult, Name = "投石车", Art = "en_catapult", Hp = 220, Speed = 0.234f, WallDps = 28, Size = 1.4f, Coin = 52,
                 Desc = "远远停下抛石砸墙，打不退", PhysResist = 0.25f, StopY = 2.8f },
-            new EnemyDef { Kind = EnemyKind.Lantern, Name = "孔明灯", Art = "en_lantern", Hp = 38, Speed = 0.380f, WallDps = 165, Size = 0.9f, Coin = 3,
+            new EnemyDef { Kind = EnemyKind.Lantern, Name = "孔明灯", Art = "en_lantern", Hp = 42, Speed = 0.380f, WallDps = 165, Size = 0.9f, Coin = 20,
                 Desc = "飘到墙上就炸，战士够不着，射手克制", Flying = true, ArcherWeak = 0.45f, StopY = Layout.StopY + 0.5f },
-            E(EnemyKind.Scout, "斥候", "en_scout", 48, 0.628f, 11, 0.9f, 3, "挨打时常常闪身躲开，往前一窜"),
-            E(EnemyKind.Brute, "力士", "en_brute", 250, 0.278f, 24, 1.35f, 7, "背篓里藏着三个官兵，打倒就跳出来"),
-            E(EnemyKind.HeTao, "何涛", "en_hetao", 5100, 0.124f, 180, 2.6f, 130, "济州缉捕使臣，驾车船而来，召唤水鬼", EnemyRank.Boss),
-            E(EnemyKind.ZhuChaofeng, "祝朝奉", "en_zhucf", 6800, 0.117f, 175, 2.6f, 145, "祝家庄庄主，坐轿撒钱，买来金光护体", EnemyRank.Boss),
-            E(EnemyKind.ZengKui, "曾魁", "en_zengkui", 7600, 0.117f, 175, 2.6f, 155, "曾家四虎，骑猛虎扑跃突进", EnemyRank.Boss),
-            new EnemyDef { Kind = EnemyKind.HanTao, Name = "韩滔", Art = "en_hantao", Hp = 8800, Speed = 0.117f, WallDps = 180, Size = 2.7f, Coin = 165,
+            E(EnemyKind.Scout, "斥候", "en_scout", 54, 0.628f, 11, 0.9f, 22, "挨打时常常闪身躲开，往前一窜"),
+            E(EnemyKind.Brute, "力士", "en_brute", 250, 0.278f, 24, 1.35f, 44, "背篓里藏着三个官兵，打倒就跳出来"),
+            E(EnemyKind.HeTao, "何涛", "en_hetao", 5200, 0.295f, 180, 2.6f, 300, "济州缉捕使臣，驾车船而来，召唤水鬼", EnemyRank.Boss),
+            E(EnemyKind.ZhuChaofeng, "祝朝奉", "en_zhucf", 6800, 0.285f, 175, 2.6f, 340, "祝家庄庄主，坐轿撒钱，买来金光护体", EnemyRank.Boss),
+            E(EnemyKind.ZengKui, "曾魁", "en_zengkui", 7600, 0.235f, 175, 2.6f, 380, "曾家四虎，骑猛虎扑跃突进", EnemyRank.Boss),
+            new EnemyDef { Kind = EnemyKind.HanTao, Name = "韩滔", Art = "en_hantao", Hp = 8600, Speed = 0.285f, WallDps = 180, Size = 2.7f, Coin = 420,
                 Desc = "百胜将，推铁头撞车猛撞寨墙，物理减伤", Rank = EnemyRank.Boss, PhysResist = 0.35f, MagicWeak = 0.25f, StopY = Layout.StopY },
-            E(EnemyKind.LiuMenglong, "刘梦龙", "en_liuml", 10200, 0.110f, 190, 2.7f, 180, "水军节度使，推云梯楼车，楼上弓手齐射", EnemyRank.Boss, stopY: 0.4f),
+            E(EnemyKind.LiuMenglong, "刘梦龙", "en_liuml", 10000, 0.265f, 190, 2.7f, 460, "水军节度使，推云梯楼车，楼上弓手齐射", EnemyRank.Boss, stopY: 0.4f),
+
+            // ---------- 9大水浒特色精英矩阵（补充7种全新章节精英，与教头/连环马构成3×3满屏图鉴） ----------
+            E(EnemyKind.WaterChief, "水军统制", "en_waterchief", 920, 0.365f, 72, 1.6f, 200, "水泊官军头目，周期潜入水下刀枪不入并突进破墙", EnemyRank.Elite),
+            new EnemyDef { Kind = EnemyKind.CrossbowCapt, Name = "神臂弩统领", Art = "en_crossbowcapt", Hp = 880, Speed = 0.310f, WallDps = 62, Size = 1.6f, Coin = 200,
+                Desc = "半路立盾架起神臂重弩连射寨墙，近战够不着，怕法术轰击", Rank = EnemyRank.Elite, MagicWeak = 0.25f, StopY = 0.8f },
+            new EnemyDef { Kind = EnemyKind.GoldenEagle, Name = "披甲金雕王", Art = "en_goldeneagle", Hp = 760, Speed = 0.510f, WallDps = 66, Size = 1.65f, Coin = 200,
+                Desc = "披挂铁羽的巨型战雕高速扑城，战士打不到，射手克制", Rank = EnemyRank.Elite, Flying = true, ArcherWeak = 0.45f, StopY = Layout.StopY + 0.5f },
+            new EnemyDef { Kind = EnemyKind.IronPagoda, Name = "铁浮屠重卫", Art = "en_ironpagoda", Hp = 1120, Speed = 0.295f, WallDps = 74, Size = 1.75f, Coin = 210,
+                Desc = "重铁铠挡下最先的两次攻击，大幅减免物理伤害，怕火雷风法术", Rank = EnemyRank.Elite, PhysResist = 0.45f, MagicWeak = 0.40f, StopY = Layout.StopY },
+            new EnemyDef { Kind = EnemyKind.HighPriest, Name = "护法妖师", Art = "en_highpriest", Hp = 860, Speed = 0.295f, WallDps = 52, Size = 1.6f, Coin = 200,
+                Desc = "站在后面作法，给身边官军回血并加速冲锋", Rank = EnemyRank.Elite, MagicWeak = 0.20f, StopY = 1.6f },
+            new EnemyDef { Kind = EnemyKind.GiantBrute, Name = "背嵬巨力士", Art = "en_giantbrute", Hp = 1080, Speed = 0.300f, WallDps = 76, Size = 1.75f, Coin = 210,
+                Desc = "铁篓里藏着敢死刀手，减免物理伤害，打倒就跳出来狂奔冲墙", Rank = EnemyRank.Elite, PhysResist = 0.25f, StopY = Layout.StopY },
+            new EnemyDef { Kind = EnemyKind.FireCart, Name = "神火轰天车", Art = "en_firecart", Hp = 920, Speed = 0.220f, WallDps = 60, Size = 1.8f, Coin = 220,
+                Desc = "远远停下抛石砸墙，自带护盾并减免物理伤害，怕法术轰击", Rank = EnemyRank.Elite, PhysResist = 0.30f, MagicWeak = 0.25f, StopY = 2.4f },
         };
 
         public static EnemyDef Enemy(EnemyKind k) => Enemies[(int)k];
@@ -479,7 +497,7 @@ namespace Liangshan.Sim
                     });
                 AddPlays(list, d, key);
             }
-            Add(HeroId.HuaRong, ("连珠箭", Eff.Count, 1, 2), ("穿云箭", Eff.Chain, 1, 2), ("鹰眼", Eff.Crit, 0.2f, 1), ("强弓", Eff.Dmg, 0.35f, 2),
+            Add(HeroId.HuaRong, ("连珠箭", Eff.Count, 1, 2), ("一箭双穿", Eff.Chain, 1, 2), ("鹰眼", Eff.Crit, 0.2f, 1), ("强弓", Eff.Dmg, 0.35f, 2),
                 ("箭神", Eff.Dmg, 1f, 1), ("疾风连射", Eff.Speed, 0.5f, 1), ("箭如雨下", Eff.UltPow, 1f, 1));
             Add(HeroId.LingZhen, ("双联重炮", Eff.Count, 1, 2), ("火药加倍", Eff.Area, 0.35f, 2), ("子母巨弹", Eff.Split, 1, 1), ("火炮改良", Eff.Dmg, 0.35f, 2),
                 ("子母连环", Eff.Count, 2, 1), ("震天雷", Eff.Dmg, 1f, 1), ("炮火连天", Eff.UltCd, 0.3f, 1));
@@ -489,7 +507,7 @@ namespace Liangshan.Sim
                 ("醉拳", Eff.Speed, 0.6f, 1), ("天伤星", Eff.Dmg, 1f, 1), ("醉打蒋门神", Eff.UltPow, 1f, 1));
             Add(HeroId.ZhangQing, ("连环飞石", Eff.Chain, 2, 2), ("石破天惊", Eff.Stun, 0.3f, 1), ("飞蝗石", Eff.Dmg, 0.3f, 2), ("快手", Eff.Speed, 0.3f, 1),
                 ("漫天花雨", Eff.Chain, 4, 1), ("金石为开", Eff.Dmg, 1f, 1), ("连珠不绝", Eff.UltPow, 1f, 1));
-            Add(HeroId.LinChong, ("丈八蛇矛", Eff.Range, 1.5f, 2), ("豹子头", Eff.Crit, 0.25f, 1), ("林教头", Eff.Slow, 1.6f, 1), ("枪出如龙", Eff.Dmg, 0.35f, 2),
+            Add(HeroId.LinChong, ("枪及百步", Eff.Range, 1.5f, 2), ("豹子头", Eff.Crit, 0.25f, 1), ("林教头", Eff.Slow, 1.6f, 1), ("枪出如龙", Eff.Dmg, 0.35f, 2),
                 ("雪夜上梁山", Eff.Dmg, 1f, 1), ("风雪", Eff.UltPow, 1f, 1), ("枪挑", Eff.Speed, 0.5f, 1));
             Add(HeroId.LuZhiShen, ("禅杖横扫", Eff.Area, 0.4f, 2), ("大闹野猪林", Eff.Speed, 0.4f, 2), ("拳打镇关西", Eff.Elite, 1f, 1), ("金刚", Eff.Dmg, 0.35f, 1),
                 ("倒拔杨柳", Eff.UltPow, 1f, 1), ("怒目金刚", Eff.Dmg, 1f, 1), ("坐化", Eff.Area, 0.6f, 1));
@@ -514,19 +532,19 @@ namespace Liangshan.Sim
                 ("天火", Eff.Dmg, 1f, 1), ("火流星", Eff.UltPow, 1f, 1), ("焚城", Eff.Area, 0.6f, 1));
 
             Add(HeroId.LiKui, ("双斧同掷", Eff.Count, 1, 2), ("旋风", Eff.Area, 0.4f, 2), ("莽撞", Eff.Speed, 0.35f, 2), ("砍杀", Eff.Dmg, 0.35f, 1),
-                ("杀四虎", Eff.Elite, 1.5f, 1), ("黑旋风", Eff.UltPow, 1f, 1), ("铁牛", Eff.Dmg, 1f, 1));
+                ("杀四虎", Eff.Elite, 1.5f, 1), ("卷地黑风", Eff.UltPow, 1f, 1), ("铁牛", Eff.Dmg, 1f, 1));
             Add(HeroId.QiaoDaoqing, ("真火", Eff.Dmg, 0.35f, 2), ("火海", Eff.Area, 0.35f, 2), ("幻影", Eff.Count, 1, 1), ("法力", Eff.Speed, 0.3f, 1),
                 ("炼狱", Eff.Dmg, 1f, 1), ("天火焚营", Eff.UltPow, 1f, 1), ("幻魔", Eff.Count, 2, 1));
             Add(HeroId.ZhuWu, ("阵眼", Eff.Area, 0.35f, 2), ("困阵", Eff.Slow, 1f, 2), ("锁阵", Eff.Stun, 0.25f, 1), ("军师", Eff.Dmg, 0.4f, 1),
                 ("金锁", Eff.UltPow, 1f, 1), ("奇门", Eff.Area, 0.6f, 1), ("遁甲", Eff.Speed, 0.5f, 1));
-            Add(HeroId.XuNing, ("钩镰", Eff.Cav, 0.5f, 2), ("金枪班", Eff.Dmg, 0.35f, 2), ("绊马", Eff.Stun, 0.25f, 1), ("长钩", Eff.Range, 1.5f, 1),
+            Add(HeroId.XuNing, ("钩镰", Eff.Cav, 0.5f, 2), ("枪法纯熟", Eff.Dmg, 0.35f, 2), ("绊马", Eff.Stun, 0.25f, 1), ("长钩", Eff.Range, 1.5f, 1),
                 ("破连环", Eff.Cav, 1.5f, 1), ("枪阵", Eff.UltPow, 1f, 1), ("金枪手", Eff.Speed, 0.5f, 1));
             Add(HeroId.ShanTinggui, ("浪涌", Eff.Area, 0.35f, 2), ("寒水", Eff.Slow, 1f, 1), ("水龙", Eff.Dmg, 0.35f, 2), ("潮汐", Eff.Speed, 0.3f, 1),
                 ("狂澜", Eff.UltPow, 1f, 1), ("圣水", Eff.Dmg, 1f, 1), ("沧海", Eff.Area, 0.6f, 1));
             Add(HeroId.WeiDingguo, ("双罐猛火", Eff.Count, 1, 2), ("爆燃", Eff.Area, 0.35f, 2), ("神火", Eff.Dmg, 0.35f, 1), ("子母火罐", Eff.Split, 1, 1),
                 ("火龙", Eff.UltPow, 1f, 1), ("焚天", Eff.Dmg, 1f, 1), ("连环罐", Eff.Count, 2, 1));
 
-            Add(HeroId.ShiXiu, ("拼命连斩", Eff.Count, 1, 2), ("快刀", Eff.Speed, 0.35f, 2), ("拼命", Eff.Crit, 0.2f, 1), ("劈砍", Eff.Dmg, 0.35f, 2),
+            Add(HeroId.ShiXiu, ("拼命连斩", Eff.Count, 1, 2), ("快刀", Eff.Speed, 0.35f, 2), ("死战到底", Eff.Crit, 0.2f, 1), ("劈砍", Eff.Dmg, 0.35f, 2),
                 ("三郎", Eff.Dmg, 1f, 1), ("不要命", Eff.Speed, 0.6f, 1), ("劫法场", Eff.UltPow, 1f, 1));
             Add(HeroId.XieZhen, ("双弦猎箭", Eff.Count, 1, 2), ("猎鹰", Eff.Fly, 0.6f, 1), ("强弓", Eff.Dmg, 0.35f, 2), ("穿杨", Eff.Chain, 1, 1),
                 ("打虎", Eff.Elite, 1.5f, 1), ("猎神", Eff.Dmg, 1f, 1), ("箭雨", Eff.UltPow, 1f, 1));
@@ -541,10 +559,10 @@ namespace Liangshan.Sim
             Add(HeroId.SunErniang, ("加量", Eff.Area, 0.35f, 2), ("药力", Eff.Stun, 0.2f, 1), ("毒雾", Eff.Dmg, 0.4f, 2), ("迷香", Eff.Slow, 1f, 1),
                 ("黑店", Eff.UltPow, 1f, 1), ("夜叉", Eff.Dmg, 1f, 1), ("迷魂", Eff.Area, 0.6f, 1));
             Add(HeroId.RuanXiaoqi, ("大网", Eff.Area, 0.35f, 2), ("缠", Eff.Stun, 0.5f, 1), ("水性", Eff.Speed, 0.3f, 2), ("阎罗", Eff.Dmg, 0.4f, 1),
-                ("天罗地网", Eff.UltPow, 1f, 1), ("捞鱼", Eff.Area, 0.6f, 1), ("浪里", Eff.Speed, 0.6f, 1));
+                ("网罗四方", Eff.UltPow, 1f, 1), ("捞鱼", Eff.Area, 0.6f, 1), ("浪里", Eff.Speed, 0.6f, 1));
             Add(HeroId.ShiQian, ("妙手", Eff.Aura, 0.5f, 2), ("飞镖", Eff.Count, 1, 1), ("偷鸡", Eff.Coin, 10, 1), ("轻功", Eff.Speed, 0.4f, 1),
-                ("盗甲", Eff.Aura, 1f, 1), ("神偷", Eff.UltPow, 1f, 1), ("鼓上蚤", Eff.Dmg, 1f, 1));
-            Add(HeroId.JiangJing, ("复利", Eff.Aura, 0.5f, 2), ("算珠", Eff.Dmg, 0.5f, 1), ("精打细算", Eff.UltCd, 0.25f, 1), ("拨珠", Eff.Speed, 0.3f, 1),
+                ("盗甲", Eff.Aura, 1f, 1), ("神偷", Eff.UltPow, 1f, 1), ("梁上飞盗", Eff.Dmg, 1f, 1));
+            Add(HeroId.JiangJing, ("复利", Eff.Aura, 0.5f, 2), ("算珠", Eff.Dmg, 0.5f, 1), ("心算如飞", Eff.UltCd, 0.25f, 1), ("拨珠", Eff.Speed, 0.3f, 1),
                 ("富甲", Eff.Aura, 1f, 1), ("神算", Eff.UltPow, 1f, 1), ("账房", Eff.Speed, 0.6f, 1));
             return list.ToArray();
         }
@@ -663,10 +681,10 @@ namespace Liangshan.Sim
         {
             public static readonly string[] Surge =
         {
-            "穿云神箭", "轰天巨炮", "九霄神雷", "打虎神拳", "巨石天降", "蛇矛贯日", "千斤禅杖", "锦囊妙计",
-            "麒麟贯阵", "青龙偃月", "劲弩连珠", "混世狂风", "天罗红锦", "妙手神方", "神行万里", "烈焰狼牙",
+            "箭破长空", "轰天巨炮", "九霄神雷", "拳碎山石", "巨石天降", "蛇矛贯日", "千斤禅杖", "锦囊妙计",
+            "麒麟贯阵", "怒斩千军", "劲弩连珠", "混世狂风", "天罗红锦", "妙手神方", "神行万里", "烈焰狼牙",
             "开山巨斧", "三昧真火", "八门金锁", "钩镰破阵", "圣水滔天", "神火巨罐",
-            "拼命一刀", "猎虎神箭", "蝎尾巨叉", "天降金砖", "火雷连爆", "神兵天成", "十里迷香", "天罗巨网", "飞檐走壁", "利滚利",
+            "背水一战", "猎虎神箭", "蝎尾巨叉", "天降金砖", "火雷连爆", "神兵天成", "十里迷香", "撒网擒敌", "飞檐走壁", "利滚利",
         };
             public static readonly string[] Awaken =
         {
@@ -897,7 +915,7 @@ namespace Liangshan.Sim
 
         public static float Bulk => Balance.Current.WaveStage.Bulk;
 
-        /// <summary>击杀赏银：小兵随波次肉度温和递增（绝不倒挂缩水）；精英与首领按面板赏银乘 BigKillCoinMul（默认 1.0 所见即所得）。</summary>
+        /// <summary>击杀赏银：全波次按面板赏银恒定直掉（默认倍率 1.0、波次涨幅 0，不做局内波次兵种加成，所见即所得）。</summary>
         public static int KillCoin(EnemyDef def, int wave, float coinAura)
         {
             var eco = Balance.Current.Economy;
@@ -1025,10 +1043,77 @@ namespace Liangshan.Sim
             }
         }
 
-        static EnemyKind[] StageElites(int n) =>
-            (n == 34 || n == 35 || n == 38 || n == 40 || n == 46 || n == 50)
-                ? new[] { EnemyKind.ChainHorse }
-                : new[] { EnemyKind.Elite };
+        /// <summary>
+        /// 按 50 关章节与兵种特色精细编排精英统领（对标《永远的蔚蓝星球》）：
+        /// - 普通关（非 5 倍数）：返回 [第4波守关主精英, 第9波压轴副精英]，相邻关卡主统领不重复；
+        /// - 首领关（逢 5 / 10）：第4波由大首领亲自坐镇，此处返回 [第9波压轴副将精英]。
+        /// 9 种精英在 5 大章节逐章亮相，与本关小怪克制属性呼应！
+        /// </summary>
+        static EnemyKind[] StageElites(int n)
+        {
+            switch (n)
+            {
+                // 第一章 金沙滩：禁军教头(1) + 水军统制(4亮相) + 神臂弩统领(8预告)
+                case 1:  return new[] { EnemyKind.Elite, EnemyKind.Elite };
+                case 2:  return new[] { EnemyKind.CrossbowCapt, EnemyKind.Elite };
+                case 3:  return new[] { EnemyKind.Elite, EnemyKind.CrossbowCapt };
+                case 4:  return new[] { EnemyKind.WaterChief, EnemyKind.Elite };
+                case 5:  return new[] { EnemyKind.WaterChief };
+                case 6:  return new[] { EnemyKind.WaterChief, EnemyKind.CrossbowCapt };
+                case 7:  return new[] { EnemyKind.Elite, EnemyKind.WaterChief };
+                case 8:  return new[] { EnemyKind.CrossbowCapt, EnemyKind.WaterChief };
+                case 9:  return new[] { EnemyKind.WaterChief, EnemyKind.Elite };
+                case 10: return new[] { EnemyKind.Elite };
+
+                // 第二章 三打祝家庄：神臂弩统领 + 披甲金雕王(12随鹰隼亮相)
+                case 11: return new[] { EnemyKind.CrossbowCapt, EnemyKind.Elite };
+                case 12: return new[] { EnemyKind.GoldenEagle, EnemyKind.CrossbowCapt };
+                case 13: return new[] { EnemyKind.CrossbowCapt, EnemyKind.GoldenEagle };
+                case 14: return new[] { EnemyKind.Elite, EnemyKind.CrossbowCapt };
+                case 15: return new[] { EnemyKind.GoldenEagle };
+                case 16: return new[] { EnemyKind.WaterChief, EnemyKind.GoldenEagle };
+                case 17: return new[] { EnemyKind.GoldenEagle, EnemyKind.CrossbowCapt };
+                case 18: return new[] { EnemyKind.CrossbowCapt, EnemyKind.Elite };
+                case 19: return new[] { EnemyKind.GoldenEagle, EnemyKind.WaterChief };
+                case 20: return new[] { EnemyKind.CrossbowCapt };
+
+                // 第三章 夜打曾头市：铁浮屠重卫(21随铁甲亮相) + 护法妖师(26/27随妖道亮相)
+                case 21: return new[] { EnemyKind.IronPagoda, EnemyKind.CrossbowCapt };
+                case 22: return new[] { EnemyKind.GoldenEagle, EnemyKind.IronPagoda };
+                case 23: return new[] { EnemyKind.IronPagoda, EnemyKind.WaterChief };
+                case 24: return new[] { EnemyKind.CrossbowCapt, EnemyKind.IronPagoda };
+                case 25: return new[] { EnemyKind.IronPagoda };
+                case 26: return new[] { EnemyKind.HighPriest, EnemyKind.GoldenEagle };
+                case 27: return new[] { EnemyKind.IronPagoda, EnemyKind.HighPriest };
+                case 28: return new[] { EnemyKind.HighPriest, EnemyKind.IronPagoda };
+                case 29: return new[] { EnemyKind.IronPagoda, EnemyKind.HighPriest };
+                case 30: return new[] { EnemyKind.HighPriest };
+
+                // 第四章 大破连环马：连环铁骑(31) + 背嵬巨力士(33随力士亮相)
+                case 31: return new[] { EnemyKind.ChainHorse, EnemyKind.IronPagoda };
+                case 32: return new[] { EnemyKind.IronPagoda, EnemyKind.ChainHorse };
+                case 33: return new[] { EnemyKind.GiantBrute, EnemyKind.ChainHorse };
+                case 34: return new[] { EnemyKind.ChainHorse, EnemyKind.GiantBrute };
+                case 35: return new[] { EnemyKind.ChainHorse };
+                case 36: return new[] { EnemyKind.GiantBrute, EnemyKind.CrossbowCapt };
+                case 37: return new[] { EnemyKind.ChainHorse, EnemyKind.GiantBrute };
+                case 38: return new[] { EnemyKind.GiantBrute, EnemyKind.HighPriest };
+                case 39: return new[] { EnemyKind.ChainHorse, EnemyKind.IronPagoda };
+                case 40: return new[] { EnemyKind.GiantBrute };
+
+                // 第五章 三败高太尉：神火轰天车(41压轴登场) + 全精英轮番会战
+                case 41: return new[] { EnemyKind.FireCart, EnemyKind.WaterChief };
+                case 42: return new[] { EnemyKind.GoldenEagle, EnemyKind.FireCart };
+                case 43: return new[] { EnemyKind.FireCart, EnemyKind.GoldenEagle };
+                case 44: return new[] { EnemyKind.ChainHorse, EnemyKind.FireCart };
+                case 45: return new[] { EnemyKind.FireCart };
+                case 46: return new[] { EnemyKind.FireCart, EnemyKind.WaterChief };
+                case 47: return new[] { EnemyKind.GiantBrute, EnemyKind.GoldenEagle };
+                case 48: return new[] { EnemyKind.FireCart, EnemyKind.HighPriest };
+                case 49: return new[] { EnemyKind.IronPagoda, EnemyKind.GiantBrute };
+                default: return new[] { EnemyKind.FireCart };
+            }
+        }
 
         /// <summary>每关都会来的首领，按章节顺序：每章先章中首领，再章末首领。</summary>
         public static readonly EnemyKind[] BossOrder =
@@ -1066,8 +1151,9 @@ namespace Liangshan.Sim
                 Levels = new[] { "济州城", "十节度", "王焕", "荆忠", "党世英", "水泊芦荡", "刘梦龙", "牛邦喜", "梁山水寨", "擒高俅" } },
         };
 
-        /// <summary>主线每关只来一个首领（第 4 波压上来，慢慢逼近，倒下掉唯一一次生辰纲）和第 9 波一个精英（仅掉赏银）。</summary>
-        static readonly int[] MainEliteWaves = { 9 };
+        /// <summary>首领关（逢5/10）第 4 波出首领、第 9 波出精英；普通关（非5倍数）不出大首领，第 4 波守关主精英 + 第 9 波压轴精英双节点挑大梁！</summary>
+        static readonly int[] BossStageEliteWaves = { 9 };
+        static readonly int[] NormalStageEliteWaves = { 4, 9 };
         public static float BossPace => Balance.Current.WaveStage.BossPace;
         static readonly Role[] BuffCycle = { Sim.Role.Mage, Sim.Role.Archer, Sim.Role.Fighter, Sim.Role.Bomber, Sim.Role.Control, Sim.Role.Archer, Sim.Role.Mage, Sim.Role.Fighter };
 
@@ -1153,24 +1239,26 @@ namespace Liangshan.Sim
                 {
                     int n = c * LevelsPerChapter + i;
                     bool chBoss = i == 5 || i == 10;
-                    // 第 5、10 关仍是本章首领。其余关按名单轮换，相邻两关不是同一个人。
-                    // 血量乘回原来的章节奏，换人只换招式和首页立绘，不把后面的首领血量提前搬进来。
+                    // 对标《永远的蔚蓝星球》双轨节奏：
+                    // - 逢 5 / 10 首领关：第 4 波守关大首领亲自压阵（BossWave = 4），第 9 波出精英副将；
+                    // - 普通关（非 5 倍数）：不出大首领（BossWave = 0），第 4 波由守关主精英领军（血量与赏银对齐原第 4 波统领节奏，掉唯一生辰纲），第 9 波再出压轴精英！
+                    var elites = StageElites(n);
+                    // 首领移速提升至对标《蔚蓝星球》（第4波出→第5波到路中→第7波压墙）后，按真实交战窗口校准第4波首领/统领血量倍率
                     var oldKind = i == 10 ? ch.Boss : i >= 5 || c == 0 ? ch.MidBoss : Chapters[c - 1].Boss;
-                    float oldMul = i == 10 ? (c >= 4 ? 0.86f : 0.96f) : i == 5 ? 0.78f : c == 0 ? 1.0f : 0.68f;
-                    var boss = BossOrder[(n - 1) % BossOrder.Length];
-                    if (i == 10) boss = ch.Boss;
-                    else if (i == 5) boss = ch.MidBoss;
-                    // 第 38 关已有连环马精英。呼延灼还会带出骑兵，一关就会凑满 6 种怪。
-                    if (n == 38) boss = EnemyKind.GaoQiu;
-                    float bossMul = boss == oldKind ? oldMul : Enemy(oldKind).Hp * oldMul / Enemy(boss).Hp;
+                    float oldMul = i == 10 ? (c == 0 ? 0.54f : c >= 4 ? 0.40f : c >= 3 ? 0.50f : 0.70f)
+                        : i == 5 ? (c == 0 ? 0.38f : 0.58f)
+                        : c == 0 ? 0.76f : 0.58f;
+                    var boss = i == 10 ? ch.Boss : ch.MidBoss;
+                    var wave4Unit = chBoss ? boss : elites[0];
+                    float bossMul = wave4Unit == oldKind ? oldMul : Enemy(oldKind).Hp * oldMul / Enemy(wave4Unit).Hp;
                     var d = new LevelDef
                     {
                         No = n, Chapter = c + 1, Index = i, Name = ch.Levels[i - 1], Bg = ch.Bg,
                         Intro = chBoss ? $"首领 {Enemy(boss).Name} 亲至，守住寨墙" : n == 1 ? "击退十波官军，寨墙不能倒" : ch.Intro,
-                        BossWave = ws.MainBossWave,
+                        BossWave = chBoss ? ws.MainBossWave : 0,
                         RageWave = ws.MainRageWave,
-                        EliteWaves = MainEliteWaves,
-                        EliteKinds = StageElites(n), Troops = StageTroops(n),
+                        EliteWaves = chBoss ? BossStageEliteWaves : NormalStageEliteWaves,
+                        EliteKinds = elites, Troops = StageTroops(n),
                         BossKind = boss,
                         BossMul = bossMul,
                         HpMul = StageHp(n), AtkMul = StageAtk(n),
@@ -1200,7 +1288,7 @@ namespace Liangshan.Sim
             {
                 No = n, Chapter = b.Chapter, Index = b.Index, Name = "校场演武", Bg = b.Bg, Intro = "守满十波，夺校场头名",
                 BossWave = ws.MainBossWave, RageWave = ws.MainRageWave,
-                EliteWaves = MainEliteWaves, EliteKinds = b.EliteKinds, Troops = b.Troops,
+                EliteWaves = BossStageEliteWaves, EliteKinds = new[] { b.EliteKinds[b.EliteKinds.Length - 1] }, Troops = b.Troops,
                 BossKind = BossOrder[(day % BossOrder.Length + BossOrder.Length) % BossOrder.Length], BossMul = 1.15f,
                 HpMul = b.HpMul * 1.08f, AtkMul = b.AtkMul, CountMul = b.CountMul + 0.08f,
                 WallHp = ws.WallBaseHp, StartCoins = eco.StartCoins,

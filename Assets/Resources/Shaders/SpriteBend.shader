@@ -58,11 +58,12 @@ Shader "Liangshan/SpriteBend"
                 uv.y -= lift * legW;
                 fixed4 tex = tex2D(_MainTex, uv);
                 fixed4 c;
-                // 受击是染色，不是整只换成纯色剪影。原图明暗还在，只往受击色偏。
+                // 受击是染色，不是整只换成纯色剪影：按原图亮度重新上色，明暗还在，但整只亮成受击色（蔚蓝星球那种亮红）。
                 fixed3 baseRgb = tex.rgb * IN.color.rgb;
                 fixed kFlash = saturate(_Flash);
-                fixed3 tinted = baseRgb * _FlashColor.rgb + _FlashColor.rgb * 0.22 * kFlash;
-                c.rgb = lerp(baseRgb, tinted, kFlash);
+                fixed luma = dot(baseRgb, fixed3(0.30, 0.59, 0.11));
+                fixed3 tinted = saturate(_FlashColor.rgb * (0.45 + 0.9 * luma) + 0.08);
+                c.rgb = lerp(baseRgb, tinted, kFlash * 0.85);
                 c.a = tex.a * IN.color.a;
                 float inside = step(0, uv.x) * step(uv.x, 1) * step(0, uv.y) * step(uv.y, 1);
                 c.a *= inside;

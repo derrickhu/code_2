@@ -63,6 +63,11 @@ namespace Liangshan.Tests
             Assert.AreEqual(5, lo.Lv[ai]);
             Assert.IsFalse(lo.Passive[ai]);
             Assert.IsFalse(lo.Passive[bi]);
+            s.HeroLv[(int)HeroId.WuYong] = 4;
+            Assert.IsFalse(Meta.BuildLoadout(s).Passive[(int)HeroId.WuYong], "吴用 4 级被动还没开");
+            s.HeroLv[(int)HeroId.WuYong] = 5;
+            Assert.IsTrue(Meta.BuildLoadout(s).Passive[(int)HeroId.WuYong], "锦囊妙计 5 级就生效");
+            Assert.AreEqual(Meta.PassiveLv, Meta.PassiveUnlock(HeroId.HuaRong));
             Assert.Greater(lo.CritDmg, Meta.BaseCritDmg);
             Assert.AreEqual(4, s.Task[(int)Act.HeroUp]);
             Assert.AreEqual(4, s.Life[(int)Act.HeroUp]);
@@ -225,6 +230,7 @@ namespace Liangshan.Tests
             Assert.IsFalse(Meta.CanSprintTier(s, 2));
 
             for (int i = 0; i < 5; i++) Meta.FinishMain(s, Defs.Level(1), false, new Rewards());
+            Assert.AreEqual(1, s.LostStage);
             Assert.IsTrue(Meta.CanSprintTask(s, 0), "输了也算出征");
             Assert.IsTrue(Meta.ClaimSprintTask(s, 0).HasValue);
 
@@ -284,8 +290,9 @@ namespace Liangshan.Tests
                 Assert.IsTrue(Defs.Enemy(mid.BossKind).IsBoss);
             }
             for (int n = 2; n <= Defs.LevelCount; n++)
-                Assert.AreNotEqual(Defs.Level(n - 1).BossKind, Defs.Level(n).BossKind, "第" + n + "关首领不该跟上关一样");
+                Assert.AreNotEqual(Defs.Level(n - 1).LeaderKind, Defs.Level(n).LeaderKind, "第" + n + "关主统领不该跟上关一样");
             Assert.AreEqual(10, Defs.Enemies.Count(e => e.IsBoss));
+            Assert.AreEqual(9, Defs.Enemies.Count(e => e.Rank == EnemyRank.Elite), "9种特色精英恰好铺满3×3图鉴");
             Assert.GreaterOrEqual(Defs.Enemies.Count(e => e.Rank == EnemyRank.Minion && e.Kind != EnemyKind.Porter), 17);
             for (int k = 0; k < Defs.Enemies.Length; k++) Assert.AreEqual(k, (int)Defs.Enemies[k].Kind);
             for (int n = 2; n <= Defs.LevelCount; n++)
@@ -311,11 +318,50 @@ namespace Liangshan.Tests
                 else Assert.AreEqual(9, regular.Count, d.Name);
                 foreach (var p in regular.Where(p => p.Has2)) Assert.Less(p.V2, 0f, p.Name + " 取舍的代价是负的");
                 Assert.IsNotNull(Meta.OptPerk(d.Id, 1), d.Name);
+                foreach (System.Text.RegularExpressions.Match m in new System.Text.RegularExpressions.Regex("「(.*?)」").Matches(Meta.Talent(d.Id, 1)))
+                    Assert.AreNotEqual(Meta.TalentSkill.Passive, Meta.TalentSkillOf(d.Id, 1, m.Groups[1].Value), d.Name + " 的 5 级技能被认成了 10 级被动");
+                for (int row = 0; row < Meta.UnlockLv.Length; row++)
+                    foreach (System.Text.RegularExpressions.Match m in new System.Text.RegularExpressions.Regex("「(.*?)」").Matches(Meta.Talent(d.Id, row)))
+                        Assert.AreEqual(Meta.UnlockLv[row], SkillRowLevel(Meta.TalentSkillOf(d.Id, row, m.Groups[1].Value)),
+                            d.Name + " Lv." + Meta.UnlockLv[row] + "「" + m.Groups[1].Value + "」");
                 Assert.IsNotNull(Meta.OptPerk(d.Id, 2), d.Name);
                 Assert.AreEqual(3, Defs.PerksOf(d.Id, true).Count, d.Name);
                 Assert.IsNotNull(Meta.FirstPerk(d.Id));
             }
             Assert.AreEqual(Defs.Perks.Length, Defs.Perks.Select(p => p.Id).Distinct().Count());
+            foreach (var d in Defs.Heroes)
+            {
+                var surge = Meta.OptPerk(d.Id, 1);
+                Assert.IsFalse(LooksLikeSameSkill(surge.Name, d.AtkName), d.Name + " 5级选项「" + surge.Name + "」和开局技能「" + d.AtkName + "」是同一个");
+                for (int row = 1; row < Meta.UnlockLv.Length; row++)
+                    foreach (System.Text.RegularExpressions.Match m in new System.Text.RegularExpressions.Regex("「(.*?)」").Matches(Meta.Talent(d.Id, row)))
+                        Assert.IsFalse(LooksLikeSameSkill(m.Groups[1].Value, d.AtkName),
+                            d.Name + " Lv." + Meta.UnlockLv[row] + " 又解锁了开局技能「" + d.AtkName + "」");
+                foreach (var p in Defs.Perks.Where(p => p.Hero == d.Id && !p.Ult && p.Opt == 0))
+                {
+                    Assert.AreNotEqual(d.AtkName, p.Name, d.Name + " 强化「" + p.Name + "」和普攻同名");
+                    Assert.AreNotEqual(d.PassiveName, p.Name, d.Name + " 强化「" + p.Name + "」和被动同名");
+                    if (!string.IsNullOrEmpty(d.UltName)) Assert.AreNotEqual(d.UltName, p.Name, d.Name);
+                }
+            }
+            Assert.IsFalse(Meta.Talent(HeroId.WuYong, 2).Contains("获得"), "吴用的锦囊妙计 5 级已经解锁，10 级只加伤害");
+            Assert.IsFalse(Meta.Talent(HeroId.GuanSheng, 1).Contains("青龙偃月"), "青龙偃月刀开局就会，5 级不该再解锁");
+        }
+
+        /// <summary>完全同名、只差一个字，或只少一个字的简称，都会被读成同一招。</summary>
+        static bool LooksLikeSameSkill(string a, string b)
+        {
+            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return false;
+            if (a == b) return true;
+            if (a.Length == b.Length)
+            {
+                int diff = 0;
+                for (int i = 0; i < a.Length; i++) if (a[i] != b[i]) diff++;
+                if (diff <= 1) return true;
+            }
+            string shortN = a.Length < b.Length ? a : b;
+            string longN = a.Length < b.Length ? b : a;
+            return shortN.Length >= 2 && longN.Length == shortN.Length + 1 && longN.Contains(shortN);
         }
 
         [Test]
@@ -700,6 +746,21 @@ namespace Liangshan.Tests
         }
 
         [Test]
+        public void PresetNameDefaultsToSchemeUntilRenamed()
+        {
+            var s = Meta.NewSave(0);
+            Assert.AreEqual("方案1", Meta.PresetName(s, 0));
+            Assert.AreEqual("方案2", Meta.PresetName(s, 1));
+            Meta.SetPresetName(s, 1, "  夜战  ");
+            Assert.AreEqual("夜战", Meta.PresetName(s, 1));
+            Meta.SetPresetName(s, 1, "方案2");
+            Assert.AreEqual("", s.PresetNames[1]);
+            Assert.AreEqual("方案2", Meta.PresetName(s, 1));
+            Meta.SetPresetName(s, 0, "一二三四五六七八");
+            Assert.AreEqual("一二三四五六", Meta.PresetName(s, 0));
+        }
+
+        [Test]
         public void RankMilestonesHonorTitlesAndDailyResetWork()
         {
             var s = Meta.NewSave(0);
@@ -724,6 +785,48 @@ namespace Liangshan.Tests
             s.RankLikes = 3;
             Meta.RollDay(s, s.Day + 1);
             Assert.AreEqual(0, s.RankLikes, "跨天自动重置每日排行榜点赞奖励次数");
+        }
+
+        [Test]
+        public void CodexGroupProgressAndMilestoneBoxRewardsWork()
+        {
+            var s = Meta.NewSave(0);
+            Assert.AreEqual(0, Meta.CodexBadge(s));
+            Assert.IsFalse(Meta.CanClaimCodexBox(s, 0));
+
+            var minions = Defs.Enemies.Where(d => Meta.CodexGroupOf(d) == 0).Select(d => d.Kind).ToArray();
+            int need = Meta.CodexBoxNeed(0);
+            Meta.MarkSeen(s, minions.Take(need));
+            Assert.AreEqual((need, minions.Length), Meta.CodexProgress(s, 0));
+            Assert.IsTrue(Meta.CanClaimCodexBox(s, 0));
+            Assert.AreEqual(need + 1, Meta.CodexGroupBadge(s, 0), "新解锁单卡红点 + 阶段宝箱红点");
+
+            int ingots0 = s.Ingots, tokens0 = s.Tokens;
+            var boxGot = Meta.ClaimCodexBox(s, 0);
+            Assert.IsNotNull(boxGot);
+            Assert.IsTrue(Meta.CodexBoxTaken(s, 0));
+            Assert.IsFalse(Meta.CanClaimCodexBox(s, 0));
+            Assert.Greater(s.Ingots, ingots0);
+            Assert.Greater(s.Tokens, tokens0);
+            Assert.AreEqual(need, Meta.CodexGroupBadge(s, 0));
+
+            Assert.IsTrue(Meta.ClaimCodex(s, minions[0]));
+            Assert.IsFalse(Meta.ClaimCodex(s, minions[0]));
+            Assert.AreEqual(need - 1, Meta.CodexGroupBadge(s, 0));
+        }
+
+        static int SkillRowLevel(Meta.TalentSkill kind)
+        {
+            switch (kind)
+            {
+                case Meta.TalentSkill.Attack: return 1;
+                case Meta.TalentSkill.Ult:
+                case Meta.TalentSkill.Surge: return Meta.SurgeLv;
+                case Meta.TalentSkill.Passive: return Meta.PassiveLv;
+                case Meta.TalentSkill.SurgePlus: return Meta.SurgePlusLv;
+                case Meta.TalentSkill.Top: return Meta.TopLv;
+                default: return -1;
+            }
         }
     }
 }

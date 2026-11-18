@@ -29,6 +29,14 @@ namespace Liangshan.Sim
             new StarTrait { Star = 4, Name = "贯日觉醒", Desc = "穿透再 +1，暴击率再 +18%", Pierce = 1, Crit = 0.18f },
         };
 
+        /// <summary>单点狙杀型射手（解珍、燕青）：没选「穿杨 / 破甲箭」穿透强化词条前严格不自带穿透，升星给暴击与攻速爆发！</summary>
+        static readonly StarTrait[] SniperArrow =
+        {
+            new StarTrait { Star = 2, Name = "鹰眸", Desc = "暴击率 +18%", Crit = 0.18f },
+            new StarTrait { Star = 3, Name = "追猎", Desc = "技能冷却 -15%，暴击率再 +15%", Cd = 0.15f, Crit = 0.15f },
+            new StarTrait { Star = 4, Name = "贯甲神射", Desc = "每次出手多射 1 发，暴击率再 +18%", Shots = 1, Crit = 0.18f },
+        };
+
         static readonly StarTrait[] Bomb =
         {
             new StarTrait { Star = 2, Name = "大药量", Desc = "爆炸范围 +25%", Area = 0.25f },
@@ -99,13 +107,13 @@ namespace Liangshan.Sim
             new StarTrait { Star = 4, Name = "宗师", Desc = "技能效果再 +40%", Buff = 0.4f },
         };
 
-        /// <summary>这位好汉 2/3/4 星分别解锁什么。按攻击方式分组，同类好汉一样。</summary>
+        /// <summary>这位好汉 2/3/4 星分别解锁什么。单发点杀型射手不硬塞免费穿透，只有天生穿透箭（花荣/解宝）或局内选穿透词条才穿怪。</summary>
         public static StarTrait[] Of(HeroDef d)
         {
             if (d.Buff.HasValue) return Support;
             switch (d.Shot)
             {
-                case ShotKind.Arrow: return Arrow;
+                case ShotKind.Arrow: return d.Chain > 0 ? Arrow : SniperArrow;
                 case ShotKind.Bomb:
                 case ShotKind.Fireball: return Bomb;
                 case ShotKind.Punch: return Blade;

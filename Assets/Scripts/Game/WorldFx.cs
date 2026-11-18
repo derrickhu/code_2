@@ -23,7 +23,7 @@ namespace Liangshan
         readonly List<Job> _add = new List<Job>();
         readonly Stack<SpriteRenderer> _pool = new Stack<SpriteRenderer>();
         readonly Stack<LineRenderer> _lines = new Stack<LineRenderer>();
-        readonly Stack<Text> _texts = new Stack<Text>();
+        readonly Stack<Tag> _tags = new Stack<Tag>();
         int _liveTexts;
         Material _lineMat;
         RectTransform _textLayer;
@@ -42,40 +42,152 @@ namespace Liangshan
             g.alpha = on ? 1f : 0f;
         }
 
-        /// <summary>任何命中掉血统一附赠高张力打击爆芒（明亮冲击光环 + 鲜烈十字刀芒 + 纯白星芒 + 飞溅火花，每一击肉眼可见炸裂！）。</summary>
+        /// <summary>
+        /// 任何命中掉血统一附赠打击爆芒：一枚锐利四芒星闪 + 沿速度拉长的火花。
+        /// 柔光团压得很小，亮石板上叠加的大光团只会糊成一片白雾。
+        /// </summary>
         public void HitPop(Vector2 pos, float scale, bool crit)
         {
             float sz = (crit ? 1.45f : 1.05f) * scale;
             Color glowCol = crit ? Pal.Hex("FF8A24") : Pal.Hex("FFC24A");
-            var flash = Take(Art.SoftDot, pos, sz * 1.35f, 9543, glowCol.A(crit ? 0.65f : 0.45f), true);
-            var ring = Take(Art.Ring, pos, sz * 0.35f, 9544, Color.Lerp(Color.white, glowCol, 0.35f).A(0.92f), true);
-            var glow = Take(Art.Img("fx_hit"), pos, sz * 0.55f, 9545, glowCol.A(0.95f), true);
-            var core = Take(Art.Sparkle, pos, sz * 0.72f, 9546, Color.white, true);
-            float rot = UnityEngine.Random.Range(0f, 90f);
-            glow.transform.localRotation = Quaternion.Euler(0, 0, rot);
-            core.transform.localRotation = Quaternion.Euler(0, 0, rot + 45f);
-            Anim(flash.gameObject, 0.14f, k =>
+            var flash = Take(Art.SoftDot, pos, sz * 0.8f, 9543, glowCol.A(crit ? 0.5f : 0.32f), true);
+            Anim(flash.gameObject, 0.12f, k =>
             {
-                flash.transform.localScale = Vector3.one * sz * Mathf.Lerp(1.1f, 1.85f, Tween.OutCubic(k));
-                flash.color = glowCol.A((crit ? 0.65f : 0.45f) * (1f - k) * (1f - k));
+                flash.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.6f, 1.1f, Tween.OutCubic(k));
+                flash.color = glowCol.A((crit ? 0.5f : 0.32f) * (1f - k) * (1f - k));
             });
-            Anim(ring.gameObject, 0.20f, k =>
+            Glint(pos, sz * (crit ? 1.25f : 0.95f), crit ? Pal.Hex("FFF0B0") : Color.white, crit ? 0.2f : 0.15f, 9546);
+            SparkStreaks(pos, crit ? 7 : 4, crit ? 0.34f : 0.26f, crit ? 5.2f : 4.2f,
+                crit ? Pal.Hex("FFD45A") : Pal.Hex("FFF2C8"), 0.22f, 9548, 6f);
+        }
+
+        /// <summary>四芒星闪：瞬间弹到最大再收成一个点，略带转动。命中、出手、法球起飞都用它当“发力点”。</summary>
+        public void Glint(Vector2 pos, float size, Color c, float dur = 0.16f, int order = 9560, float delay = 0f)
+        {
+            var sr = Take(Art.Img("fx_glint"), pos, size * 0.2f, order, c, true);
+            float rot = UnityEngine.Random.Range(-12f, 12f);
+            Anim(sr.gameObject, dur, k =>
             {
-                ring.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.35f, 1.28f, Tween.OutCubic(k));
-                ring.color = ring.color.A(0.92f * (1f - k));
-            });
-            Anim(glow.gameObject, 0.18f, k =>
+                float s = k < 0.3f ? Tween.OutBack(k / 0.3f) : Mathf.Lerp(1f, 0.25f, Tween.InCubic((k - 0.3f) / 0.7f));
+                sr.transform.localScale = new Vector3(1.15f, 1f, 1f) * size * s;
+                sr.transform.localRotation = Quaternion.Euler(0, 0, rot + 18f * k);
+                sr.color = c.A(c.a * (k < 0.55f ? 1f : 1f - (k - 0.55f) / 0.45f));
+            }, true, delay);
+        }
+
+        /// <summary>
+        /// 火花条：每颗沿自身速度方向拉长（越快越长），受重力下坠时慢慢转向。dir 给了就朝那边喷成扇形。
+        /// </summary>
+        public void SparkStreaks(Vector2 pos, int n, float len, float speed, Color c, float dur = 0.24f, int order = 9548,
+            float gravity = 6f, Vector2? dir = null, float spread = 180f)
+        {
+            var spr = Art.Img("fx_spark");
+            float baseAng = dir.HasValue ? Mathf.Atan2(dir.Value.y, dir.Value.x) * Mathf.Rad2Deg : 90f;
+            for (int i = 0; i < n; i++)
             {
-                glow.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.5f, 1.28f, Tween.OutCubic(k));
-                glow.color = glowCol.A(0.95f * (1f - k * k));
-            });
-            Anim(core.gameObject, 0.15f, k =>
+                float ang = (baseAng + UnityEngine.Random.Range(-spread, spread)) * Mathf.Deg2Rad;
+                var v = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * speed * UnityEngine.Random.Range(0.55f, 1f);
+                float l = len * UnityEngine.Random.Range(0.7f, 1.1f);
+                float d = dur * UnityEngine.Random.Range(0.8f, 1.2f);
+                var sr = Take(spr, pos, l, order, c, true);
+                Anim(sr.gameObject, d, k =>
+                {
+                    float t = k * d;
+                    var vel = v + new Vector2(0, -gravity * t);
+                    sr.transform.localPosition = pos + v * t + new Vector2(0, -gravity * t * t * 0.5f);
+                    sr.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(vel.y, vel.x) * Mathf.Rad2Deg - 90f);
+                    float stretch = Mathf.Clamp(vel.magnitude / Mathf.Max(0.01f, speed), 0.35f, 1.2f);
+                    sr.transform.localScale = new Vector3(l * 0.6f, l * stretch, 1f) * (1f - 0.5f * k);
+                    sr.color = c.A(c.a * (1f - k * k));
+                });
+            }
+        }
+
+        /// <summary>
+        /// 实体碎片（冰晶、钢片）：普通混合、带描边，从命中点往外崩飞并翻转，落地前淡掉。
+        /// 有体积的碎片在亮地面上看得清，这是和“贴一张光圈”最大的区别。
+        /// </summary>
+        public void Shards(Sprite s, Vector2 pos, int n, float size, float speed, Color c, float dur = 0.42f, int order = 9550,
+            Vector2? dir = null, float spread = 75f, float gravity = 7f)
+        {
+            float baseAng = dir.HasValue ? Mathf.Atan2(dir.Value.y, dir.Value.x) * Mathf.Rad2Deg : 90f;
+            for (int i = 0; i < n; i++)
             {
-                core.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.55f, 1.15f, Tween.OutCubic(k));
-                core.color = Color.white.A(1f - k);
-            });
-            Sparks(Art.SoftDot, pos, crit ? 7 : 4, crit ? 0.14f : 0.10f, crit ? 4.4f : 3.4f,
-                crit ? Pal.Hex("FFDF7A") : Pal.Hex("FFF6D8"), 0.24f, 9548, 5f, true);
+                float ang = (baseAng + UnityEngine.Random.Range(-spread, spread)) * Mathf.Deg2Rad;
+                var v = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * speed * UnityEngine.Random.Range(0.5f, 1f);
+                float sz = size * UnityEngine.Random.Range(0.55f, 1f);
+                float d = dur * UnityEngine.Random.Range(0.8f, 1.15f);
+                float spin = UnityEngine.Random.Range(-540f, 540f);
+                float rot0 = Mathf.Atan2(v.y, v.x) * Mathf.Rad2Deg - 90f;
+                var sr = Take(s, pos, sz * 0.3f, order + i % 3, c);
+                Anim(sr.gameObject, d, k =>
+                {
+                    float t = k * d;
+                    sr.transform.localPosition = pos + v * t + new Vector2(0, -gravity * t * t * 0.5f);
+                    sr.transform.localRotation = Quaternion.Euler(0, 0, rot0 + spin * t * t);
+                    float grow = k < 0.15f ? Tween.OutBack(k / 0.15f) : 1f - 0.35f * (k - 0.15f);
+                    sr.transform.localScale = Vector3.one * sz * grow;
+                    sr.color = c.A(c.a * (k < 0.6f ? 1f : 1f - (k - 0.6f) / 0.4f));
+                });
+            }
+        }
+
+        /// <summary>
+        /// 增益落到队友身上：贴地法阵（压扁、转着张开）+ 冲天光柱（深色底衬 + 亮色叠加，亮地面上也有层次）
+        /// + 一串往上飘的光点 + 胸口一闪。所有辅助的“接收”都走这里，保证同一种仪式感。
+        /// </summary>
+        public void Blessing(Vector2 feet, Color c, float scale = 1f)
+        {
+            var deep = Color.Lerp(c, Color.black, 0.45f);
+            var sigilSpr = Art.Img("fx_sigil");
+            Rune(feet, sigilSpr, 1.9f * scale, deep.A(0.55f), 0.95f, 50f, 156, 0.40f, false);
+            Rune(feet, sigilSpr, 1.9f * scale, c.A(0.95f), 0.95f, 50f, 158, 0.40f, true);
+
+            var beamSpr = Art.Img("fx_light_beam");
+            void Beam(float w, float h, Color col, int order, bool add, float dur)
+            {
+                var sr = Take(beamSpr, feet, h, order, col.A(0), add);
+                Anim(sr.gameObject, dur, k =>
+                {
+                    float up = Tween.OutCubic(Mathf.Min(1f, k / 0.22f));
+                    float thin = k < 0.5f ? 1f : Mathf.Lerp(1f, 0.25f, (k - 0.5f) / 0.5f);
+                    float hh = h * up;
+                    sr.transform.localScale = new Vector3(w * thin / 0.25f, hh, 1f);
+                    sr.transform.localPosition = feet + new Vector2(0, hh * 0.5f - 0.05f);
+                    sr.color = col.A(col.a * (k < 0.08f ? k / 0.08f : 1f - Tween.InCubic((k - 0.08f) / 0.92f)));
+                });
+            }
+            Beam(0.95f * scale, 3.0f * scale, deep.A(0.35f), 9040, false, 0.8f);
+            Beam(0.95f * scale, 3.2f * scale, c.A(0.95f), 9050, true, 0.8f);
+            Beam(0.42f * scale, 2.6f * scale, Color.white.A(0.85f), 9051, true, 0.55f);
+
+            LightPool(feet + new Vector2(0, 0.05f), 2.3f * scale, c.A(0.8f), 0.7f, 159);
+            Glint(feet + new Vector2(0, 0.85f * scale), 1.5f * scale, Color.Lerp(c, Color.white, 0.6f), 0.26f, 9560);
+            Motes(feet, 10, 0.75f * scale, c, 1.0f);
+        }
+
+        /// <summary>从脚下一圈往上飘的光点：慢慢升、左右轻摆、闪两下再灭。</summary>
+        public void Motes(Vector2 feet, int n, float radius, Color c, float dur = 1f, int order = 9470)
+        {
+            var spr = Art.Img("fx_glint");
+            var hot = Color.Lerp(c, Color.white, 0.55f);
+            for (int i = 0; i < n; i++)
+            {
+                float a = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+                var p0 = feet + new Vector2(Mathf.Cos(a) * radius, Mathf.Sin(a) * radius * 0.4f + 0.1f);
+                float sz = UnityEngine.Random.Range(0.16f, 0.30f);
+                float rise = UnityEngine.Random.Range(1.2f, 2.3f);
+                float d = dur * UnityEngine.Random.Range(0.75f, 1.2f);
+                float ph = UnityEngine.Random.Range(0f, 6.28f);
+                var sr = Take(spr, p0, sz, order, hot.A(0), true);
+                Anim(sr.gameObject, d, k =>
+                {
+                    sr.transform.localPosition = p0 + new Vector2(Mathf.Sin(k * 6f + ph) * 0.08f, rise * Tween.OutCubic(k));
+                    float tw = 0.75f + 0.25f * Mathf.Sin(k * 30f + ph);
+                    sr.transform.localScale = Vector3.one * sz * tw * (1f - 0.4f * k);
+                    sr.color = hot.A((k < 0.15f ? k / 0.15f : 1f - (k - 0.15f) / 0.85f) * tw);
+                }, true, i * 0.035f);
+            }
         }
 
         /// <summary>Unity 的空对象用 == 判断。缺失组件直接拿去改 alpha，会报 FloatLayer 上没有 CanvasGroup。</summary>
@@ -179,6 +291,7 @@ namespace Liangshan
             sr.sortingOrder = order;
             sr.color = c;
             sr.flipX = false;
+            sr.flipY = false;
             var t = sr.transform;
             t.localPosition = pos;
             t.localRotation = Quaternion.identity;
@@ -228,10 +341,10 @@ namespace Liangshan
                 go.SetActive(false);
                 _lines.Push(lr);
             }
-            else if (go.TryGetComponent<Text>(out var tx))
+            else if (go.TryGetComponent<Tag>(out var tag))
             {
                 go.SetActive(false);
-                _texts.Push(tx);
+                _tags.Push(tag);
                 _liveTexts--;
             }
             else Destroy(go);
@@ -313,13 +426,17 @@ namespace Liangshan
         }
 
         /// <summary>地上的法阵：压扁贴地慢慢转，先张开再淡掉。</summary>
-        public void Rune(Vector2 pos, float size, Color c, float dur, float spin = 60f, int order = 96, float flat = 0.5f)
+        public void Rune(Vector2 pos, float size, Color c, float dur, float spin = 60f, int order = 96, float flat = 0.5f) =>
+            Rune(pos, Art.Img("fx_rune"), size, c, dur, spin, order, flat, true);
+
+        public void Rune(Vector2 pos, Sprite s, float size, Color c, float dur, float spin, int order, float flat, bool add)
         {
             var holder = new GameObject("rune").transform;
             holder.SetParent(transform, false);
             holder.localPosition = pos;
             holder.localScale = new Vector3(1f, flat, 1f);
-            var sr = Additive(Spr(holder, Art.Img("fx_rune"), Vector2.zero, size, order, c.A(0)));
+            var sr = Spr(holder, s, Vector2.zero, size, order, c.A(0));
+            if (add) Additive(sr);
             float rot0 = UnityEngine.Random.Range(0f, 360f);
             Anim(holder.gameObject, dur, k =>
             {
@@ -718,14 +835,17 @@ namespace Liangshan
             });
         }
 
-        /// <summary>落地残留物（插地的箭）：立在地面，停留后淡出。底边钉在 pos。</summary>
-        public void Linger(Sprite s, Vector2 pos, float size, float life, bool flip = false)
+        /// <summary>落地残留物（插地的箭、斜插的飞斧）：底边钉在 pos，停留后淡出。headDown 时把图上下翻转，让刃口那头扎进地里。</summary>
+        public void Linger(Sprite s, Vector2 pos, float size, float life, bool flip = false, float rot = 0f, bool headDown = false)
         {
             if (_decals >= 40) return;
             _decals++;
             float aspect = s.bounds.size.y / Mathf.Max(s.bounds.size.x, s.bounds.size.y);
-            var sr = Take(s, pos + new Vector2(0, size * aspect * 0.5f), size, Order(pos.y), Color.white);
+            var q = Quaternion.Euler(0, 0, rot);
+            var sr = Take(s, pos + (Vector2)(q * new Vector2(0, size * aspect * 0.5f)), size, Order(pos.y), Color.white);
+            sr.transform.localRotation = q;
             sr.flipX = flip;
+            sr.flipY = headDown;
             Anim(sr.gameObject, life, k =>
             {
                 float sq = k < 0.08f ? 1f + 0.15f * Mathf.Sin(k / 0.08f * Mathf.PI) : 1f;
@@ -785,8 +905,8 @@ namespace Liangshan
             });
         }
 
-        /// <summary>从 a 飞到 b 的小图（金币、宝箱），带弧线。</summary>
-        public void Fly(Sprite s, Vector2 a, Vector2 b, float size, float dur, float arc, Action done = null, int order = 9800)
+        /// <summary>从 a 飞到 b 的小图（金币、宝箱），带弧线。shrink 是飞到终点时收掉的比例，银币要留得大。</summary>
+        public void Fly(Sprite s, Vector2 a, Vector2 b, float size, float dur, float arc, Action done = null, int order = 9800, float shrink = 0.3f)
         {
             var sr = Take(s, a, size, order, Color.white);
             var side = new Vector2(UnityEngine.Random.Range(-0.8f, 0.8f), arc);
@@ -795,9 +915,164 @@ namespace Liangshan
                 float e = Tween.InCubic(k) * 0.65f + k * 0.35f;
                 var p = Vector2.Lerp(a, b, e) + side * Mathf.Sin(k * Mathf.PI) * (1 - k * 0.3f);
                 sr.transform.localPosition = p;
-                sr.transform.localScale = Vector3.one * size * (k < 0.15f ? Tween.OutBack(k / 0.15f) : 1f - 0.3f * k);
+                float settle = k < 0.16f ? Tween.OutBack(k / 0.16f) : Mathf.Lerp(1f, 1f - shrink, (k - 0.16f) / 0.84f);
+                sr.transform.localScale = Vector3.one * size * settle;
                 if (k >= 1f) done?.Invoke();
             });
+        }
+
+        /// <summary>
+        /// 对标《永远的蔚蓝星球》辅助显性祝福法球：
+        /// 1) 起手凝珠（windup 秒）：在施法者胸前从 0 弹性聚拢张开、悬停自转蓄势，配合人物抬手；
+        /// 2) 舒缓弧线飘飞（travelDur 秒）：带着高拱弧度与星尘拖尾，肉眼清晰地飘向目标队友头顶；
+        /// 3) 接收沐浴（arrive 回调）：落入队友身体爆开环形光晕、通天光柱与增益飘字！
+        /// </summary>
+        public void SupportOrb(Vector2 from, Vector2 to, Color tint, float size = 0.96f, float windup = 0.34f,
+            float travelDur = 0.92f, float arc = 1.45f, Action arrive = null, float delay = 0f, bool nativeGold = true)
+        {
+            const float trailTime = 0.38f;
+            size *= 1.3f;
+            var root = new GameObject("orb").transform;
+            root.SetParent(transform, false);
+            root.localPosition = from;
+            var bodyCol = nativeGold ? Color.white : Color.Lerp(tint, Color.white, 0.35f);
+            var hot = Color.Lerp(tint, Color.white, 0.55f);
+            var halo = Additive(Spr(root, Art.SoftDot, Vector2.zero, size * 2.1f, 9646, tint.A(0), "halo"));
+            var body = Spr(root, Art.Img("fx_orb_core"), Vector2.zero, size, 9650, bodyCol.A(0), "body");
+            var swirl = Additive(Spr(root, Art.Img("fx_orb_swirl"), Vector2.zero, size * 0.72f, 9651, hot.A(0), "swirl"));
+            var orbit = new SpriteRenderer[2];
+            for (int i = 0; i < 2; i++) orbit[i] = Additive(Spr(root, Art.Img("fx_glint"), Vector2.zero, size * 0.34f, 9652, hot.A(0), "orbit"));
+
+            var trail = root.gameObject.AddComponent<TrailRenderer>();
+            trail.sharedMaterial = WispTrail(true);
+            trail.time = trailTime;
+            trail.startWidth = size * 0.62f;
+            trail.endWidth = 0f;
+            trail.colorGradient = Fade(tint, 0.85f);
+            trail.sortingOrder = 9645;
+            trail.minVertexDistance = 0.04f;
+            trail.emitting = false;
+            var underGo = new GameObject("trailUnder");
+            underGo.transform.SetParent(root, false);
+            var under = underGo.AddComponent<TrailRenderer>();
+            under.sharedMaterial = WispTrail(false);
+            under.time = trailTime * 0.85f;
+            under.startWidth = size * 0.5f;
+            under.endWidth = 0f;
+            under.colorGradient = Fade(Color.Lerp(tint, new Color(0.55f, 0.2f, 0f), 0.45f), 0.7f);
+            under.sortingOrder = 9643;
+            under.minVertexDistance = 0.04f;
+            under.emitting = false;
+            if (delay > 0f) root.gameObject.SetActive(false);
+
+            float total = windup + travelDur;
+            float spinDir = to.x >= from.x ? -1f : 1f;
+            var startP = from + new Vector2(0f, 0.38f);
+            bool launched = false, landed = false;
+
+            Converge(startP, tint, size, windup, delay);
+
+            Anim(root.gameObject, total + trailTime, k =>
+            {
+                float t = k * (total + trailTime);
+                if (landed) return;
+                Vector2 pos;
+                float sc, alpha;
+                if (t < windup)
+                {
+                    float kw = t / Mathf.Max(0.001f, windup);
+                    pos = from + new Vector2(0f, 0.38f * Tween.OutCubic(kw));
+                    sc = size * Tween.OutBack(kw);
+                    alpha = Mathf.Clamp01(kw * 2.4f);
+                }
+                else if (t < total)
+                {
+                    if (!launched)
+                    {
+                        launched = true;
+                        trail.emitting = under.emitting = true;
+                        Glint(startP, size * 1.7f, hot, 0.22f, 9655);
+                    }
+                    float kt = (t - windup) / Mathf.Max(0.001f, travelDur);
+                    float ease = kt < 0.5f ? 2f * kt * kt : 1f - Mathf.Pow(-2f * kt + 2f, 2f) * 0.5f;
+                    pos = Vector2.Lerp(startP, to, ease) + new Vector2(0f, Mathf.Sin(kt * Mathf.PI) * arc);
+                    sc = size * (1f + 0.06f * Mathf.Sin(kt * Mathf.PI * 4f)) * (kt > 0.9f ? Mathf.Lerp(1f, 0.7f, (kt - 0.9f) / 0.1f) : 1f);
+                    alpha = 1f;
+                }
+                else
+                {
+                    landed = true;
+                    trail.emitting = under.emitting = false;
+                    body.enabled = swirl.enabled = halo.enabled = false;
+                    foreach (var o in orbit) o.enabled = false;
+                    arrive?.Invoke();
+                    return;
+                }
+
+                root.localPosition = pos;
+                body.transform.localScale = Vector3.one * sc;
+                body.color = bodyCol.A(alpha);
+                swirl.transform.localScale = Vector3.one * sc * 0.72f;
+                swirl.transform.localRotation = Quaternion.Euler(0, 0, spinDir * t * 260f);
+                swirl.color = hot.A(alpha * (0.55f + 0.2f * Mathf.Sin(t * 17f)));
+                halo.transform.localScale = Vector3.one * sc * (2.0f + 0.15f * Mathf.Sin(t * 11f));
+                halo.color = tint.A(alpha * 0.34f);
+                for (int i = 0; i < 2; i++)
+                {
+                    float a = t * 7.5f + i * Mathf.PI;
+                    float z = Mathf.Sin(a);
+                    var o = orbit[i];
+                    o.transform.localPosition = new Vector2(Mathf.Cos(a) * sc * 0.62f, z * sc * 0.16f + Mathf.Cos(a) * sc * 0.1f);
+                    o.transform.localScale = Vector3.one * sc * (0.26f + 0.1f * z);
+                    o.sortingOrder = z < 0 ? 9653 : 9644;
+                    o.color = hot.A(alpha * (z < 0 ? 1f : 0.45f));
+                }
+            }, true, delay);
+        }
+
+        /// <summary>起手凝珠：一圈光点从四周吸进施法者胸前，到点时正好法球起飞。</summary>
+        void Converge(Vector2 at, Color c, float size, float dur, float delay)
+        {
+            var spr = Art.Img("fx_spark");
+            var hot = Color.Lerp(c, Color.white, 0.5f);
+            for (int i = 0; i < 7; i++)
+            {
+                float a = i / 7f * Mathf.PI * 2f + UnityEngine.Random.Range(-0.3f, 0.3f);
+                var off = new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * size * UnityEngine.Random.Range(0.9f, 1.3f);
+                float l = size * UnityEngine.Random.Range(0.3f, 0.45f);
+                var sr = Take(spr, at + off, l, 9647, hot.A(0), true);
+                sr.transform.localRotation = Quaternion.Euler(0, 0, a * Mathf.Rad2Deg + 90f);
+                Anim(sr.gameObject, dur, k =>
+                {
+                    float e = Tween.InCubic(k);
+                    sr.transform.localPosition = at + off * (1f - e);
+                    sr.transform.localScale = new Vector3(l * 0.5f, l * (0.6f + 0.8f * e), 1f);
+                    sr.color = hot.A(Mathf.Min(1f, k * 3f) * (1f - e * 0.6f));
+                }, true, delay);
+            }
+        }
+
+        static Material _wispAdd, _wispAlpha;
+
+        /// <summary>丝缕拖尾材质：几股风丝会散开断开，比一条纯色带子自然得多。</summary>
+        public static Material WispTrail(bool add)
+        {
+            ref var m = ref add ? ref _wispAdd : ref _wispAlpha;
+            if (m == null)
+            {
+                m = new Material(add ? AddMat.shader : Shader.Find("Sprites/Default"));
+                m.mainTexture = Resources.Load<Texture2D>("Art/fx_wisp_trail");
+            }
+            return m;
+        }
+
+        /// <summary>头部实、尾部透明的拖尾渐变。</summary>
+        public static Gradient Fade(Color c, float a)
+        {
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.Lerp(c, Color.white, 0.3f), 0f), new GradientColorKey(c, 1f) },
+                new[] { new GradientAlphaKey(a, 0f), new GradientAlphaKey(a * 0.55f, 0.4f), new GradientAlphaKey(0f, 1f) });
+            return g;
         }
 
         /// <summary>小碎片四散：命中火花、合成星星。</summary>
@@ -835,54 +1110,236 @@ namespace Liangshan
             new Vector2(0.56f, 0.92f),
         };
 
-        public void Number(Vector2 world, string s, Color c, int size, float rise = 0.6f, float dur = 0.65f, bool pop = false)
+        /// <summary>
+        /// 跳字种类。每类有自己的字体、上下渐变、描边和动作：
+        /// 普攻白字小跳，暴击大号橙红渐变配爆裂底猛砸，宋江剑气冰蓝，治疗绿、银两金、掉血红，
+        /// 增益带上升箭头慢慢升，状态字灰白小字，招式名毛笔字压水墨笔触。
+        /// </summary>
+        public enum Tx { Hit, Crit, Slash, Wall, Heal, Gain, Buff, Status, Skill }
+
+        sealed class Tag : MonoBehaviour
         {
-            Text t;
-            if (_texts.Count > 0)
+            public RectTransform Rt;
+            public Text T;
+            public CrispStroke S;
+            public Image Back, Icon;
+        }
+
+        Tag TakeTag()
+        {
+            Tag g;
+            if (_tags.Count > 0)
             {
-                t = _texts.Pop();
-                t.gameObject.SetActive(true);
-                t.transform.SetAsLastSibling();
+                g = _tags.Pop();
+                g.gameObject.SetActive(true);
+                g.Rt.SetAsLastSibling();
             }
             else
             {
-                t = Ui.Label(_textLayer, "", 40, Color.white, Vector2.zero, new Vector2(500, 120), TextAnchor.MiddleCenter, Fonts.Heavy, "num");
-                Ui.Stroke(t, Pal.Hex("0C141E"), 3.6f);
-                var rt0 = t.rectTransform;
-                rt0.anchorMin = rt0.anchorMax = new Vector2(0.5f, 1f);
+                var rt = Ui.Rect(_textLayer, "say");
+                rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
+                rt.sizeDelta = new Vector2(10, 10);
+                g = rt.gameObject.AddComponent<Tag>();
+                g.Rt = rt;
+                g.Back = Ui.Box(rt, Vector2.one * 100, Vector2.zero, Color.white, Art.White, "back");
+                g.Icon = Ui.Box(rt, Vector2.one * 40, Vector2.zero, Color.white, Art.UpArrow, "icon");
+                g.Icon.type = Image.Type.Simple;
+                g.Icon.preserveAspect = true;
+                g.T = Ui.Label(rt, "", 40, Color.white, Vector2.zero, new Vector2(900, 160), TextAnchor.MiddleCenter, Fonts.Number, "t");
+                g.T.horizontalOverflow = HorizontalWrapMode.Overflow;
+                g.T.verticalOverflow = VerticalWrapMode.Overflow;
+                g.S = g.T.gameObject.AddComponent<CrispStroke>();
             }
             _liveTexts++;
+            return g;
+        }
 
-            // 按 2.4x1.8 大号世界扇区合并计数，0.50 秒内同一团怪群的所有跳字全部摊开到不同列与阶梯！
-            float now = Time.time;
-            int cellKey = (Mathf.RoundToInt(world.x / 2.4f) * 73856093) ^ (Mathf.RoundToInt(world.y / 1.8f) * 19349663);
-            int seq = 0;
-            if (_numCells.TryGetValue(cellKey, out var prev) && now - prev.time < 0.50f)
-                seq = (prev.seq + 1) % CellSpread.Length;
-            _numCells[cellKey] = (now, seq);
-            var sp = CellSpread[seq];
-            float driftX = Mathf.Clamp(world.x + sp.x, -4.6f, 4.6f) - world.x;
-            world.y += sp.y;
+        public void Say(Vector2 world, string s, Tx kind, Color? tint = null, float scale = 1f)
+        {
+            if (_textLayer == null) return;
+            var tc = tint ?? (kind == Tx.Skill ? Pal.Hex("FFC63A") : kind == Tx.Buff ? Pal.Hex("8CF060") : Color.white);
+            Font font = Fonts.Number;
+            int size = 40;
+            Color top = Color.white, bot = Color.white, edge = Pal.Hex("16202E");
+            float stroke = 3.2f, rise = 0.55f, dur = 0.62f;
+            Sprite back = null, icon = null;
+            bool spread = false;
+            switch (kind)
+            {
+                case Tx.Hit:
+                    size = 42; bot = Pal.Hex("D0DCE8"); spread = true; rise = 0.26f; dur = 0.55f;
+                    break;
+                case Tx.Crit:
+                    size = 68; top = Pal.Hex("FFF6A0"); bot = Pal.Hex("FF5E16"); edge = Pal.Hex("4A0804");
+                    stroke = 4.2f; rise = 0.38f; dur = 0.9f; back = Art.Img("ui_crit_burst"); spread = true;
+                    break;
+                case Tx.Slash:
+                    size = 48; top = Pal.Hex("F4FFFF"); bot = Pal.Hex("44C4FF"); edge = Pal.Hex("06284E");
+                    stroke = 3.6f; rise = 0.36f; dur = 0.66f; spread = true;
+                    break;
+                case Tx.Wall:
+                    size = 46; top = Pal.Hex("FFC4B6"); bot = Pal.Hex("F0281A"); edge = Pal.Hex("3A0602");
+                    stroke = 3.6f; rise = 0.45f; dur = 0.7f;
+                    break;
+                case Tx.Heal:
+                    size = 44; top = Pal.Hex("F0FFD6"); bot = Pal.Hex("44CC38"); edge = Pal.Hex("0C3010"); rise = 0.7f; dur = 0.85f;
+                    break;
+                case Tx.Gain:
+                    size = 44; top = Pal.Hex("FFF8C4"); bot = Pal.Hex("FFAE1A"); edge = Pal.Hex("542A00"); rise = 0.7f; dur = 0.85f;
+                    break;
+                case Tx.Buff:
+                    font = Fonts.Heavy; size = 38; top = Color.Lerp(tc, Color.white, 0.72f); bot = tc;
+                    edge = Color.Lerp(tc, Pal.Hex("080A10"), 0.84f); stroke = 3f; rise = 0.8f; dur = 1.25f; icon = Art.UpArrow;
+                    break;
+                case Tx.Status:
+                    font = Fonts.Heavy; size = 36; bot = Color.Lerp(tc, Color.white, 0.2f); edge = Pal.Hex("15181F");
+                    stroke = 2.8f; rise = 0.45f; dur = 0.7f;
+                    break;
+                case Tx.Skill:
+                    font = Fonts.Fits(Fonts.Brush, s) ? Fonts.Brush : Fonts.Heavy; size = 60;
+                    top = Color.Lerp(tc, Color.white, 0.8f); bot = tc; edge = Pal.Hex("2A1206");
+                    stroke = 3.2f; rise = 0.36f; dur = 1.25f; back = Art.Img("ui_ink_strip");
+                    break;
+            }
+            if (font == Fonts.Number && !Fonts.Fits(font, s)) font = Fonts.Heavy;
+            size = Mathf.RoundToInt(size * scale);
 
-            t.text = s;
+            var g = TakeTag();
+            var t = g.T;
+            t.font = font;
             t.fontSize = size;
-            t.color = c;
-            var rt = t.rectTransform;
+            t.text = s;
+            t.color = Color.white;
+            var cs = g.S;
+            cs.Color = edge;
+            cs.Radius = stroke * size / 42f;
+            cs.KeepColor = false;
+            cs.UseGradient = true;
+            cs.TopColor = top;
+            cs.BottomColor = bot;
+            t.SetVerticesDirty();
+            float w = t.preferredWidth;
+
+            var bk = g.Back;
+            var bkRt = bk.rectTransform;
+            bk.enabled = back != null;
+            float tilt = kind == Tx.Crit ? UnityEngine.Random.Range(-8f, 8f) : 0f;
+            float backSpin = UnityEngine.Random.Range(-25f, 25f);
+            if (back != null)
+            {
+                bk.sprite = back;
+                bk.type = Image.Type.Simple;
+                bk.color = Color.white;
+                if (kind == Tx.Crit)
+                {
+                    float d = Mathf.Max(w * 1.35f, size * 2.35f);
+                    bkRt.sizeDelta = new Vector2(d, d * 0.88f);
+                    bkRt.anchoredPosition = new Vector2(0, -size * 0.04f);
+                }
+                else
+                {
+                    bkRt.sizeDelta = new Vector2(w * 1.3f + size * 1.3f, size * 1.7f);
+                    bkRt.anchoredPosition = new Vector2(size * 0.18f, -size * 0.06f);
+                }
+                bkRt.localRotation = Quaternion.Euler(0, 0, kind == Tx.Crit ? backSpin : 0f);
+                bkRt.localScale = Vector3.one;
+            }
+
+            var ic = g.Icon;
+            ic.enabled = icon != null;
+            t.rectTransform.anchoredPosition = Vector2.zero;
+            if (icon != null)
+            {
+                ic.sprite = icon;
+                ic.color = Color.white;
+                float isz = size * 0.92f, gap = size * 0.08f;
+                float total = isz + gap + w;
+                ic.rectTransform.sizeDelta = Vector2.one * isz;
+                ic.rectTransform.anchoredPosition = new Vector2(-total * 0.5f + isz * 0.5f, size * 0.04f);
+                t.rectTransform.anchoredPosition = new Vector2(-total * 0.5f + isz + gap + w * 0.5f, 0);
+            }
+
+            float driftX = 0f;
+            if (spread)
+            {
+                // 按 2.4x1.8 大号世界扇区合并计数，0.50 秒内同一团怪群的跳字摊开到不同列与阶梯
+                float now = Time.time;
+                int cellKey = (Mathf.RoundToInt(world.x / 2.4f) * 73856093) ^ (Mathf.RoundToInt(world.y / 1.8f) * 19349663);
+                int seq = 0;
+                if (_numCells.TryGetValue(cellKey, out var prev) && now - prev.time < 0.50f)
+                    seq = (prev.seq + 1) % CellSpread.Length;
+                _numCells[cellKey] = (now, seq);
+                var sp = CellSpread[seq];
+                driftX = Mathf.Clamp(world.x + sp.x, -4.6f, 4.6f) - world.x;
+                world.y += sp.y;
+            }
+
+            var rt = g.Rt;
             var p0 = new Vector2((world.x + driftX) * 100f, -Ui.FromTop(world.y));
             float arcX = driftX * 26f;
             float peakY = rise * 100f;
             rt.anchoredPosition = p0;
             rt.localScale = Vector3.one;
-            Anim(t.gameObject, dur, k =>
+            rt.localRotation = Quaternion.identity;
+            float fadeAt = kind == Tx.Skill || kind == Tx.Buff ? 0.72f : 0.66f;
+
+            Anim(g.gameObject, dur, k =>
             {
-                float yCurve = k < 0.55f ? Tween.OutCubic(k / 0.55f) : 1f - 0.12f * Tween.InCubic((k - 0.55f) / 0.45f);
-                rt.anchoredPosition = p0 + new Vector2(arcX * Tween.OutCubic(k), peakY * yCurve);
-                float sc = pop
-                    ? (k < 0.13f ? Mathf.Lerp(1.82f, 0.95f, Tween.OutCubic(k / 0.13f)) : k < 0.25f ? Mathf.Lerp(0.95f, 1.06f, (k - 0.13f) / 0.12f) : 1f)
-                    : (k < 0.11f ? Mathf.Lerp(0.62f, 1.24f, Tween.OutCubic(k / 0.11f)) : k < 0.24f ? Mathf.Lerp(1.24f, 1f, (k - 0.11f) / 0.13f) : 1f);
+                float a = k < fadeAt ? 1f : 1f - (k - fadeAt) / (1f - fadeAt);
+                float sc, y, x = arcX * Tween.OutCubic(k);
+                switch (kind)
+                {
+                    case Tx.Crit:
+                    {
+                        // 先砸大、回弹、原地顿一下再升，爆裂底比字早一步散
+                        sc = k < 0.09f ? Mathf.Lerp(2.5f, 0.88f, Tween.OutCubic(k / 0.09f))
+                            : k < 0.18f ? Mathf.Lerp(0.88f, 1.1f, (k - 0.09f) / 0.09f)
+                            : Mathf.Lerp(1.1f, 1f, Mathf.Clamp01((k - 0.18f) / 0.2f));
+                        y = k < 0.3f ? peakY * 0.12f * Tween.OutCubic(k / 0.3f) : peakY * (0.12f + 0.88f * Tween.OutCubic((k - 0.3f) / 0.7f));
+                        if (k < 0.16f) x += Mathf.Sin(k * 150f) * 5f * (1f - k / 0.16f);
+                        float bs = k < 0.1f ? Mathf.Lerp(0.25f, 1.18f, Tween.OutCubic(k / 0.1f)) : Mathf.Lerp(1.18f, 1.0f, Mathf.Clamp01((k - 0.1f) / 0.3f));
+                        bkRt.localScale = Vector3.one * bs;
+                        bkRt.localRotation = Quaternion.Euler(0, 0, backSpin + k * 30f);
+                        bk.color = Color.white.A(k < 0.42f ? 1f : Mathf.Clamp01(1f - (k - 0.42f) / 0.3f));
+                        break;
+                    }
+                    case Tx.Skill:
+                    {
+                        // 墨条先横向刷开，毛笔字随后落下
+                        float reveal = Tween.OutCubic(Mathf.Clamp01(k / 0.14f));
+                        bkRt.localScale = new Vector3(reveal, 0.7f + 0.3f * reveal, 1f);
+                        float tk = Mathf.Clamp01((k - 0.05f) / 0.12f);
+                        sc = Mathf.Lerp(1.55f, 1f, Tween.OutCubic(tk));
+                        t.color = Color.white.A(a * Mathf.Clamp01(tk * 2f));
+                        bk.color = Color.white.A(a);
+                        y = peakY * Tween.OutCubic(k);
+                        x = 0f;
+                        rt.anchoredPosition = p0 + new Vector2(x, y);
+                        rt.localScale = Vector3.one * (k < 0.17f ? 1f : 1f + 0.04f * (k - 0.17f));
+                        t.rectTransform.localScale = Vector3.one * sc;
+                        return;
+                    }
+                    case Tx.Buff:
+                        sc = k < 0.1f ? Mathf.Lerp(0.5f, 1.14f, Tween.OutCubic(k / 0.1f)) : k < 0.2f ? Mathf.Lerp(1.14f, 1f, (k - 0.1f) / 0.1f) : 1f;
+                        y = peakY * Tween.OutCubic(k);
+                        ic.color = Color.white.A(a);
+                        break;
+                    case Tx.Hit:
+                        sc = k < 0.1f ? Mathf.Lerp(0.6f, 1.2f, Tween.OutCubic(k / 0.1f)) : k < 0.22f ? Mathf.Lerp(1.2f, 1f, (k - 0.1f) / 0.12f) : 1f;
+                        y = peakY * (k < 0.55f ? Tween.OutCubic(k / 0.55f) : 1f - 0.12f * Tween.InCubic((k - 0.55f) / 0.45f));
+                        break;
+                    default:
+                        sc = k < 0.12f ? Mathf.Lerp(1.7f, 0.95f, Tween.OutCubic(k / 0.12f)) : k < 0.24f ? Mathf.Lerp(0.95f, 1.05f, (k - 0.12f) / 0.12f) : 1f;
+                        y = peakY * (k < 0.55f ? Tween.OutCubic(k / 0.55f) : 1f - 0.1f * Tween.InCubic((k - 0.55f) / 0.45f));
+                        break;
+                }
+                rt.anchoredPosition = p0 + new Vector2(x, y);
                 rt.localScale = Vector3.one * sc;
-                t.color = c.A(k < 0.68f ? 1f : 1f - (k - 0.68f) / 0.32f);
+                rt.localRotation = Quaternion.Euler(0, 0, tilt * Mathf.Clamp01(1f - k * 1.5f) + tilt * 0.35f);
+                t.color = Color.white.A(a);
             });
+            t.rectTransform.localScale = Vector3.one;
+            if (kind == Tx.Skill) bkRt.localScale = new Vector3(0f, 0.7f, 1f);
         }
 
         /// <summary>跟随世界坐标的常驻小字（精英/首领头顶血条层数），调用方每帧 Place、用完自己 Destroy。</summary>
@@ -895,6 +1352,31 @@ namespace Liangshan
             rt.pivot = align == TextAnchor.MiddleCenter ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
             return t;
         }
+
+        /// <summary>英雄头顶的增益角标：深色胶囊 + 上升箭头 + 层数。调用方每帧 Place、自己管显隐。</summary>
+        public RectTransform Badge(Color c, out Text label)
+        {
+            var rt = Ui.Rect(_textLayer, "badge");
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.sizeDelta = new Vector2(118, 50);
+            Ui.Box(rt, new Vector2(118, 50), Vector2.zero, new Color(0.10f, 0.06f, 0.03f, 0.8f), Art.Pill, "bg");
+            var ic = Ui.Box(rt, new Vector2(38, 38), new Vector2(-33, 1), Color.white, Art.UpArrow, "ic");
+            ic.type = Image.Type.Simple;
+            ic.preserveAspect = true;
+            label = Ui.Label(rt, "", 40, Color.white, new Vector2(16, 0), new Vector2(100, 60), TextAnchor.MiddleCenter, Fonts.Number, "n");
+            label.horizontalOverflow = HorizontalWrapMode.Overflow;
+            var cs = label.gameObject.AddComponent<CrispStroke>();
+            cs.UseGradient = true;
+            cs.TopColor = Color.Lerp(c, Color.white, 0.72f);
+            cs.BottomColor = c;
+            cs.Color = Pal.Hex("3A2200");
+            cs.Radius = 2.4f;
+            rt.SetAsFirstSibling();
+            return rt;
+        }
+
+        public static void Place(RectTransform rt, Vector2 world) =>
+            rt.anchoredPosition = new Vector2(world.x * 100f, -Ui.FromTop(world.y));
 
         public static void Place(Text t, Vector2 world) =>
             t.rectTransform.anchoredPosition = new Vector2(world.x * 100f, -Ui.FromTop(world.y));

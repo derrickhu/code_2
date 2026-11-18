@@ -100,8 +100,19 @@ namespace Liangshan
             // 左侧统一雕花品质方框图标
             var iconPos = new Vector2(-size.x * 0.5f + 104, size.y * 0.5f - 84);
             Slot(card, sk, 136, iconPos);
-            Ui.Icon(card, CurIcon(it), 100, iconPos + new Vector2(0, 2));
-            if (it.Cur == Cur.Shard) Ui.Icon(card, "ic_shard", 42, iconPos + new Vector2(-38, 38));
+            if (it.Cur == Cur.Shard)
+            {
+                var mask = Ui.Rect(card, "bustMask");
+                mask.sizeDelta = Vector2.one * 104f;
+                mask.anchoredPosition = iconPos + new Vector2(0, 1);
+                mask.gameObject.AddComponent<RectMask2D>();
+                Ui.Icon(mask, CurIcon(it), 126, new Vector2(0, -14));
+                Ui.Icon(card, "ic_shard", 42, iconPos + new Vector2(-38, 38));
+            }
+            else
+            {
+                Ui.Icon(card, CurIcon(it), 96, iconPos + new Vector2(0, 2));
+            }
 
             Ui.Outlined(card, CurName(it), 40, Color.white, new Vector2(56, size.y * 0.5f - 62), new Vector2(450, 52), strokeCol, 2.4f, TextAnchor.MiddleLeft);
             Ui.Outlined(card, it.Cur == Cur.Shard ? "好汉碎片" : "道具", 26, Color.white, new Vector2(56, size.y * 0.5f - 110), new Vector2(450, 38), strokeCol, 1.8f, TextAnchor.MiddleLeft);
@@ -141,11 +152,11 @@ namespace Liangshan
                 r.sizeDelta = new Vector2(876, rowH - 8);
                 string rSkin = sel ? "row_claim" : open ? "row" : "row_done";
                 var face = Ui.Skin(r, rSkin, new Vector2(876, rowH - 8), Vector2.zero, 0.85f);
-                var bd = Defs.Enemy(st.BossKind);
+                var bd = Defs.Enemy(st.LeaderKind);
                 var ic = Ui.Icon(r, bd.Art, rowH - 22, new Vector2(-376, 0));
                 if (!open) ic.color = new Color(0.28f, 0.30f, 0.34f, 0.75f);
                 Ui.Label(r, $"{n}. {st.Name}", 31, open ? WarmTitle : WarmSub, new Vector2(-108, 15), new Vector2(400, 42), TextAnchor.MiddleLeft, Fonts.Heavy);
-                Ui.Label(r, st.IsChapterBoss ? $"章节首领 · {bd.Name}" : $"{st.Waves} 波 · 首领 {bd.Name}", 23, WarmSub, new Vector2(-108, -22), new Vector2(400, 34), TextAnchor.MiddleLeft, Fonts.Heavy);
+                Ui.Label(r, st.IsChapterBoss ? $"章节首领 · {bd.Name}" : $"{st.Waves} 波 · 统领 {bd.Name}", 23, WarmSub, new Vector2(-108, -22), new Vector2(400, 34), TextAnchor.MiddleLeft, Fonts.Heavy);
                 if (open)
                     for (int k = 0; k < 3; k++)
                     {
@@ -208,7 +219,7 @@ namespace Liangshan
                 string boxSlot = k == 2 ? "slot_orange" : k == 1 ? "slot_blue" : "slot_wood";
                 var sl = Slot(c, boxSlot, 148, new Vector2(0, 18));
                 if (got) sl.color = new Color(0.84f, 0.84f, 0.84f, 0.85f);
-                var ic = Ui.Icon(c, got ? "ic_chest_open" : ChestArt(k), 124, new Vector2(0, 22));
+                var ic = Ui.Icon(c, got ? "ic_chest_open" : ChestArt(k), 106, new Vector2(0, 20));
                 Ui.Label(c, $"{Meta.ChestStars[k]} 星", 28, can ? Pal.Hex("B85C08") : WarmTitle, new Vector2(0, -82), new Vector2(160, 36), TextAnchor.MiddleCenter, Fonts.Heavy);
                 if (got) Check(c, new Vector2(46, -28), 38);
                 if (can)
@@ -299,7 +310,7 @@ namespace Liangshan
             up.sizeDelta = new Vector2(880, 180);
             Ui.Skin(up, "row", new Vector2(880, 180), Vector2.zero);
             Slot(up, "slot_wood", 130, new Vector2(-360, 10));
-            Ui.Icon(up, "ic_page", 110, new Vector2(-360, 12));
+            Ui.Icon(up, "ic_page", 94, new Vector2(-360, 12));
             Ui.Label(up, $"每级：{Defs.LordSkillName}伤害 +{Meta.PageLord * 100:0}%，全军伤害 +{Meta.PageDmg * 100:0.#}%", 26, Pal.Ink, new Vector2(-40, 46), new Vector2(520, 40), TextAnchor.MiddleLeft, Fonts.Heavy);
             Ui.Label(up, $"当前：剑气 +{S.PageLv * Meta.PageLord * 100:0}%，全军 +{S.PageLv * Meta.PageDmg * 100:0.#}%", 24, Pal.SubInk, new Vector2(-40, 6), new Vector2(520, 36), TextAnchor.MiddleLeft);
             if (S.PageLv < Meta.PageMax)
@@ -458,7 +469,7 @@ namespace Liangshan
             Modal(layer, "gearbox", "开启装备箱", new Vector2(860, 820), out var p, Pal.Hex("3A6A9A"));
             Ui.Box(p, new Vector2(360, 360), new Vector2(0, 170), QualityColor(g.Quality).A(0.5f), Art.SoftDot);
             Slot(p, QualitySlot(g.Quality), 230, new Vector2(0, 170));
-            var ic = Ui.Icon(p, e.Icon, 180, new Vector2(0, 174));
+            var ic = Ui.Icon(p, e.Icon, 162, new Vector2(0, 172));
             Tween.Pop(ic.transform, 0.4f, 0.1f);
             var qc = QualityColor(g.Quality);
             Ui.Outlined(p, $"{Meta.QualityName[g.Quality]} · {e.Name}", 46, qc, new Vector2(0, 0), new Vector2(700, 60), Pal.Ink, 3f);
@@ -535,7 +546,11 @@ namespace Liangshan
                 r.anchoredPosition = new Vector2(0, -70 - i * rowH);
                 Ui.Skin(r, lv >= Meta.MaxHeroLv ? "row_done" : "row", new Vector2(876, 126), Vector2.zero);
                 Slot(r, RaritySlot(d.Rarity), 96, new Vector2(-372, 1));
-                Ui.Icon(r, d.Art, 84, new Vector2(-372, 4));
+                var mask = Ui.Rect(r, "bustMask");
+                mask.sizeDelta = Vector2.one * 74f;
+                mask.anchoredPosition = new Vector2(-372, 2);
+                mask.gameObject.AddComponent<RectMask2D>();
+                Ui.Icon(mask, d.Art, 92, new Vector2(0, -10));
                 Ui.Label(r, $"{d.Name}  Lv.{lv}", 29, WarmTitle, new Vector2(-132, 26), new Vector2(310, 38), TextAnchor.MiddleLeft, Fonts.Heavy);
                 Bar(r, new Vector2(-178, -22), new Vector2(216, 22), Mathf.Clamp01(S.Shards[(int)h] / (float)Mathf.Max(1, need)), Pal.Azure, $"{S.Shards[(int)h]}/{need}");
                 Ui.Label(r, halfLeft > 0 ? $"本周半价剩 {halfLeft} 片" : "原价兑换", 21, halfLeft > 0 ? Pal.GreenDeep : WarmSub,

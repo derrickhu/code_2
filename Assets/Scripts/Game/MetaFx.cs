@@ -207,25 +207,45 @@ namespace Liangshan
             return r;
         }
 
-        /// <summary>六边形技能图标：金框，史诗紫底、传说橙底，锁定发灰。</summary>
+        /// <summary>六边形技能图标：金框内嵌对应品质底色（稀有蓝、史诗紫、传说橙，锁定暗灰），图标居中收在框内绝不压边。</summary>
         public static RectTransform Hex(Transform p, string icon, float size, Vector2 pos, bool locked = false, int rarity = 2)
         {
+            float h = size * (253f / 220f);
             var r = Ui.Rect(p, "hex");
             r.anchoredPosition = pos;
-            r.sizeDelta = new Vector2(size, size * 1.15f);
-            var f = Ui.Box(r, new Vector2(size, size * 1.15f), Vector2.zero, locked ? new Color(0.45f, 0.47f, 0.52f) : Color.white, Art.Img("ui/hex"), "frame");
+            r.sizeDelta = new Vector2(size, h);
+            var f = Ui.Box(r, new Vector2(size, h), Vector2.zero, locked ? new Color(0.45f, 0.47f, 0.52f) : Color.white, Art.Img("ui/hex"), "frame");
             f.type = Image.Type.Simple;
-            if (!locked && rarity >= 3)
-            {
-                var inner = Ui.Box(r, new Vector2(size * 0.94f, size * 0.81f), Vector2.zero, MetaUi.RarityColor(rarity).Mul(1.1f), Art.Hex6, "inner");
-                inner.rectTransform.localRotation = Quaternion.Euler(0, 0, 90);
-                Ui.Box(r, Vector2.one * size * 0.6f, new Vector2(0, size * 0.05f), Color.white.A(0.3f), Art.SoftDot, "shine");
-            }
-            var ic = Ui.Icon(r, icon, size * 0.62f, new Vector2(0, 2), "icon");
+
+            Color bgCol = locked ? Pal.Hex("4E5562")
+                : rarity >= 5 ? Pal.Hex("E26452")
+                : rarity == 4 ? Pal.Hex("EA9B3E")
+                : rarity == 3 ? Pal.Hex("9E6AE8")
+                : Pal.Hex("74B8E8");
+            var window = Ui.Rect(r, "window");
+            window.sizeDelta = new Vector2(size, h);
+            window.anchoredPosition = Vector2.zero;
+            var maskImg = window.gameObject.AddComponent<Image>();
+            maskImg.sprite = Art.HexInner;
+            maskImg.type = Image.Type.Simple;
+            maskImg.color = bgCol;
+            maskImg.raycastTarget = false;
+            var mask = window.gameObject.AddComponent<Mask>();
+            mask.showMaskGraphic = true;
+
+            var sp = Art.Img(icon);
+            float tw = sp != null ? Mathf.Max(1f, sp.rect.width) : 1f;
+            float th = sp != null ? Mathf.Max(1f, sp.rect.height) : 1f;
+            float u0 = tw * 0.5f, v0 = th * 0.5f;
+            float hwSafe = size * 0.33f, hhSafe = size * 0.35f;
+            float uEff = tw / th < 0.50f ? u0 * 0.35f : u0;
+            float scale = Mathf.Min(Mathf.Min(hwSafe / u0, hhSafe / v0), hwSafe / (0.5f * uEff + 0.8660254f * v0));
+            var ic = Ui.Icon(window, icon, 8f, new Vector2(0f, size * 0.005f), "icon");
+            ic.rectTransform.sizeDelta = new Vector2(tw * scale, th * scale);
             if (locked)
             {
-                ic.color = new Color(0.35f, 0.36f, 0.4f, 0.9f);
-                Ui.Icon(r, "ic_lock", size * 0.42f, new Vector2(0, -4), "lock");
+                ic.color = new Color(0.40f, 0.42f, 0.48f, 0.90f);
+                Ui.Icon(r, "ic_lock", size * 0.36f, new Vector2(0, -2f), "lock");
             }
             return r;
         }

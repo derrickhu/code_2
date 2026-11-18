@@ -21,7 +21,8 @@ namespace Liangshan
         Text _sumLabel, _sumCost, _enhLabel, _enhCost;
         Image _hpFill, _hpGhost, _speedHex, _sumGlow, _enhGlow;
         Image _enhRim, _enhFace, _enhBevel, _sumRim, _sumFace, _sumBevel;
-        Vector3 _bookBaseScale = Vector3.one;
+        Vector3 _bookBaseScale = Vector3.one, _bookBasePos;
+        float _bookLitK;
         RectTransform _coinPill, _sumBtn, _enhBtn, _hpBar, _wavePill;
         RectTransform _gm, _gmPanel;
         bool _bossAlive;
@@ -35,7 +36,7 @@ namespace Liangshan
         string _perkSig = "";
         HeroId _perkHero;
         float _shownHp = 1f, _ghostHp = 1f;
-        int _shownCoins;
+        int _shownCoins, _coinInFlight;
         Image[] _rage;
         float _rageT;
 
@@ -253,7 +254,11 @@ namespace Liangshan
             _coins = Ui.Outlined(_coinPill, "100", 36, Color.white, new Vector2(28, 1), new Vector2(132, 50), Pal.Hex("0C1622"), 2.5f);
 
             // 底部按钮：严格镜像对称，上下分栏铭牌，价格字号全栏统一 36 号。
-            if (_v.Book) _bookBaseScale = _v.Book.localScale;
+            if (_v.Book)
+            {
+                _bookBaseScale = _v.Book.localScale;
+                _bookBasePos = _v.Book.localPosition;
+            }
             _enhBtn = BottomButton(-304, "强化", out _enhLabel, out _enhCost, out _enhGlow, out _enhRim, out _enhFace, out _enhBevel, () => TryEnhance(), _v.Book);
             _sumBtn = BottomButton(304, "召唤", out _sumLabel, out _sumCost, out _sumGlow, out _sumRim, out _sumFace, out _sumBevel, () => TrySummon(), _v.Drum);
 
@@ -313,7 +318,11 @@ namespace Liangshan
             lbl.resizeTextForBestFit = false;
             Ui.Tap(hitImg, () =>
             {
-                if (prop) Tween.Punch(prop, 0.18f, 0.08f);
+                if (prop)
+                {
+                    if (prop == _v.Book) prop.localScale = _bookBaseScale;
+                    Tween.Punch(prop, 0.18f, 0.08f);
+                }
                 onTap();
             }, b, false);
             return b;
@@ -347,7 +356,7 @@ namespace Liangshan
                 Say("城墙站满了\n拖动相同好汉合成");
                 return;
             }
-            if (B.Coins < B.SummonCost)
+            if (B.SpendableCoins < B.SummonCost)
             {
                 Sfx.Play(Snd.Deny);
                 Tween.Punch(_coinPill, 0.2f, 0.15f);
@@ -370,7 +379,7 @@ namespace Liangshan
                 ShowEnhanceNeed();
                 return;
             }
-            if (B.Coins < B.EnhanceCost)
+            if (B.SpendableCoins < B.EnhanceCost)
             {
                 Sfx.Play(Snd.Deny);
                 Tween.Punch(_coinPill, 0.2f, 0.15f);
@@ -483,8 +492,24 @@ namespace Liangshan
                 if (show) RefreshStats();
             }
 
-            _shownCoins = (int)Mathf.MoveTowards(_shownCoins, B.Coins, Mathf.Max(1, Mathf.Abs(B.Coins - _shownCoins) * 8f * dt + 1));
+            if (B.Phase == Phase.Victory || B.Phase == Phase.Defeat)
+            {
+                _coinInFlight = 0;
+                B.FlushHeldCoins();
+                _shownCoins = Mathf.Max(0, B.Coins);
+            }
+            else
+            {
+                int coinTarget = Mathf.Max(0, B.Coins - _coinInFlight);
+                int coinGap = coinTarget - _shownCoins;
+                if (coinGap < 0)
+                {
+                    float step = Mathf.Max(1f, -coinGap * 14f * dt);
+                    _shownCoins = (int)Mathf.MoveTowards(_shownCoins, coinTarget, step);
+                }
+            }
             _coins.text = Ui.Num(_shownCoins);
+            _coins.color = Color.white;
 
             float hp = B.WallMax > 0 ? Mathf.Clamp01(B.Wall / B.WallMax) : 0;
             _shownHp = Mathf.MoveTowards(_shownHp, hp, dt * 2f);
@@ -494,26 +519,7 @@ namespace Liangshan
             _hpFill.color = hp > 0.5f ? Pal.Hex("45C531") : hp > 0.25f ? Pal.Hex("E8B830") : Pal.Hex("E2483A");
             _hpText.text = Mathf.CeilToInt(B.Wall).ToString();
 
-            bool canSum = B.CanSummon;
-            _sumCost.text = Ui.Num(B.SummonCost);
-            _sumCost.color = canSum ? Color.white : B.Coins >= B.SummonCost ? Pal.Hex("AFC2D4") : Pal.Hex("FF5C52");
-            _sumRim.color = canSum ? Pal.Hex("E8C060") : Pal.Hex("5A7692");
-            _sumFace.color = canSum ? Pal.Hex("182D44") : Pal.Hex("152436");
-            _sumBevel.color = canSum ? Pal.Hex("2D5278") : Pal.Hex("223850");
-            _sumLabel.color = canSum ? Pal.Hex("FFE68A") : Pal.Hex("DCEAF8");
-            _sumGlow.color = Pal.Gold.A(canSum ? 0.22f + 0.12f * Mathf.Sin(Time.unscaledTime * 5f) : 0);
-
-            bool canEnh = B.CanEnhance && SummonedEnough();
-            _enhCost.text = Ui.Num(B.EnhanceCost);
-            _enhCost.color = canEnh ? Color.white : B.Coins >= B.EnhanceCost ? Pal.Hex("AFC2D4") : Pal.Hex("FF5C52");
-            _enhRim.color = canEnh ? Pal.Hex("E8C060") : Pal.Hex("5A7692");
-            _enhFace.color = canEnh ? Pal.Hex("182D44") : Pal.Hex("152436");
-            _enhBevel.color = canEnh ? Pal.Hex("2D5278") : Pal.Hex("223850");
-            _enhLabel.color = canEnh ? Pal.Hex("FFE68A") : Pal.Hex("DCEAF8");
-            _enhGlow.color = Pal.Gold.A(canEnh ? 0.22f + 0.12f * Mathf.Sin(Time.unscaledTime * 5f) : 0);
-            if (_v.Book)
-                _v.Book.localScale = _bookBaseScale * (canEnh ? 1f + 0.045f * Mathf.Sin(Time.unscaledTime * 5.5f) : 1f);
-            _leaderText.text = B.Slots.Count >= Layout.MaxSlots ? "已满" : $"{Defs.SummonsPerSlot - B.SummonsToNextSlot}/{Defs.SummonsPerSlot}";
+            RefreshSummonEnhance();
             float cd = Mathf.Max(0.5f, B.LordDur);
             // 满圈（正好 1）时径向填充的网格会粘住，下一轮不再转。停在 0.999。
             float charge = Mathf.Clamp(1f - B.LordT / cd, 0f, 0.999f);
@@ -593,7 +599,86 @@ namespace Liangshan
             Tween.Punch(_hpBar, 0.12f, 0.025f);
         }
 
-        public void PunchCoins() => Tween.Punch(_coinPill, 0.12f, 0.08f);
+        public void PunchCoins() => Tween.Punch(_coinPill, 0.16f, 0.12f);
+
+        bool BattleOver => B != null && (B.Phase == Phase.Victory || B.Phase == Phase.Defeat);
+
+        /// <summary>银币离手：账上先挂住，数字先别涨，也不能拿去花。</summary>
+        public void HoldCoin(int amount)
+        {
+            if (amount <= 0 || BattleOver) return;
+            _coinInFlight += amount;
+            B.HoldCoins(amount);
+        }
+
+        /// <summary>银币落到银币点：这一下就入账，数字跟上，召唤和强化马上能花。</summary>
+        public void ArriveCoin(int amount)
+        {
+            if (amount <= 0 || BattleOver) return;
+            _coinInFlight = Mathf.Max(0, _coinInFlight - amount);
+            B.ReleaseCoins(amount);
+            SnapSpendableCoins();
+            if (_coinPill) Tween.Punch(_coinPill, 0.2f, 0.16f);
+        }
+
+        /// <summary>飞不动了的银币：不飘，直接入账。</summary>
+        public void QueueCoin(int amount)
+        {
+            if (amount <= 0 || BattleOver) return;
+            SnapSpendableCoins();
+            PunchCoins();
+        }
+
+        /// <summary>把左下角余额拨到当前能花的数，并立刻重刷召唤、强化。</summary>
+        void SnapSpendableCoins()
+        {
+            _shownCoins = Mathf.Max(0, B.Coins - _coinInFlight);
+            if (_coins)
+            {
+                _coins.text = Ui.Num(_shownCoins);
+                _coins.color = Color.white;
+            }
+            RefreshSummonEnhance();
+        }
+
+        void RefreshSummonEnhance()
+        {
+            bool canSum = B.CanSummon;
+            _sumCost.text = Ui.Num(B.SummonCost);
+            _sumCost.color = canSum ? Color.white : B.SpendableCoins >= B.SummonCost ? Pal.Hex("AFC2D4") : Pal.Hex("FF5C52");
+            _sumRim.color = canSum ? Pal.Hex("E8C060") : Pal.Hex("5A7692");
+            _sumFace.color = canSum ? Pal.Hex("182D44") : Pal.Hex("152436");
+            _sumBevel.color = canSum ? Pal.Hex("2D5278") : Pal.Hex("223850");
+            _sumLabel.color = canSum ? Pal.Hex("FFE68A") : Pal.Hex("DCEAF8");
+            _sumGlow.color = Pal.Gold.A(canSum ? 0.22f + 0.12f * Mathf.Sin(Time.unscaledTime * 5f) : 0);
+
+            bool canEnh = B.CanEnhance && SummonedEnough();
+            _enhCost.text = Ui.Num(B.EnhanceCost);
+            _enhCost.color = canEnh ? Color.white : B.SpendableCoins >= B.EnhanceCost ? Pal.Hex("AFC2D4") : Pal.Hex("FF5C52");
+            _enhRim.color = canEnh ? Pal.Hex("E8C060") : Pal.Hex("5A7692");
+            _enhFace.color = canEnh ? Pal.Hex("182D44") : Pal.Hex("152436");
+            _enhBevel.color = canEnh ? Pal.Hex("2D5278") : Pal.Hex("223850");
+            _enhLabel.color = canEnh ? Pal.Hex("FFE68A") : Pal.Hex("DCEAF8");
+            _enhGlow.color = Pal.Gold.A(canEnh ? 0.22f + 0.12f * Mathf.Sin(Time.unscaledTime * 5f) : 0);
+            if (_v.Book)
+            {
+                _bookLitK = Mathf.MoveTowards(_bookLitK, canEnh ? 1f : 0f, Time.unscaledDeltaTime * 5.5f);
+                float breath = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 3.2f);
+                if (!Tween.IsPunching(_v.Book))
+                    _v.Book.localScale = _bookBaseScale * (1f + _bookLitK * (0.012f + 0.024f * breath));
+                _v.Book.localPosition = _bookBasePos + new Vector3(0f, _bookLitK * 0.025f * (breath - 0.5f), 0f);
+                if (_v.BookLit)
+                    _v.BookLit.color = Color.white.A(_bookLitK * (0.86f + 0.14f * breath));
+                if (_v.BookAura)
+                {
+                    _v.BookAura.color = Pal.Hex("5CF2FF").A(_bookLitK * (0.14f + 0.16f * breath));
+                    float asx = 0.78f + 0.14f * breath;
+                    float asy = 0.52f + 0.10f * breath;
+                    _v.BookAura.transform.localScale = new Vector3(asx, asy, 1f);
+                }
+            }
+            _leaderText.text = B.Slots.Count >= Layout.MaxSlots ? "已满" : $"{Defs.SummonsPerSlot - B.SummonsToNextSlot}/{Defs.SummonsPerSlot}";
+        }
 
         /// <summary>波次自然连续演进，仅静默更新顶部「波次：X/10」，绝不弹出任何波次大字或倒计时框。</summary>
         public void OnWave(int w) { }
@@ -1136,9 +1221,9 @@ namespace Liangshan
                 float s = spd * Defs.StarSpeed[u.Star - 1] * (1f + B.ChargeAura);
                 t.Name = d.AtkName;
                 t.Cd = d.Interval;
-                t.Cut = d.Interval - B.SkillCd(h) / s;
+                t.Cut = d.Interval - B.SkillCd(h) * (1f - StarTraits.Fx(d, u.Star).Cd) / s;
                 t.Lv = u.Star;
-                t.Desc = HeroText.Atk(d, B, panelAtk) + "\n<color=#8E9BAC>" + HeroText.Tip(d) + "</color>";
+                t.Desc = HeroText.Atk(d, B, panelAtk, u.Star) + "\n<color=#8E9BAC>" + HeroText.Tip(d) + "</color>";
             }
             else if (tab == 1)
             {
@@ -1161,9 +1246,10 @@ namespace Liangshan
             }
             else if (tab == 2)
             {
+                int pNeed = Meta.PassiveUnlock(h);
                 t.Name = d.PassiveName;
-                t.Locked = !B.Lo.Passive[(int)h];
-                t.Desc = HeroText.Passive(d) + (t.Locked ? "\n<color=#8E9BAC>好汉升到 10 级解锁</color>" : "");
+                t.Locked = B.Lo.Lv[(int)h] < pNeed && !B.Lo.Passive[(int)h];
+                t.Desc = HeroText.Passive(d) + (t.Locked ? $"\n<color=#8E9BAC>好汉升到 {pNeed} 级解锁</color>" : "");
             }
             else if (tab == 4)
             {
@@ -1629,106 +1715,250 @@ namespace Liangshan
             });
         }
 
-        // ---------------- 老虎机 ----------------
+        // ---------------- 老虎机（对标《永远的蔚蓝星球》木匣滚轮 + 顶部横向清晰奖励卡） ----------------
 
-        static string ReelIcon(Reel r) => r == Reel.Silver ? "ic_silver" : "prop_book";
-        static string ReelName(Reel r) => r == Reel.Silver ? "银两" : "好汉强化";
+        string RandomReelArt()
+        {
+            if (UnityEngine.Random.value < 0.55f || B.Lineup == null || B.Lineup.Length == 0) return "ic_silver";
+            return Defs.Hero(B.Lineup[UnityEngine.Random.Range(0, B.Lineup.Length)]).Art;
+        }
+
+        string FinalReelArt(Reel[] r, int idx)
+        {
+            if (r == null || idx < 0 || idx >= r.Length || r[idx] == Reel.Silver) return "ic_silver";
+            var heroes = B.ReelCellHeroes;
+            var h = heroes != null && idx < heroes.Length ? heroes[idx] : B.Lineup[0];
+            return Defs.Hero(h).Art;
+        }
 
         void OpenReels()
         {
-            var c = OpenModal("reels", 0.78f);
+            var c = OpenModal("reels", 0.74f);
             int cnt = B.ReelCount;
             bool gold5 = cnt >= 5;
-            var panel = Ui.Panel(c, new Vector2(gold5 ? 980 : 940, 740), new Vector2(0, -24), "reelPanel");
-            Ui.Icon(c, gold5 ? "ic_chest_gold" : "ic_chest_open", 216, new Vector2(0, 412));
-            Ui.Ribbon(c, gold5 ? "黄金生辰纲" : "智取生辰纲", new Vector2(0, 314), 600, gold5 ? Pal.Gold : (Color?)null);
-            string ruleText = B.NextIsJackpot ? $"击败首领，必中{cnt}格相同大奖！" : $"{cnt}格相同 奖励翻倍！";
-            Ui.Label(panel, ruleText, 34, Pal.SubInk, new Vector2(0, 224), new Vector2(840, 50), TextAnchor.MiddleCenter, Fonts.Heavy);
+
+            bool canClose = false, usedLucky = false;
+            Reel[] r = null;
+
+            Action collect = () =>
+            {
+                if (!canClose || _modalKind != "reels") return;
+                _modalKind = "collecting";
+                int gainedSilver = r != null ? B.ReelSilverOf(r) : 0;
+                CloseModal(() =>
+                {
+                    B.ApplyReels(r);
+                    if (gainedSilver > 0) QueueCoin(gainedSilver);
+                });
+                Sfx.Play(Snd.Coin, 0.8f);
+            };
+
+            // 全屏空白处点击关闭层（停轮展示完奖励后生效）
+            var bgTap = Ui.Fill(c, Color.clear, true, "tapBlank");
+            Ui.Tap(bgTap.GetComponent<Graphic>(), collect, null, false);
+
+            // 上半区：停轮后弹出的横向白底金头奖励详情卡容器 + 特效层
+            var fxLayer = Ui.Rect(c, "reelFx");
+            fxLayer.sizeDelta = new Vector2(1080, 1920);
+            var cardsLayer = Ui.Rect(c, "reelCards");
+            cardsLayer.sizeDelta = new Vector2(1080, 1920);
+
+            // 中下区：古风木架赤金摇奖机箱体（不再用大白板盖住滚轮，也不让大字糊标题）
+            var machine = Ui.Rect(c, "reelMachine");
+            machine.anchoredPosition = new Vector2(0, -136);
+            float mw = gold5 ? 984f : 908f;
+            const float mh = 316f;
+            machine.sizeDelta = new Vector2(mw, mh + 96f);
+            Ui.Fill(machine, Color.clear, true, "eatMachine");
+
+            // 上下木质横梁与立柱底座（还原参考图厚实木匣造型）
+            foreach (float sx in new[] { -mw * 0.36f, mw * 0.36f })
+            {
+                Ui.Box(machine, new Vector2(104, mh + 92), new Vector2(sx, 0), Pal.Hex("4A2E16"), Art.RoundedSmall);
+                Ui.Box(machine, new Vector2(94, mh + 82), new Vector2(sx, 0), Pal.Hex("9E7244"), Art.RoundedSmall);
+            }
+            foreach (float by in new[] { mh * 0.5f + 22f, -mh * 0.5f - 22f })
+            {
+                Ui.Box(machine, new Vector2(mw - 36f, 58f), new Vector2(0, by - 4f), Pal.Shadow, Art.RoundedSmall);
+                Ui.Box(machine, new Vector2(mw - 36f, 56f), new Vector2(0, by), Pal.Hex("4A2E16"), Art.RoundedSmall);
+                Ui.Box(machine, new Vector2(mw - 46f, 46f), new Vector2(0, by), Pal.Hex("B58552"), Art.RoundedSmall);
+            }
+
+            // 赤褐金边滚轮主箱体
+            Ui.Box(machine, new Vector2(mw + 8f, mh + 10f), new Vector2(0, -8f), Pal.Shadow, Art.Rounded);
+            Ui.Box(machine, new Vector2(mw, mh), Vector2.zero, Pal.Hex("4E221C"), Art.Rounded);
+            Ui.Box(machine, new Vector2(mw - 10f, mh - 10f), Vector2.zero, gold5 ? Pal.Hex("A84B3E") : Pal.Hex("8E4239"), Art.Rounded);
+            Ui.Box(machine, new Vector2(mw - 28f, mh - 28f), Vector2.zero, Pal.Hex("682922"), Art.Rounded);
+
             var icons = new Image[cnt];
-            var names = new Text[cnt];
+            var peekTops = new Image[cnt];
+            var peekBots = new Image[cnt];
             var windows = new RectTransform[cnt];
-            float step = gold5 ? 176f : 210f;
-            float cellW = gold5 ? 162f : 190f;
+            float step = gold5 ? 178f : 202f;
+            float cellW = gold5 ? 160f : 182f;
+            const float cellH = 242f;
             for (int i = 0; i < cnt; i++)
             {
                 float x = (i - (cnt - 1) * 0.5f) * step;
-                var w = Ui.Rect(panel, "reel" + i);
-                w.anchoredPosition = new Vector2(x, 40);
-                w.sizeDelta = new Vector2(cellW, 250);
-                Ui.Box(w, new Vector2(cellW + 2, 252), Vector2.zero, gold5 ? Pal.Hex("D8A028") : Pal.Hex("6B8CAE"), Art.Rounded);
-                Ui.Box(w, new Vector2(cellW - 10, 240), Vector2.zero, Pal.Hex("F8F9FB"), Art.Rounded);
-                Ui.Box(w, new Vector2(cellW - 10, 48), new Vector2(0, 96), new Color(0.08f, 0.14f, 0.22f, 0.06f), Art.Rounded);
-                Ui.Box(w, new Vector2(cellW - 10, 48), new Vector2(0, -96), new Color(0.08f, 0.14f, 0.22f, 0.06f), Art.Rounded);
-                icons[i] = Ui.Icon(w, ReelIcon(i % 2 == 0 ? Reel.Silver : Reel.Perk), gold5 ? 120 : 140, new Vector2(0, 10));
-                names[i] = Ui.Label(w, "", gold5 ? 26 : 30, Pal.Ink, new Vector2(0, -92), new Vector2(cellW - 8, 44), TextAnchor.MiddleCenter, Fonts.Heavy);
+                var w = Ui.Rect(machine, "reel" + i);
+                w.anchoredPosition = Vector2.zero + new Vector2(x, 0);
+                w.sizeDelta = new Vector2(cellW, cellH);
+                Ui.Box(w, new Vector2(cellW + 8f, cellH + 8f), Vector2.zero, gold5 ? Pal.Hex("D9A13B") : Pal.Hex("B8893A"), Art.Rounded);
+
+                var drum = Ui.Box(w, new Vector2(cellW - 4f, cellH - 4f), Vector2.zero, Pal.Hex("F5DF74"), Art.Rounded, "drum");
+                drum.raycastTarget = false;
+                var mask = drum.gameObject.AddComponent<Mask>();
+                mask.showMaskGraphic = true;
+
+                // 上下滚轮微露半截相邻图案（对齐参考图真实滚筒质感）
+                peekTops[i] = Ui.Icon(drum.transform, RandomReelArt(), 96, new Vector2(0, 138));
+                peekTops[i].color = new Color(1f, 1f, 1f, 0.88f);
+                peekBots[i] = Ui.Icon(drum.transform, RandomReelArt(), 96, new Vector2(0, -138));
+                peekBots[i].color = new Color(1f, 1f, 1f, 0.88f);
+                icons[i] = Ui.Icon(drum.transform, i % 2 == 0 ? "ic_silver" : RandomReelArt(), 114, Vector2.zero);
+
+                // 上下滚筒弧面暗影
+                var shadeTop = Ui.Box(drum.transform, new Vector2(cellW, 44f), new Vector2(0, cellH * 0.5f - 22f), new Color(0.20f, 0.12f, 0.04f, 0.24f), Art.FadeDown);
+                shadeTop.type = Image.Type.Simple;
+                var shadeBot = Ui.Box(drum.transform, new Vector2(cellW, 44f), new Vector2(0, -cellH * 0.5f + 22f), new Color(0.20f, 0.12f, 0.04f, 0.24f), Art.FadeDown);
+                shadeBot.type = Image.Type.Simple;
+                shadeBot.rectTransform.localScale = new Vector3(1f, -1f, 1f);
+
                 windows[i] = w;
             }
-            var result = Ui.Label(panel, "", 34, Pal.Ink, new Vector2(0, -170), new Vector2(880, 90));
-            RectTransform btn = null, luckyBtn = null;
-            bool spun = false, usedLucky = false;
-            Reel[] r = null;
-            Action collect = () =>
-            {
-                if (_modalKind != "reels") return;
-                _modalKind = "collecting";
-                CloseModal(() => B.ApplyReels(r));
-                Sfx.Play(Snd.Coin, 0.8f);
-            };
+
+            var closeHint = Ui.Outlined(c, "点击空白处关闭", 30, Pal.Hex("E8EEF5"), new Vector2(0, -390), new Vector2(520, 46), Pal.Hex("0E1824"), 2.2f);
+            closeHint.gameObject.SetActive(false);
+
+            RectTransform takeBtn = null, luckyBtn = null;
             Action showAfterSpin = () =>
             {
+                canClose = true;
+                foreach (Transform ch in fxLayer) Destroy(ch.gameObject);
+                foreach (Transform ch in cardsLayer) Destroy(ch.gameObject);
+
                 bool all = Battle.IsAllSame(r);
-                result.text = Summary(r, all);
-                if (all) Jackpot(c);
-                Ui.SetBtnText(btn, "收下");
+                bool big = Battle.IsBigReelWin(r);
+                if (big) Jackpot(fxLayer);
+                BuildReelRewardCards(cardsLayer, r);
+
+                closeHint.gameObject.SetActive(true);
                 bool canLucky = !all && !usedLucky && _v.Auto == null;
-                btn.anchoredPosition = new Vector2(canLucky ? -196 : 0, -456);
-                btn.gameObject.SetActive(true);
-                Tween.Pop(btn, 0.25f);
-                if (luckyBtn) luckyBtn.gameObject.SetActive(canLucky);
-                if (_v.Auto != null) Tween.Run(c, 1.4f, k => { }, collect);
+                if (takeBtn)
+                {
+                    takeBtn.anchoredPosition = new Vector2(canLucky ? -188 : 0, -492);
+                    takeBtn.gameObject.SetActive(canLucky);
+                    if (canLucky) Tween.Pop(takeBtn, 0.22f);
+                }
+                if (luckyBtn)
+                {
+                    luckyBtn.gameObject.SetActive(canLucky);
+                    if (canLucky) Tween.Pop(luckyBtn, 0.22f);
+                }
+                if (_v.Auto != null) Tween.Run(c, 1.2f, k => { }, collect);
             };
-            Action spin = null;
-            spin = () =>
-            {
-                if (spun) { collect(); return; }
-                spun = true;
-                btn.gameObject.SetActive(false);
-                r = B.SpinReels();
-                SpinAnim(icons, names, windows, r, showAfterSpin);
-            };
-            btn = Ui.Btn(c, "开转", new Vector2(330, 114), new Vector2(0, -456), Pal.Orange, () => spin(), 48);
-            luckyBtn = Ui.Btn(c, "必中大奖", new Vector2(350, 114), new Vector2(196, -456), Pal.Gold, () =>
+
+            takeBtn = Ui.Btn(c, "收下", new Vector2(310, 104), new Vector2(-188, -492), Pal.Orange, collect, 42);
+            takeBtn.gameObject.SetActive(false);
+            luckyBtn = Ui.Btn(c, "鸿运重转", new Vector2(340, 104), new Vector2(188, -492), Pal.Gold, () =>
             {
                 if (usedLucky) return;
                 FakeAd("reel_jackpot", () =>
                 {
                     usedLucky = true;
-                    btn.gameObject.SetActive(false);
+                    canClose = false;
+                    closeHint.gameObject.SetActive(false);
+                    takeBtn.gameObject.SetActive(false);
                     luckyBtn.gameObject.SetActive(false);
+                    foreach (Transform ch in fxLayer) Destroy(ch.gameObject);
+                    foreach (Transform ch in cardsLayer) Destroy(ch.gameObject);
                     r = B.SpinReels(true);
-                    SpinAnim(icons, names, windows, r, showAfterSpin);
+                    SpinAnim(icons, peekTops, peekBots, windows, r, showAfterSpin);
                 });
-            }, 42, "ic_ad");
+            }, 38, "ic_ad");
             luckyBtn.gameObject.SetActive(false);
-            Tween.Pop(panel, 0.3f);
-            Sfx.Play(Snd.Jackpot, 0.4f);
-            if (_v.Auto != null) Tween.Run(c, 0.9f, k => { }, () => spin());
+
+            Tween.Pop(machine, 0.26f);
+            Sfx.Play(Snd.Jackpot, 0.38f);
+            // 打开宝箱即自动转动滚轮，利落不拖沓
+            Tween.Run(machine, 0.16f, k => { }, () =>
+            {
+                r = B.SpinReels();
+                SpinAnim(icons, peekTops, peekBots, windows, r, showAfterSpin);
+            });
         }
 
-        string Summary(Reel[] r, bool all)
+        /// <summary>在摇奖机正上方依次弹出横向白底金头奖励卡：左图标 + 右标题与完整词条/银两说明。</summary>
+        void BuildReelRewardCards(RectTransform parent, Reel[] r)
         {
-            var parts = new List<string>();
+            var rows = new List<(string icon, float iconSz, string title, string desc)>();
+            foreach (var p in B.ReelPerks)
+            {
+                var hd = Defs.Hero(p.Hero);
+                string tag = p.Ult ? "（大招）" : "";
+                string cleanDesc = Colorize(p.Desc.Replace("\n", "，"));
+                rows.Add((hd.Art, 114f, $"{hd.Name} · {p.Name}{tag}", cleanDesc));
+            }
             int silver = B.ReelSilverOf(r);
-            if (silver > 0) parts.Add($"银两 <color=#2E9A38>+{silver}</color>");
-            foreach (var p in B.ReelPerks) parts.Add($"{Defs.Hero(p.Hero).Name}·<color=#2E9A38>{p.Name}</color>");
-            return string.Join("   ", parts);
+            if (silver > 0)
+            {
+                int sCnt = Array.FindAll(r, x => x == Reel.Silver).Length;
+                string sTitle = Battle.IsAllSame(r) ? "整箱银两 · 翻倍大奖" : sCnt >= 3 ? "整箱银两" : sCnt == 2 ? "大袋银两" : "钱袋银两";
+                rows.Add(("ic_silver", 92f, sTitle, $"立即获得 <color=#1E9438>+{silver}</color> 枚银两"));
+            }
+            if (rows.Count == 0) return;
+
+            const float cw = 868f;
+            float ch = rows.Count >= 3 ? 126f : 140f;
+            const float gap = 16f;
+            // 从下往上排在摇奖机顶梁与「超爽!!!」上方（底边起于 y = +168，绝不与下方重叠）
+            float baseBottomY = 172f;
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var item = rows[rows.Count - 1 - i];
+                float cy = baseBottomY + ch * 0.5f + i * (ch + gap);
+                var card = Ui.Rect(parent, "rewardCard" + i);
+                card.anchoredPosition = new Vector2(0, cy);
+                card.sizeDelta = new Vector2(cw, ch);
+
+                Ui.Box(card, new Vector2(cw + 8f, ch + 8f), new Vector2(0, -5f), Pal.Shadow, Art.Rounded);
+                Ui.Box(card, new Vector2(cw + 2f, ch + 2f), Vector2.zero, Pal.Hex("DFCFA6"), Art.Rounded);
+                var body = Ui.Box(card, new Vector2(cw - 4f, ch - 4f), Vector2.zero, Pal.Hex("FFFDF7"), Art.Rounded, "body");
+                body.raycastTarget = false;
+                var mask = body.gameObject.AddComponent<Mask>();
+                mask.showMaskGraphic = true;
+
+                // 左侧暖金图标舱
+                const float leftW = 166f;
+                var leftWell = Ui.Box(body.transform, new Vector2(leftW, ch + 8f), new Vector2(-cw * 0.5f + leftW * 0.5f, 0), Pal.Hex("F6D672"), Art.White);
+                leftWell.raycastTarget = false;
+                Ui.Icon(body.transform, item.icon, Mathf.Min(item.iconSz, ch - 16f), new Vector2(-cw * 0.5f + leftW * 0.5f, 0));
+
+                // 右侧标题 + 效果详情
+                float textW = cw - leftW - 48f;
+                float textX = -cw * 0.5f + leftW + 24f + textW * 0.5f;
+                Ui.Label(body.transform, item.title, rows.Count >= 3 ? 29 : 32, Pal.Hex("2B231C"),
+                    new Vector2(textX, ch * 0.22f), new Vector2(textW, 44f), TextAnchor.MiddleLeft, Fonts.Heavy);
+                var desc = Ui.Label(body.transform, item.desc, rows.Count >= 3 ? 23 : 25, Pal.Hex("5A5248"),
+                    new Vector2(textX, -ch * 0.19f), new Vector2(textW, 56f), TextAnchor.MiddleLeft, Fonts.Bold);
+                MetaUi.Fit(desc, 19);
+
+                card.localScale = Vector3.zero;
+                int delayIdx = rows.Count - 1 - i;
+                Tween.Run(card, 0.08f * delayIdx + 0.01f, k => { }, () =>
+                {
+                    if (!card) return;
+                    card.localScale = Vector3.one;
+                    Tween.Pop(card, 0.24f);
+                });
+            }
         }
 
-        void SpinAnim(Image[] icons, Text[] names, RectTransform[] windows, Reel[] r, Action done)
+        void SpinAnim(Image[] icons, Image[] peekTops, Image[] peekBots, RectTransform[] windows, Reel[] r, Action done)
         {
             int cnt = r.Length;
             var stopped = new bool[cnt];
-            float dur = 0.95f + cnt * 0.26f;
+            float dur = 0.78f + cnt * 0.24f;
             float tick = 0;
             var owner = icons[0];
             Tween.Run(owner, dur, k =>
@@ -1736,28 +1966,41 @@ namespace Liangshan
                 float t = k * dur;
                 tick -= Time.unscaledDeltaTime;
                 bool doTick = tick <= 0;
-                if (doTick) tick = 0.06f;
+                if (doTick) tick = 0.055f;
                 for (int i = 0; i < cnt; i++)
                 {
                     if (stopped[i]) continue;
-                    float stopAt = 0.85f + i * 0.28f;
+                    float stopAt = 0.68f + i * 0.24f;
                     if (t >= stopAt)
                     {
                         stopped[i] = true;
-                        icons[i].sprite = Art.Img(ReelIcon(r[i]));
-                        icons[i].rectTransform.anchoredPosition = new Vector2(0, 10);
-                        names[i].text = ReelName(r[i]);
-                        Tween.Punch(windows[i], 0.2f, 0.12f);
+                        string art = FinalReelArt(r, i);
+                        icons[i].sprite = Art.Img(art);
+                        float sz = art == "ic_silver" ? 102f : 118f;
+                        icons[i].rectTransform.sizeDelta = new Vector2(sz, sz);
+                        icons[i].rectTransform.anchoredPosition = Vector2.zero;
+                        peekTops[i].sprite = Art.Img(RandomReelArt());
+                        peekTops[i].rectTransform.anchoredPosition = new Vector2(0, 140f);
+                        peekBots[i].sprite = Art.Img(RandomReelArt());
+                        peekBots[i].rectTransform.anchoredPosition = new Vector2(0, -140f);
+                        Tween.Punch(windows[i], 0.2f, 0.10f);
                         Sfx.Play(Snd.ReelStop, 0.8f);
                         continue;
                     }
                     if (doTick)
                     {
-                        icons[i].sprite = Art.Img(ReelIcon((Reel)UnityEngine.Random.Range(0, 2)));
-                        names[i].text = "";
+                        string spinArt = RandomReelArt();
+                        icons[i].sprite = Art.Img(spinArt);
+                        float sz = spinArt == "ic_silver" ? 100f : 114f;
+                        icons[i].rectTransform.sizeDelta = new Vector2(sz, sz);
+                        peekTops[i].sprite = Art.Img(RandomReelArt());
+                        peekBots[i].sprite = Art.Img(RandomReelArt());
                         if (i == 0) Sfx.Play(Snd.Reel, 0.35f);
                     }
-                    icons[i].rectTransform.anchoredPosition = new Vector2(0, 10 + Mathf.Repeat(t * 1400f, 60f) - 30f);
+                    float scroll = Mathf.Repeat(t * 1500f, 84f) - 42f;
+                    icons[i].rectTransform.anchoredPosition = new Vector2(0, scroll);
+                    peekTops[i].rectTransform.anchoredPosition = new Vector2(0, 138f + scroll);
+                    peekBots[i].rectTransform.anchoredPosition = new Vector2(0, -138f + scroll);
                 }
             }, done);
         }
@@ -1765,12 +2008,12 @@ namespace Liangshan
         void Jackpot(RectTransform c)
         {
             Sfx.Play(Snd.Jackpot);
-            var rays = Ui.Box(c, new Vector2(900, 900), new Vector2(0, 40), Pal.Gold.A(0.5f), Art.SoftDot);
+            var rays = Ui.Box(c, new Vector2(860, 620), new Vector2(0, -80), Pal.Gold.A(0.42f), Art.SoftDot);
             rays.transform.SetAsFirstSibling();
-            var t = Ui.Outlined(c, "超爽!!!", 130, Pal.Hex("FFE15A"), new Vector2(0, 300), new Vector2(800, 180), Pal.Hex("A0360E"), 6f);
-            t.rectTransform.localRotation = Quaternion.Euler(0, 0, 8);
-            Tween.Pop(t.transform, 0.35f);
-            Confetti(c, 40);
+            var t = Ui.Outlined(c, "超爽!!!", 96, Pal.Hex("FFE15A"), new Vector2(0, 74), new Vector2(720, 128), Pal.Hex("982C0C"), 5f);
+            t.rectTransform.localRotation = Quaternion.Euler(0, 0, 4);
+            Tween.Pop(t.transform, 0.32f);
+            Confetti(c, 36);
         }
 
         void Confetti(RectTransform parent, int n)
@@ -2074,7 +2317,7 @@ namespace Liangshan
                     else if (_guide != null) MoveMergeGhost();
                     break;
                 case 2:
-                    if (_guide == null && B.Coins >= B.EnhanceCost && SummonedEnough()) ShowGuide();
+                    if (_guide == null && B.SpendableCoins >= B.EnhanceCost && SummonedEnough()) ShowGuide();
                     break;
             }
             TickHand();

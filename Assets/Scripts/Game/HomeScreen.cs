@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Liangshan.Sim;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Liangshan
@@ -228,6 +229,7 @@ namespace Liangshan
         }
 
         public const float TabH = 156;
+        const int AidPerDay = 5;
 
         void BuildTabs()
         {
@@ -236,13 +238,24 @@ namespace Liangshan
             bar.anchorMax = new Vector2(1, 0);
             bar.sizeDelta = new Vector2(0, TabH);
             bar.anchoredPosition = new Vector2(0, TabH * 0.5f);
-            var under = Ui.Box(bar, new Vector2(1080, TabH), Vector2.zero, Pal.Hex("0E1B2A"), Art.White, "under");
+            var under = Ui.Box(bar, new Vector2(1080, TabH), Vector2.zero, Pal.Hex("243E56"), Art.Rounded, "under");
             Stretch(under.rectTransform);
             under.rectTransform.offsetMin = new Vector2(0, -Ui.SafeBottom - 40);
-            under.rectTransform.offsetMax = new Vector2(0, -40);
+            // 顶边收到普通图标的头顶。选中的盾还会再高出一截，不把底色铺到它上面。
+            under.rectTransform.offsetMax = new Vector2(0, -15);
             under.raycastTarget = true;
-            var plank = Ui.Skin(bar, "h_tabbar", new Vector2(1100, TabH + 20), new Vector2(0, 4), -1f, null, "plank");
-            plank.raycastTarget = true;
+            var mask = under.gameObject.AddComponent<Mask>();
+            mask.showMaskGraphic = true;
+            var lip = Ui.Rect(under.transform, "lip");
+            lip.anchorMin = new Vector2(0f, 1f);
+            lip.anchorMax = new Vector2(1f, 1f);
+            lip.pivot = new Vector2(0.5f, 1f);
+            lip.sizeDelta = new Vector2(0f, 28f);
+            lip.anchoredPosition = Vector2.zero;
+            var lipImg = lip.gameObject.AddComponent<Image>();
+            lipImg.sprite = Art.FadeDown;
+            lipImg.color = Pal.Hex("F4F8FC").A(0.38f);
+            lipImg.raycastTarget = false;
             string[] names = { "商城", "好汉", "出征", "寨主", "山寨" };
             string[] icons = { "tab_shop", "tab_hero", "tab_battle", "tab_forge", "tab_fort" };
             // 降噪原则：当前激活页签不重复挂红点；山寨有可领收益或图鉴新怪时轻提示
@@ -342,9 +355,8 @@ namespace Liangshan
             SideBtn(468, colY + colStep * side++, "tab_sprint", "冲刺", SprintBadge(), () => MetaUi.Sprint(Layer));
             SideBtn(468, colY + colStep * side, "ic_rank_stage", "排行榜", RankBadge(), () => RankUi.Open(Layer, -1, () => Rebuild(false)));
 
-            // 背景台阶下沿在图高 34%：首领站在城门口，脚踩台阶下沿。
-            // 画布留白各不相同，按身体比例缩到同一身高，脚底落在同一条线上。
-            var bd = Defs.Enemy(st.BossKind);
+            // 背景台阶下沿在图高 34%：本关主统领（首领关为大首领，普通关为领军精英统领）站在城门口，脚踩台阶下沿。
+            var bd = Defs.Enemy(st.LeaderKind);
             const float bodyPx = 286f;
             const float bsz = 348f;
             float bodyFrac = 0.86f, bossFoot = 0.012f;
@@ -389,8 +401,9 @@ namespace Liangshan
             Ui.Tap(ribbon, () => MetaUi.LevelList(Layer), tag);
             if (S.Selected > 1) ArrowBtn(tag, -304, -1);
             if (S.Selected <= S.Cleared && S.Selected < Defs.LevelCount) ArrowBtn(tag, 304, 1);
+            string leadLabel = bd.IsBoss ? "首领" : "统领";
             string buffPlain = st.BuffRole.HasValue ? $" · {Defs.RoleName(st.BuffRole.Value)} +{(int)(st.BuffPct * 100 + 0.5f)}%" : "";
-            string info = $"首领：{bd.Name}" + (st.BuffRole.HasValue
+            string info = $"{leadLabel}：{bd.Name}" + (st.BuffRole.HasValue
                 ? $" · <color=#78F0A8>{Defs.RoleName(st.BuffRole.Value)} +{(int)(st.BuffPct * 100 + 0.5f)}%</color>"
                 : "");
             const float maxW = 560f, btnReserve = 108f;
@@ -546,14 +559,18 @@ namespace Liangshan
                 Ui.Tap(swBg, () => Sweep(st), sw);
             }
 
-            // 开始挑战：全场唯一旗舰级亮泽鎏金主行动按钮（内嵌同色系深琥珀凹槽承托体力消耗，0% 黑灰脏阴影）
+            // 开始挑战：鎏金主按钮。这一关打输过才在右侧并一颗同高的绿色援军按钮，两颗作为一组落在石路中央。
             float startY = baseY + 148 + sp * 0.1f;
-            const float bw = 496f, bh = 144f;
+            const float bh = 144f;
+            bool aid = S.Selected > S.Cleared && S.LostStage == S.Selected && S.AdStart2Star < AidPerDay;
+            float bw = aid ? 400f : 496f;
+            const float aw = 208f, gap = 16f;
+            float startX = aid ? -(aw + gap) * 0.5f : 0f;
             var start = Ui.SubBtn(_page, "开始挑战", "ic_wine", Meta.BattleStamina.ToString(), new Vector2(bw, bh), new Vector2(0, startY),
                 Pal.Gold, () => Game.I.StartLevel(S.Selected), 54, 28, true);
             start.anchorMin = start.anchorMax = new Vector2(0.5f, 0);
-            start.anchoredPosition = new Vector2(0, startY);
-            var glow = Ui.Box(start, new Vector2(bw + 88, bh + 56), Vector2.zero, Pal.Gold.A(0.24f), Art.SoftDot, "glow");
+            start.anchoredPosition = new Vector2(startX, startY);
+            var glow = Ui.Box(start, new Vector2(bw + (aid ? 28f : 88f), bh + (aid ? 40f : 56f)), Vector2.zero, Pal.Gold.A(0.24f), Art.SoftDot, "glow");
             glow.transform.SetAsFirstSibling();
             Tween.Run(start, 9999f, k =>
             {
@@ -562,19 +579,13 @@ namespace Liangshan
                 glow.color = Pal.Gold.A(0.16f + 0.09f * Mathf.Sin(t * 3.6f));
             });
 
-            // 卡关开局支援：未通关关卡可在右侧点击「开局2星」空降 2 星好汉与启动银两；副玩法已全部收纳进「山寨」页签
-            if (S.Selected > S.Cleared && S.AdStart2Star < 5)
+            if (aid)
             {
-                float boostY = Ui.Height - Ui.SafeTop - startY - 6f;
-                SideBtn(410, boostY, "ic_ad", "开局2星", false, () =>
-                {
-                    Ads.Show("start_2star", () =>
-                    {
-                        S.AdStart2Star++;
-                        Profile.Save();
-                        Game.I.StartLevel(S.Selected, true);
-                    });
-                });
+                float aidX = startX + bw * 0.5f + gap + aw * 0.5f;
+                var aidBtn = Ui.SubBtn(_page, "援军", "ic_ad", "2星+80", new Vector2(aw, bh), Vector2.zero,
+                    Pal.Green, OfferAid, 40, 22);
+                aidBtn.anchorMin = aidBtn.anchorMax = new Vector2(0.5f, 0);
+                aidBtn.anchoredPosition = new Vector2(aidX, startY);
             }
 
             var raid = Ui.Rect(_page, "raid");
@@ -583,6 +594,18 @@ namespace Liangshan
             raid.offsetMin = raid.offsetMax = Vector2.zero;
             raid.SetAsLastSibling();
             raid.gameObject.AddComponent<HomeVolley>().Begin(icon, arts, lu, StrongestDealer(lu));
+        }
+
+        void OfferAid()
+        {
+            if (S.Stamina < Meta.BattleStamina)
+            {
+                Sfx.Play(Snd.Deny);
+                MetaUi.StaminaShop(Layer);
+                return;
+            }
+            MetaUi.Confirm(Layer, "看完视频后，一位上阵好汉以2星入场，并多80银两。", () =>
+                Ads.Show("start_2star", () => Game.I.StartLevel(S.Selected, true)));
         }
 
         /// <summary>首页出手的人：上阵里战力最高的输出；全是辅助时退回战力最高的那位。</summary>
@@ -658,6 +681,11 @@ namespace Liangshan
         /// <summary>换人模式：详情里点了「上阵」的好汉，等玩家点顶上要替换的位置。</summary>
         HeroId? _swap;
         int _popSlot = -1;
+        HeroId? _dragHero;
+        RectTransform _dragGhost, _dragDim;
+        readonly List<RectTransform> _dragSlots = new List<RectTransform>();
+        readonly List<Image> _dragMarks = new List<Image>();
+        public bool Swapping => _swap.HasValue;
 
         public void BeginSwap(HeroId h)
         {
@@ -679,6 +707,214 @@ namespace Liangshan
             }
             _swap = null;
             Rebuild(false);
+        }
+
+        /// <summary>长按还没上阵的好汉，拖到上方四位里松手就换上。已经在阵上的长按不起效果。</summary>
+        public void BeginLineupDrag(HeroId h, Vector2 screen)
+        {
+            CancelLineupDrag();
+            if (!Meta.Owned(S, h) || _swap.HasValue) return;
+            if (Array.IndexOf(S.Lineup, (int)h) >= 0) return;
+            _dragHero = h;
+            var d = Defs.Hero(h);
+            var g = Ui.Rect(Layer, "dragHero");
+            g.sizeDelta = new Vector2(220, 280);
+            var shadow = Ui.Box(g, new Vector2(150, 36), new Vector2(0, -118), new Color(0.1f, 0.08f, 0.05f, 0.4f), Art.GroundShadow, "sh");
+            var art = Ui.Icon(g, d.Art, 230, new Vector2(0, 8));
+            art.rectTransform.pivot = new Vector2(0.5f, 0f);
+            art.rectTransform.anchoredPosition = new Vector2(0, -100);
+            Ui.Outlined(g, d.Name, 28, Color.white, new Vector2(0, -128), new Vector2(220, 40), Pal.Ink, 1.6f);
+            foreach (var gr in g.GetComponentsInChildren<Graphic>()) gr.raycastTarget = false;
+            shadow.raycastTarget = false;
+            _dragGhost = g;
+            var lu = _page != null ? _page.Find("body/lineup") as RectTransform : null;
+            // 暗层只盖名单，不盖点将台，台上四位一直亮着。
+            _dragDim = DimBelow(lu);
+            if (lu != null)
+            {
+                for (int i = 0; i < lu.childCount && i < 4; i++)
+                {
+                    var slot = lu.GetChild(i) as RectTransform;
+                    if (slot == null) continue;
+                    var glow = Ui.Box(slot, new Vector2(230, 280), new Vector2(0, 16), Pal.Hex("FFE98A").A(0.45f), Art.SoftDot, "dragGlow");
+                    glow.raycastTarget = false;
+                    glow.transform.SetAsFirstSibling();
+                    float off = i * 0.6f;
+                    Tween.Run(glow, 999f, k => { if (glow) glow.color = Pal.Hex("FFE98A").A(0.32f + 0.2f * Mathf.Sin(k * 999f * 5f + off)); });
+                    _dragSlots.Add(slot);
+                    if (!SlotPoint(slot, new Vector2(0, 216f), out var at))
+                    {
+                        _dragMarks.Add(null);
+                        continue;
+                    }
+                    var badge = Ui.Box(Layer, Vector2.one * 58, at, Pal.Hex("14202C").A(0.92f), Art.Circle, "swapBadge");
+                    badge.raycastTarget = false;
+                    var mark = Ui.Box(badge.transform, Vector2.one * 38, Vector2.zero, Color.white, Art.SwapMark, "swap");
+                    mark.raycastTarget = false;
+                    _dragMarks.Add(mark);
+                }
+            }
+            MoveLineupDrag(screen);
+            _dragGhost.SetAsLastSibling();
+            Sfx.Play(Snd.Tick, 0.7f);
+        }
+
+        /// <summary>从点将台下沿盖到屏幕底。台上的人留在暗层外面。</summary>
+        RectTransform DimBelow(RectTransform lineup)
+        {
+            float top = 0f;
+            if (lineup)
+            {
+                var corners = new Vector3[4];
+                lineup.GetWorldCorners(corners);
+                var screen = RectTransformUtility.WorldToScreenPoint(null, corners[0]);
+                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(Layer, screen, null, out var local))
+                    top = local.y - 8f;
+            }
+            float bottom = Layer.rect.yMin;
+            var rt = Ui.Rect(Layer, "dragDim");
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.sizeDelta = new Vector2(Layer.rect.width + 40f, Mathf.Max(0f, top - bottom));
+            rt.anchoredPosition = Vector2.zero;
+            var img = rt.gameObject.AddComponent<Image>();
+            img.color = new Color(0.02f, 0.05f, 0.1f, 0.58f);
+            img.raycastTarget = false;
+            return rt;
+        }
+
+        bool SlotPoint(RectTransform slot, Vector2 local, out Vector2 layer)
+        {
+            layer = Vector2.zero;
+            var world = slot.TransformPoint(local);
+            var screen = RectTransformUtility.WorldToScreenPoint(null, world);
+            return RectTransformUtility.ScreenPointToLocalPointInRectangle(Layer, screen, null, out layer);
+        }
+
+        public void MoveLineupDrag(Vector2 screen)
+        {
+            if (_dragGhost == null) return;
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(Layer, screen, null, out var local))
+                _dragGhost.anchoredPosition = local;
+            int hot = HitLineupSlot(screen);
+            for (int i = 0; i < _dragSlots.Count; i++)
+            {
+                _dragSlots[i].localScale = Vector3.one * (i == hot ? 1.08f : 1.04f);
+                if (i >= _dragMarks.Count || !_dragMarks[i]) continue;
+                bool on = i == hot;
+                _dragMarks[i].sprite = on ? Art.SwitchHero : Art.SwapMark;
+                _dragMarks[i].color = on ? Pal.Hex("14301C") : Color.white;
+                _dragMarks[i].rectTransform.localScale = Vector3.one * (on ? 1.08f : 1f);
+                var badge = _dragMarks[i].transform.parent.GetComponent<Image>();
+                if (badge) badge.color = Pal.Hex(on ? "7DFF9A" : "14202C").A(on ? 0.96f : 0.92f);
+            }
+        }
+
+        public void FinishLineupDrag(Vector2 screen)
+        {
+            int slot = _dragHero.HasValue ? HitLineupSlot(screen) : -1;
+            var hero = _dragHero;
+            CancelLineupDrag();
+            if (!hero.HasValue || slot < 0 || slot >= S.Lineup.Length) return;
+            if (S.Lineup[slot] == (int)hero.Value) return;
+            bool moved = Array.IndexOf(S.Lineup, (int)hero.Value) >= 0;
+            Meta.SetLineup(S, slot, hero.Value);
+            _popSlot = slot;
+            Profile.Save();
+            Sfx.Play(Snd.Swap);
+            Ui.Toast(moved ? $"{Defs.Hero(hero.Value).Name} 换位" : $"{Defs.Hero(hero.Value).Name} 上阵", 200);
+            Rebuild(false);
+        }
+
+        public void CancelLineupDrag()
+        {
+            _dragHero = null;
+            if (_dragGhost) Destroy(_dragGhost.gameObject);
+            _dragGhost = null;
+            if (_dragDim) Destroy(_dragDim.gameObject);
+            _dragDim = null;
+            for (int i = 0; i < _dragSlots.Count; i++)
+            {
+                if (!_dragSlots[i]) continue;
+                _dragSlots[i].localScale = Vector3.one;
+                var glow = _dragSlots[i].Find("dragGlow");
+                if (glow) Destroy(glow.gameObject);
+            }
+            for (int i = 0; i < _dragMarks.Count; i++)
+                if (_dragMarks[i] && _dragMarks[i].transform.parent) Destroy(_dragMarks[i].transform.parent.gameObject);
+            _dragSlots.Clear();
+            _dragMarks.Clear();
+        }
+
+        int HitLineupSlot(Vector2 screen)
+        {
+            for (int i = 0; i < _dragSlots.Count; i++)
+                if (_dragSlots[i] && RectTransformUtility.RectangleContainsScreenPoint(_dragSlots[i], screen, null))
+                    return i;
+            return -1;
+        }
+
+        void SwitchPreset(int pi)
+        {
+            if (pi == S.Preset) return;
+            Meta.UsePreset(S, pi);
+            Profile.Save();
+            Sfx.Play(Snd.Swap);
+            _swap = null;
+            Rebuild(false);
+            var l = _page.Find("body/lineup");
+            if (l) for (int k = 0; k < l.childCount; k++) Tween.Pop(l.GetChild(k), 0.28f, k * 0.04f);
+        }
+
+        void RenamePreset(int pi)
+        {
+            var m = MetaUi.Modal(Layer, "presetName", "方案改名", new Vector2(780, 560), out var p);
+            Ui.Label(p, "写下这套方案的名字", 28, Pal.Hex("7C6852"), new Vector2(0, 166), new Vector2(680, 48), TextAnchor.MiddleCenter, Fonts.Heavy);
+            var well = Ui.Box(p, new Vector2(560, 96), new Vector2(0, 24), Pal.Hex("F4E6CC"), Art.Pill, "well");
+            var field = Ui.Rect(well.transform, "field");
+            field.sizeDelta = new Vector2(520, 80);
+            var hit = field.gameObject.AddComponent<Image>();
+            hit.color = new Color(1f, 1f, 1f, 0.001f);
+            var shown = Ui.Label(field, "", 36, Pal.Hex("543006"), Vector2.zero, new Vector2(500, 72), TextAnchor.MiddleCenter, Fonts.Heavy, "text");
+            shown.supportRichText = false;
+            var ph = Ui.Label(field, "方案" + (pi + 1), 36, Pal.Hex("B08968"), Vector2.zero, new Vector2(500, 72), TextAnchor.MiddleCenter, Fonts.Heavy, "ph");
+            ph.raycastTarget = false;
+            var input = field.gameObject.AddComponent<InputField>();
+            input.textComponent = shown;
+            input.placeholder = ph;
+            input.characterLimit = 6;
+            input.lineType = InputField.LineType.SingleLine;
+            input.text = Meta.PresetName(S, pi);
+            input.caretColor = Pal.Hex("543006");
+            input.selectionColor = new Color(0.91f, 0.71f, 0.35f, 0.45f);
+            input.ActivateInputField();
+            Ui.Btn(p, "取消", new Vector2(240, 94), new Vector2(-150, -168), Pal.Slate, () => MetaUi.Close(m), 36);
+            Ui.Btn(p, "确定", new Vector2(240, 94), new Vector2(150, -168), Pal.Gold, () =>
+            {
+                string trimmed = (input.text ?? "").Trim();
+                if (trimmed.Length > 0 && !FontCanShow(trimmed))
+                {
+                    Ui.Toast("有写不出来的字，换一个", 220);
+                    return;
+                }
+                Meta.SetPresetName(S, pi, trimmed);
+                Profile.Save();
+                Sfx.Play(Snd.Tap);
+                MetaUi.Close(m);
+                Rebuild(false);
+            }, 36, null, Pal.Hex("543008"));
+        }
+
+        static bool FontCanShow(string s)
+        {
+            var font = Fonts.Heavy;
+            if (!font) return true;
+            foreach (var c in s)
+            {
+                if (char.IsWhiteSpace(c)) continue;
+                if (!font.HasCharacter(c)) return false;
+            }
+            return true;
         }
 
         void BuildHeroes(bool anim)
@@ -718,6 +954,11 @@ namespace Liangshan
                 int slot = i;
                 if (_swap.HasValue)
                 {
+                    var glow = Ui.Box(g, new Vector2(230, 280), new Vector2(0, 16), Pal.Hex("B6FF8A").A(0.4f), Art.SoftDot, "swapGlow");
+                    glow.raycastTarget = false;
+                    glow.transform.SetAsFirstSibling();
+                    float pulse = i * 0.5f;
+                    Tween.Run(glow, 999f, k => glow.color = Pal.Hex("B6FF8A").A(0.28f + 0.18f * Mathf.Sin(k * 999f * 5f + pulse)));
                     var arrow = Ui.Icon(g, "ui/arrow", 86, new Vector2(0, 160), "swapArrow");
                     arrow.transform.localRotation = Quaternion.Euler(0, 0, 90);
                     arrow.color = Pal.Hex("8CFF6A");
@@ -741,27 +982,53 @@ namespace Liangshan
             _popSlot = -1;
 
             float pgY = luY + 200;
+            const float gap = 18f;
+            var widths = new float[Meta.PresetCount];
+            float row = 0f;
+            for (int i = 0; i < Meta.PresetCount; i++)
+            {
+                if (i == S.Preset)
+                {
+                    float textW = Mathf.Max(108f, Meta.PresetName(S, i).Length * 34f);
+                    widths[i] = 36f + textW + 62f;
+                }
+                else widths[i] = 72f;
+                row += widths[i];
+            }
+            row += gap * (Meta.PresetCount - 1);
+            float cursor = -row * 0.5f;
             for (int i = 0; i < Meta.PresetCount; i++)
             {
                 bool on = i == S.Preset;
-                var dot = Top((i - 1) * 92, pgY, new Vector2(80, 80), "preset" + i);
-                var face = Ui.Box(dot, Vector2.one * (on ? 68 : 56), Vector2.zero, on ? Pal.Hex("C88E18") : Pal.Hex("3E4E5E"), Art.Circle, "face");
-                Ui.Box(dot, Vector2.one * (on ? 58 : 48), Vector2.zero, on ? Pal.Hex("F8CC4C") : Pal.Hex("536577"), Art.Circle, "inner");
-                Ui.Outlined(dot, (i + 1).ToString(), on ? 33 : 27, on ? Pal.Hex("543006") : Color.white, new Vector2(0, 1), new Vector2(80, 60),
-                    on ? new Color(1f, 0.96f, 0.8f, 0.6f) : Ink, on ? 1.0f : 1.3f);
+                float w = widths[i];
+                float cx = cursor + w * 0.5f;
+                cursor += w + gap;
                 int pi = i;
-                Ui.Tap(face, () =>
+                var dot = Top(cx, pgY, new Vector2(w, 80), "preset" + i);
+                if (!on)
                 {
-                    if (pi == S.Preset) return;
-                    Meta.UsePreset(S, pi);
-                    Profile.Save();
-                    Sfx.Play(Snd.Swap);
-                    Ui.Toast($"阵容方案 {pi + 1}", 200);
-                    _swap = null;
-                    Rebuild(false);
-                    var l = _page.Find("body/lineup");
-                    if (l) for (int k = 0; k < l.childCount; k++) Tween.Pop(l.GetChild(k), 0.28f, k * 0.04f);
-                }, dot);
+                    var face = Ui.Box(dot, Vector2.one * 64, Vector2.zero, Pal.Hex("3E4E5E"), Art.Circle, "face");
+                    Ui.Box(dot, Vector2.one * 54, Vector2.zero, Pal.Hex("536577"), Art.Circle, "inner");
+                    Ui.Outlined(dot, (i + 1).ToString(), 28, Color.white, new Vector2(0, 1), new Vector2(64, 56), Ink, 1.3f);
+                    Ui.Tap(face, () => SwitchPreset(pi), dot);
+                    continue;
+                }
+                float badgeX = -w * 0.5f + 36f;
+                float pillW = w - 28f;
+                float pillX = badgeX + pillW * 0.5f - 8f;
+                var shadow = Ui.Box(dot, new Vector2(pillW, 64), new Vector2(pillX, -3f), Pal.Hex("3A2414"), Art.Pill, "shade");
+                shadow.raycastTarget = false;
+                Ui.Box(dot, new Vector2(pillW, 64), new Vector2(pillX, 0), Pal.Hex("6B4528"), Art.Pill, "pill");
+                Ui.Box(dot, Vector2.one * 76, new Vector2(badgeX, 0), Pal.Hex("C98412"), Art.Circle, "rim");
+                var badge = Ui.Box(dot, Vector2.one * 64, new Vector2(badgeX, 0), Pal.Hex("F6C53A"), Art.Circle, "badge");
+                Ui.Outlined(badge.transform, (i + 1).ToString(), 34, Pal.Hex("543006"), new Vector2(0, 1), new Vector2(64, 56), Pal.Hex("FFF1C2"), 1.1f);
+                float penX = w * 0.5f - 30f;
+                float nameLeft = badgeX + 36f;
+                float nameW = Mathf.Max(72f, penX - 22f - nameLeft);
+                var name = Ui.Label(dot, Meta.PresetName(S, i), 30, Pal.Hex("F6E6C4"), new Vector2(nameLeft + nameW * 0.5f, 1f), new Vector2(nameW, 56), TextAnchor.MiddleCenter, Fonts.Heavy, "name");
+                name.raycastTarget = false;
+                var pen = Ui.Box(dot, new Vector2(44, 48), new Vector2(penX, 2f), Pal.Hex("F4E4C2"), Art.Quill, "pen");
+                Ui.Tap(pen, () => RenamePreset(pi), pen.rectTransform);
             }
 
             // 战力盾徽压在名册顶沿，顶边金线+菱花扣，暴击伤害增幅嵌于内凹深靛横幅（对标参考图名册框体）
@@ -969,8 +1236,155 @@ namespace Liangshan
                 Ui.Box(c, new Vector2(188, 28), new Vector2(0, -74), new Color(0.07f, 0.11f, 0.16f, 0.72f), Art.Pill, "lockBar");
                 Ui.Outlined(c, src, 20, Pal.Hex("CFE2F2"), new Vector2(0, -73), new Vector2(184, 30), Pal.Hex("0E1720"), 1.2f);
             }
-            Ui.Tap(face, () => MetaUi.HeroDetail(Layer, h), c);
+            var hit = Ui.Box(c, new Vector2(238, 306), Vector2.zero, new Color(1f, 1f, 1f, 0.001f), Art.White, "hit");
+            hit.raycastTarget = true;
+            LineupDrag drag = null;
+            // 已经站在点将台上的，长按不抬起来，也不进换位。
+            if (owned && Array.IndexOf(S.Lineup, (int)h) < 0)
+            {
+                drag = hit.gameObject.AddComponent<LineupDrag>();
+                drag.Init(this, h, c.GetComponentInParent<ScrollRect>());
+            }
+            Ui.Tap(hit, () =>
+            {
+                if (drag != null && drag.Ate) return;
+                MetaUi.HeroDetail(Layer, h);
+            }, c);
             return c;
+        }
+
+        /// <summary>按住已拥有的好汉一小会儿就抬起可拖。手指先滑出一段，才交给名单滚动。</summary>
+        sealed class LineupDrag : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IInitializePotentialDragHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+        {
+            HomeScreen _home;
+            HeroId _hero;
+            ScrollRect _scroll;
+            bool _down, _drag, _passed;
+            float _t;
+            Vector2 _origin, _pos;
+            const float Hold = 0.16f;
+
+            public bool Ate { get; private set; }
+
+            public void Init(HomeScreen home, HeroId hero, ScrollRect scroll)
+            {
+                _home = home;
+                _hero = hero;
+                _scroll = scroll;
+            }
+
+            ScrollRect Scroll()
+            {
+                if (_scroll == null) _scroll = GetComponentInParent<ScrollRect>();
+                return _scroll;
+            }
+
+            public void OnPointerDown(PointerEventData e)
+            {
+                Ate = false;
+                _down = true;
+                _drag = false;
+                _passed = false;
+                _t = Time.unscaledTime;
+                _origin = _pos = e.position;
+                var scroll = Scroll();
+                if (scroll) scroll.StopMovement();
+            }
+
+            void Update()
+            {
+                if (!_down || _drag || _passed || _home == null || _home.Swapping) return;
+                if (Time.unscaledTime - _t < Hold) return;
+                StartDrag(_pos);
+            }
+
+            public void OnInitializePotentialDrag(PointerEventData e)
+            {
+                var scroll = Scroll();
+                if (!_drag && !_passed && scroll) scroll.OnInitializePotentialDrag(e);
+            }
+
+            public void OnBeginDrag(PointerEventData e)
+            {
+                _pos = e.position;
+                if (_drag || _passed || _home == null) return;
+                if (Time.unscaledTime - _t >= Hold && !_home.Swapping)
+                {
+                    StartDrag(e.position);
+                    return;
+                }
+                if (Slid(e.position)) HandToScroll(e);
+            }
+
+            public void OnDrag(PointerEventData e)
+            {
+                _pos = e.position;
+                if (_drag)
+                {
+                    if (_home != null) _home.MoveLineupDrag(e.position);
+                    return;
+                }
+                if (_passed)
+                {
+                    var scroll = Scroll();
+                    if (scroll) scroll.OnDrag(e);
+                    return;
+                }
+                if (Slid(e.position)) HandToScroll(e);
+            }
+
+            public void OnEndDrag(PointerEventData e)
+            {
+                var scroll = Scroll();
+                if (!_passed || scroll == null) return;
+                scroll.OnEndDrag(e);
+                _passed = false;
+            }
+
+            public void OnPointerUp(PointerEventData e)
+            {
+                _down = false;
+                if (!_drag)
+                {
+                    if (_passed) Ate = true;
+                    return;
+                }
+                Ate = true;
+                _drag = false;
+                _home.FinishLineupDrag(e.position);
+            }
+
+            /// <summary>明显滑动才算在翻名单。按住时的轻微晃动不算。</summary>
+            bool Slid(Vector2 p)
+            {
+                float scale = Ui.Root ? Ui.Root.lossyScale.x : 1f;
+                return Vector2.Distance(p, _origin) >= Mathf.Max(36f, 24f * scale);
+            }
+
+            void HandToScroll(PointerEventData e)
+            {
+                if (_passed) return;
+                _passed = true;
+                _down = false;
+                var scroll = Scroll();
+                if (scroll == null) return;
+                scroll.OnBeginDrag(e);
+                scroll.OnDrag(e);
+            }
+
+            void StartDrag(Vector2 screen)
+            {
+                if (_drag || _passed || _home == null || _home.Swapping) return;
+                _drag = true;
+                _down = false;
+                Ate = true;
+                _home.BeginLineupDrag(_hero, screen);
+            }
+
+            void OnDestroy()
+            {
+                if (_drag && _home != null) _home.CancelLineupDrag();
+            }
         }
 
         // ---------------- 寨主（统帅 + 2x3装备 + 图腾/装备/材料三页签抽屉，对标参考图2/3/4） ----------------

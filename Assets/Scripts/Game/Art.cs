@@ -69,6 +69,21 @@ namespace Liangshan
         /// <summary>思源黑体 Bold 子集：正文。</summary>
         public static Font Bold => _bold ? _bold : (_bold = Load("Fonts/Bold"));
 
+        static Font _number, _brush;
+
+        /// <summary>Lilita One 子集：战斗伤害数字（只有 ASCII 和 ×）。</summary>
+        public static Font Number => _number ? _number : (_number = Load("Fonts/Number"));
+
+        /// <summary>马善政毛笔楷书子集：招式名、首领技能名。缺字的串用 Fits 判断后回落到 Heavy。</summary>
+        public static Font Brush => _brush ? _brush : (_brush = Load("Fonts/Brush"));
+
+        public static bool Fits(Font f, string s)
+        {
+            foreach (var ch in s)
+                if (!char.IsWhiteSpace(ch) && !f.HasCharacter(ch)) return false;
+            return true;
+        }
+
         static Font Load(string path)
         {
             var f = Resources.Load<Font>(path);
@@ -93,11 +108,15 @@ namespace Liangshan
         public static Sprite Pill => Get("pill", () => RoundRect(256, 126, 0));
         public static Sprite Circle => Get("circle", () => Disc(256, 0.02f));
         public static Sprite SoftDot => Get("softdot", () => Disc(128, 1f));
+        /// <summary>上实下透的竖向渐变，用来做窄边的柔和过渡。</summary>
+        public static Sprite FadeDown => Get("fadedown", () => FadeVertical(8, 64));
         /// <summary>贴地脚影：内圈紧实深影、外沿柔化，让角色和抛射物稳稳踩在石板上不发飘。</summary>
         public static Sprite GroundShadow => Get("groundshadow", GroundShadowTex);
         public static Sprite Ring => Get("ring", () => RingTex(256, 0.82f));
         public static Sprite White => Get("white", () => Solid(4));
         public static Sprite Hex6 => Get("hex", HexTex);
+        /// <summary>贴合 ui/hex.png（220×253 尖顶圆角六边形）内膛的底色与遮罩贴图，带内凹暗边过渡。</summary>
+        public static Sprite HexInner => Get("hex_inner", HexInnerTex);
         /// <summary>高清描边翠绿升级箭头：对标主流竖版卡牌清爽角标，不糊边。</summary>
         public static Sprite UpArrow => Get("uparrow", UpArrowTex);
         public static Sprite VGrad => Get("vgrad", VGradTex);
@@ -108,10 +127,167 @@ namespace Liangshan
         public static Sprite RangeFan => Get("rangefan", RangeFanTex);
 
         public static Sprite Sparkle => Get("sparkle", SparkleTex);
+        /// <summary>羽毛笔：斜向右上，白底可染色。给阵容方案改名用。</summary>
+        public static Sprite Quill => Get("quill", QuillTex);
+        /// <summary>左右对调的双箭头，白底可染色。拖动上阵时标在出战位上。</summary>
+        public static Sprite SwapMark => Get("swapmark", SwapMarkTex);
+        /// <summary>顺时针回环箭头，白底可染色。</summary>
+        public static Sprite RenewMark => Get("renewmark", RenewMarkTex);
+        /// <summary>两个人对调，白底可染色。拖到某个出战位上时，表示要换成这位。</summary>
+        public static Sprite SwitchHero => Get("switchhero", SwitchHeroTex);
         /// <summary>剑气：上拱的月牙，外沿锐利、往里渐隐，两头收尖。宽:高 = 4:1。</summary>
         public static Sprite Crescent => Get("crescent", CrescentTex);
         /// <summary>法术射线：横向长条，中间一道白热芯、两侧柔光，两头略收。宽:高 = 4:1。</summary>
         public static Sprite Beam => Get("beam", BeamTex);
+
+        static Sprite QuillTex()
+        {
+            const int n = 128;
+            var t = NewTex(n, n);
+            var px = new Color[n * n];
+            var a = new Vector2(22f, 18f);
+            var b = new Vector2(108f, 112f);
+            var d = (b - a).normalized;
+            var side = new Vector2(-d.y, d.x);
+            float len = Vector2.Distance(a, b);
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    var rel = new Vector2(x + 0.5f, y + 0.5f) - a;
+                    float along = Vector2.Dot(rel, d);
+                    float across = Vector2.Dot(rel, side);
+                    float u = along / len;
+                    if (u < -0.02f || u > 1.04f) continue;
+                    float vane = Mathf.Sin(Mathf.Clamp01(u) * Mathf.PI);
+                    float half = u < 0.16f ? 3.4f : 4f + vane * 26f;
+                    float edge = half - Mathf.Abs(across);
+                    float alpha = Mathf.Clamp01(edge * 0.85f);
+                    if (u > 0.22f && u < 0.96f && Mathf.Abs(across) < 2.1f) alpha = Mathf.Max(alpha, 0.95f);
+                    if (alpha <= 0f) continue;
+                    px[y * n + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            t.SetPixels(px);
+            return Make(t);
+        }
+
+        static Sprite SwapMarkTex()
+        {
+            const int n = 128;
+            var t = NewTex(n, n);
+            var px = new Color[n * n];
+            void Arrow(float y, float dir)
+            {
+                for (int py = 0; py < n; py++)
+                    for (int px0 = 0; px0 < n; px0++)
+                    {
+                        float x = px0 - n * 0.5f + 0.5f;
+                        float yy = py - n * 0.5f + 0.5f - y;
+                        float along = x * dir;
+                        float shaft = Mathf.Abs(yy) - 9f;
+                        float span = Mathf.Max(along - 18f, -34f - along);
+                        float dShaft = Mathf.Max(shaft, span);
+                        float tip = along - 18f;
+                        float dHead = Mathf.Max(Mathf.Abs(yy) - (28f - tip * 0.72f), -tip);
+                        float d = Mathf.Min(dShaft, dHead);
+                        float a = Mathf.Clamp01(0.85f - d);
+                        if (a <= 0f) continue;
+                        int i = py * n + px0;
+                        if (a > px[i].a) px[i] = new Color(1f, 1f, 1f, a);
+                    }
+            }
+            Arrow(22f, 1f);
+            Arrow(-22f, -1f);
+            t.SetPixels(px);
+            return Make(t);
+        }
+
+        static Sprite RenewMarkTex()
+        {
+            const int n = 128;
+            var t = NewTex(n, n);
+            var px = new Color[n * n];
+            const float r = 36f;
+            const float thick = 10f;
+            float a0 = 40f * Mathf.Deg2Rad;
+            float a1 = 320f * Mathf.Deg2Rad;
+            var tip = new Vector2(Mathf.Cos(a1), Mathf.Sin(a1)) * r;
+            var tangent = new Vector2(-Mathf.Sin(a1), Mathf.Cos(a1));
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float u = x - n * 0.5f + 0.5f;
+                    float v = y - n * 0.5f + 0.5f;
+                    float rad = Mathf.Sqrt(u * u + v * v);
+                    float ang = Mathf.Atan2(v, u);
+                    if (ang < 0f) ang += Mathf.PI * 2f;
+                    float dArc = 999f;
+                    if (ang >= a0 && ang <= a1) dArc = Mathf.Abs(rad - r) - thick * 0.5f;
+                    var rel = new Vector2(u, v) - tip;
+                    float along = Vector2.Dot(rel, tangent);
+                    float across = Mathf.Abs(rel.x * tangent.y - rel.y * tangent.x);
+                    float dHead = Mathf.Max(across - (22f + along * 0.85f), Mathf.Abs(along + 4f) - 18f);
+                    float d = Mathf.Min(dArc, dHead);
+                    float a = Mathf.Clamp01(0.85f - d);
+                    if (a <= 0f) continue;
+                    px[y * n + x] = new Color(1f, 1f, 1f, a);
+                }
+            t.SetPixels(px);
+            return Make(t);
+        }
+
+        static Sprite SwitchHeroTex()
+        {
+            const int n = 128;
+            var t = NewTex(n, n);
+            var px = new Color[n * n];
+            void Paint(int x, int y, float a)
+            {
+                if (a <= 0f || x < 0 || y < 0 || x >= n || y >= n) return;
+                int i = y * n + x;
+                if (a > px[i].a) px[i] = new Color(1f, 1f, 1f, a);
+            }
+            void Blob(float cx, float cy, float rx, float ry)
+            {
+                int x0 = Mathf.Max(0, Mathf.FloorToInt(cx - rx - 2f));
+                int x1 = Mathf.Min(n - 1, Mathf.CeilToInt(cx + rx + 2f));
+                int y0 = Mathf.Max(0, Mathf.FloorToInt(cy - ry - 2f));
+                int y1 = Mathf.Min(n - 1, Mathf.CeilToInt(cy + ry + 2f));
+                float soft = Mathf.Min(rx, ry);
+                for (int y = y0; y <= y1; y++)
+                    for (int x = x0; x <= x1; x++)
+                    {
+                        float u = (x + 0.5f - cx) / rx;
+                        float v = (y + 0.5f - cy) / ry;
+                        float d = (Mathf.Sqrt(u * u + v * v) - 1f) * soft;
+                        Paint(x, y, Mathf.Clamp01(0.75f - d));
+                    }
+            }
+            // 左右各一个头肩，头顶一条两端出头的对调箭。
+            void Person(float cx)
+            {
+                Blob(cx, 46f, 14f, 14f);
+                Blob(cx, 22f, 18f, 16f);
+            }
+            Person(28f);
+            Person(100f);
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float u = x + 0.5f;
+                    float v = y + 0.5f - 96f;
+                    float shaft = Mathf.Abs(v) - 6.5f;
+                    float span = Mathf.Max(18f - u, u - 110f);
+                    float dShaft = Mathf.Max(shaft, span);
+                    float left = 22f - u;
+                    float dLeft = Mathf.Max(Mathf.Abs(v) - (20f - left * 0.85f), -left);
+                    float right = u - 106f;
+                    float dRight = Mathf.Max(Mathf.Abs(v) - (20f - right * 0.85f), -right);
+                    float d = Mathf.Min(dShaft, Mathf.Min(dLeft, dRight));
+                    Paint(x, y, Mathf.Clamp01(0.75f - d));
+                }
+            t.SetPixels(px);
+            return Make(t);
+        }
 
         static Sprite BeamTex()
         {
@@ -363,6 +539,9 @@ namespace Liangshan
             if (n.StartsWith("banner")) return new Vector4(148, 0, 148, 0);
             if (n.StartsWith("rank_badge_")) return new Vector4(76, 0, 76, 0);
             if (n.StartsWith("vtab_")) return new Vector4(36, 36, 36, 36);
+            if (n.StartsWith("codex_card")) return new Vector4(60, 60, 60, 60);
+            if (n.StartsWith("codex_btab_")) return new Vector4(36, 36, 36, 24);
+            if (n == "codex_tag_edge") return new Vector4(22, 16, 32, 12);
             switch (n)
             {
                 case "rank_well": return new Vector4(48, 48, 48, 48);
@@ -444,6 +623,20 @@ namespace Liangshan
             return Make(t, new Vector4(b, b, b, b));
         }
 
+        static Sprite FadeVertical(int w, int h)
+        {
+            var t = NewTex(w, h);
+            var px = new Color[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                float k = y / (h - 1f);
+                float a = k * k * k * k * k;
+                for (int x = 0; x < w; x++) px[y * w + x] = new Color(1, 1, 1, a);
+            }
+            t.SetPixels(px);
+            return Make(t);
+        }
+
         static Sprite Disc(int n, float soft)
         {
             var t = NewTex(n, n);
@@ -508,6 +701,44 @@ namespace Liangshan
                     float d = Mathf.Max(px0 * 0.8660254f + py0 * 0.5f, py0) - 0.96f;
                     px[y * n + x] = new Color(1, 1, 1, Mathf.Clamp01(-d * r));
                 }
+            t.SetPixels(px);
+            return Make(t);
+        }
+
+        /// <summary>与 ui/hex.png 同尺寸（220×253）的尖顶圆角六边形内膛：严丝合缝嵌在金边内侧，绝不溢出外框。</summary>
+        static Sprite HexInnerTex()
+        {
+            const int w = 220, h = 253;
+            const float cx = 109.2f, cy = 127.0f;
+            const float hw = 96.4f, hh = 113.4f, rad = 21.0f;
+            const float hwS = hw - rad, hhS = hh - rad * 1.1547005f;
+            const float yc = hhS - hwS * 0.57735027f;
+            const float vx = hwS, vy = yc - hhS, vv = vx * vx + vy * vy;
+            var t = NewTex(w, h);
+            var px = new Color[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                float dy = Mathf.Abs(y - cy);
+                for (int x = 0; x < w; x++)
+                {
+                    float dx = Mathf.Abs(x - cx);
+                    float t1 = Mathf.Clamp01((dx * vx + (dy - hhS) * vy) / vv);
+                    float ox1 = dx - t1 * vx, oy1 = dy - (hhS + t1 * vy);
+                    float d1 = Mathf.Sqrt(ox1 * ox1 + oy1 * oy1);
+                    float t2 = Mathf.Clamp01(dy / yc);
+                    float ox2 = dx - hwS, oy2 = dy - t2 * yc;
+                    float d2 = Mathf.Sqrt(ox2 * ox2 + oy2 * oy2);
+                    bool inside = dx <= hwS && 0.5f * dx + 0.8660254f * dy <= hhS * 0.8660254f;
+                    float sd = Mathf.Min(d1, d2) * (inside ? -1f : 1f) - rad;
+                    float a = Mathf.Clamp01(0.5f - sd / 1.2f);
+                    if (a <= 0f) continue;
+                    float rim = Mathf.Clamp01(-sd / 5.5f);
+                    float rx = (x - cx) / hw, ry = (y - cy) / hh;
+                    float radial = Mathf.Clamp01(Mathf.Sqrt(rx * rx + ry * ry));
+                    float shade = Mathf.Clamp01((0.56f + 0.44f * rim) * (1.06f - 0.20f * radial));
+                    px[y * w + x] = new Color(shade, shade, shade, a);
+                }
+            }
             t.SetPixels(px);
             return Make(t);
         }

@@ -30,16 +30,16 @@ namespace Liangshan.Sim
         /// <summary>已弃用强化超表线性递增（保留字段兼容旧 JSON，默认 0，实际固定取表尾值）。</summary>
         public int EnhanceOverflowStep = 0;
 
-        /// <summary>普通小兵击杀银两基础倍率（实际掉落 = Enemy.Coin × KillCoinMul × (1 + KillCoinWaveSlope × (Wave - 1))）。</summary>
-        public float KillCoinMul = 3.2f;
-        /// <summary>普通小兵每推进 1 波的击杀赏银递增比例（W1官兵6银→W5官兵17银→W10官兵31银，单局10波总产出~17600银两，刚好覆盖27格召唤表+9格强化表）。</summary>
-        public float KillCoinWaveSlope = 0.42f;
-        /// <summary>精英与首领阵亡直接掉落赏银倍率。</summary>
-        public float BigKillCoinMul = 2.0f;
+        /// <summary>普通小兵击杀银两基础倍率（1.0 = 按面板 Coin 原值直掉，不做隐藏乘算）。</summary>
+        public float KillCoinMul = 1.0f;
+        /// <summary>普通小兵每推进 1 波的击杀赏银递增比例（0.0 = 全波次同兵种固定掉同样银两，不做波次加成）。</summary>
+        public float KillCoinWaveSlope = 0.0f;
+        /// <summary>精英与首领阵亡直接掉落赏银倍率（1.0 = 按面板 Coin 原值直掉）。</summary>
+        public float BigKillCoinMul = 1.0f;
 
         /// <summary>每撑过/击退一波发放的守城军饷基数（第 w 波结束进 w+1 波时发放：WaveBonusBase + WaveBonusPerWave × w）。</summary>
-        public int WaveBonusBase = 35;
-        public int WaveBonusPerWave = 42;
+        public int WaveBonusBase = 40;
+        public int WaveBonusPerWave = 52;
 
         /// <summary>首领血量压至第 1、第 2 阈值时当场爆出阶段钱袋（消除打首领零收入断档）。</summary>
         public float BossDropHp1 = 0.70f;
@@ -52,14 +52,14 @@ namespace Liangshan.Sim
         public int ReelSilverPerWave = 10;
         /// <summary>生辰纲全部同色时的银两翻倍倍率（2.0 = 同色翻倍）。</summary>
         public float ReelJackpotMul = 2.0f;
-        /// <summary>非首领生辰纲自然摇出全部同色大奖的概率。</summary>
-        public float ReelNaturalJackpotChance = 0.16f;
+        /// <summary>非保底时自然摇出全部同色天胡的概率。</summary>
+        public float ReelNaturalJackpotChance = 0.08f;
         /// <summary>单格摇出「好汉强化」而非「银两」的概率。</summary>
         public float ReelPerkCellChance = 0.35f;
         public int ReelNormalCells = 4;
         public int ReelBossCells = 5;
         public int ReelPerkMax = 2;
-        public int ReelPerkJackpot = 3;
+        public int ReelPerkJackpot = 2;
     }
 
     /// <summary>局内战斗乘区、合成保护、词条放大与统帅剑气参数。</summary>
@@ -109,20 +109,20 @@ namespace Liangshan.Sim
     [Serializable]
     public sealed class WaveStageBalance
     {
-        public int[] WaveCounts = { 10, 15, 22, 30, 40, 50, 62, 74, 84, 95 };
-        public int WaveCountOverflowStep = 9;
+        public int[] WaveCounts = { 10, 15, 22, 32, 45, 60, 76, 92, 108, 124 };
+        public int WaveCountOverflowStep = 12;
         public float WaveTime = 24f;
         public float WaveMinTime = 7f;
         public float ClearBreath = 0.8f;
 
         /// <summary>波次血量递增斜率：HpScale(w) = 1 + HpScaleSlope × (w - 1)。第1波恒为1.0不变，中后期随27召唤+9强化满表战力同步抬升。</summary>
-        public float HpScaleSlope = 0.82f;
+        public float HpScaleSlope = 1.00f;
         /// <summary>小兵全局基础厚度系数与前几波开场耐打修正（开场扎实耐打不秒怪，召唤与强化成型后爽快破敌）。</summary>
         public float Bulk = 1.78f;
-        public float[] EarlyWaveTough = { 1.44f, 1.30f, 1.18f, 1.08f };
+        public float[] EarlyWaveTough = { 1.44f, 1.32f, 1.20f, 1.10f };
 
-        /// <summary>首领行军移速倍率、狂暴波次与狂暴攻速/伤害倍率。</summary>
-        public float BossPace = 0.4f;
+        /// <summary>首领行军移速倍率、狂暴波次与狂暴攻速/伤害倍率（对标蔚蓝星球：第4波登场→第5波推进至路中→第7波抵近寨墙施压）。</summary>
+        public float BossPace = 0.55f;
         public int MainBossWave = 4;
         public int MainRageWave = 8;
         public float RageAtkMul = 1.5f;
@@ -135,8 +135,8 @@ namespace Liangshan.Sim
 
         /// <summary>50 关血量微调折线锚点与关间保底递增率。</summary>
         public float[] HpTuneStages = { 1f, 4f, 5f, 10f, 25f, 40f, 50f };
-        public float[] HpTuneValues = { 1.62f, 2.16f, 1.84f, 1.72f, 1.92f, 2.04f, 2.88f };
-        public float StageMinStep1To5 = 1.20f;
+        public float[] HpTuneValues = { 1.58f, 2.08f, 1.72f, 1.72f, 1.90f, 1.76f, 2.24f };
+        public float StageMinStep1To5 = 1.18f;
         public float StageMinStep6To15 = 1.12f;
         public float StageMinStep16Plus = 1.075f;
     }
@@ -210,11 +210,12 @@ namespace Liangshan.Sim
         public int WaveBonusCoins;
         public int BossPhaseCoins;
         public int BossDirectCoin;
+        public int EliteDirectCoin;
         public int BossReelExpectedCoins;
         public int BossReelAllSilverCoins;
         public int EliteReelExpectedCoins;
         public int TotalRoutineCoins => StartCoins + TotalMinionCoins + WaveBonusCoins + BossPhaseCoins;
-        public int TotalTreasureExpectedCoins => BossDirectCoin + BossReelExpectedCoins + 45 + EliteReelExpectedCoins;
+        public int TotalTreasureExpectedCoins => BossDirectCoin + BossReelExpectedCoins + EliteDirectCoin + EliteReelExpectedCoins;
         public int GrandTotalExpected => TotalRoutineCoins + TotalTreasureExpectedCoins;
         public float TreasureShare => GrandTotalExpected > 0 ? (float)TotalTreasureExpectedCoins / GrandTotalExpected : 0f;
     }
@@ -323,6 +324,7 @@ namespace Liangshan.Sim
             int bossReelExp = (int)Math.Round(silverChance * bossAllSilver);
 
             int bossBaseCoin = (int)Math.Round(Defs.Enemy(isChapterBoss ? EnemyKind.Boss : EnemyKind.HeTao).Coin * eco.BigKillCoinMul);
+            int eliteBaseCoin = (int)Math.Round(Defs.Enemy(EnemyKind.Elite).Coin * eco.BigKillCoinMul);
             return new EconomyEstimate
             {
                 StartCoins = eco.StartCoins,
@@ -331,6 +333,7 @@ namespace Liangshan.Sim
                 WaveBonusCoins = waveBonus,
                 BossPhaseCoins = p1 + p2,
                 BossDirectCoin = bossBaseCoin,
+                EliteDirectCoin = eliteBaseCoin,
                 BossReelExpectedCoins = bossReelExp,
                 BossReelAllSilverCoins = bossAllSilver,
                 EliteReelExpectedCoins = 0,

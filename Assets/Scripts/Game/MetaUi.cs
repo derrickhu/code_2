@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Liangshan.Sim;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
@@ -422,7 +423,11 @@ namespace Liangshan
                 {
                     var sd = Defs.Hero(it.Hero);
                     Slot(c, RaritySlot(sd.Rarity), 146, new Vector2(-280, -8));
-                    Ui.Icon(c, sd.Art, 138, new Vector2(-280, -4));
+                    var mask7 = Ui.Rect(c, "bustMask");
+                    mask7.sizeDelta = Vector2.one * 112f;
+                    mask7.anchoredPosition = new Vector2(-280, -7);
+                    mask7.gameObject.AddComponent<RectMask2D>();
+                    Ui.Icon(mask7, sd.Art, 134, new Vector2(0, -14));
                     Ui.GradOutlined(c, $"{sd.RarityName} · {sd.Nick} {sd.Name}", 36, Color.white, Pal.Hex("FFE27A"),
                         new Vector2(68, 18), new Vector2(500, 52), Pal.Hex("4E2C08"), 2.4f, TextAnchor.MiddleLeft);
                     Ui.Label(c, "第七天大奖：未拥有直接入伙，已拥有转化 20 碎片", 24, WarmTitle,
@@ -502,80 +507,444 @@ namespace Liangshan
             }, 34, "ic_ad");
         }
 
-        // ---------------- 图鉴 ----------------
+        // ---------------- 图鉴（v2 旗舰重构：奶油雕花格卡 + 怪种角标 + 收集宝箱条 + 底挂书签页签 + 敌军详情二级弹窗） ----------------
 
-        public static void Codex(Transform layer, int tab = 0)
+        static float _codexScroll;
+        static int _codexLastTab = -1;
+
+        public static void Codex(Transform layer, int tab = -1)
         {
-            Modal(layer, "codex", "敌军图鉴", new Vector2(980, 1400), out var p);
-            string[] tabs = { "小兵", "精英", "首领" };
-            const float tabY = 560f, tabH = 86f, cardW = 280f, cardH = 348f, row = 370f;
+            if (tab < 0) tab = FirstCodexTab();
+            if (tab != _codexLastTab) { _codexLastTab = tab; _codexScroll = 0f; }
+
+            float ph = Mathf.Min(1350f, Ui.Height - Ui.SafeTop - 250f);
+            var m = Modal(layer, "codex", "敌军图鉴", new Vector2(960, ph), out var p, null, 28f);
+            float top = ph * 0.5f;
+
+            string[] tabs = { "小怪", "精英", "首领" };
+            // 未选页签放在最底层被主面板底沿自然承压；选中页签稍凸出与暖米内页浑然一体
+            const float btabW = 216f, btabH = 98f, btabGap = 232f;
+            RectTransform activeBtab = null;
             for (int i = 0; i < 3; i++)
             {
                 int ti = i;
-                int badge = 0;
-                foreach (var d in Defs.Enemies) if (Group(d) == i && S.Seen[(int)d.Kind] == 1) badge++;
-                var b = Ui.Btn(p, tabs[i], new Vector2(260, tabH), new Vector2((i - 1) * 290, tabY), i == tab ? Pal.Azure : Pal.Slate, () => Codex(layer, ti), 38);
-                if (badge > 0) Dot(b, new Vector2(118, 36), badge);
+                bool on = i == tab;
+                var bt = Ui.Rect(p, "btab" + i);
+                bt.anchoredPosition = new Vector2((i - 1) * btabGap + 76f, -top - (on ? 44f : 48f));
+                bt.sizeDelta = new Vector2(btabW, btabH);
+                if (on) activeBtab = bt;
+                else bt.SetAsFirstSibling();
+                var bFace = Ui.Skin(bt, on ? "codex_btab_on" : "codex_btab_off", new Vector2(btabW, btabH), Vector2.zero, 1f, null, "face");
+                if (on)
+                    Ui.Label(bt, tabs[i], 34, WarmTitle, new Vector2(0, 0f), new Vector2(190, 52), TextAnchor.MiddleCenter, Fonts.Heavy);
+                else
+                    Ui.Outlined(bt, tabs[i], 32, Pal.Hex("D6E6F2"), new Vector2(0, -4f), new Vector2(190, 52), Pal.Hex("1D3346"), 1.8f);
+
+                int badge = Meta.CodexGroupBadge(S, i);
+                if (badge > 0) Dot(bt, new Vector2(btabW * 0.5f - 20f, btabH * 0.5f - 32f), badge);
+                Ui.Tap(bFace, () => { if (ti != tab) Codex(layer, ti); }, bt);
             }
-            // 页签底边还伸出一条唇，卡片从唇下面再空一截开始，避免压到卡框。
-            float lip = Mathf.Clamp(tabH * 0.075f, 7f, 12f);
-            float viewTop = tabY - tabH * 0.5f - lip - 16f, viewBottom = -650f, viewH = viewTop - viewBottom;
+            if (activeBtab != null) activeBtab.SetAsLastSibling();
             var list = new List<EnemyDef>();
-            foreach (var d in Defs.Enemies) if (Group(d) == tab) list.Add(d);
-            // 卡片放进可上下拖的列表里，兵种多了一屏放不下。
+            int claimableInTab = 0;
+            foreach (var d in Defs.Enemies)
+            {
+                if (Meta.CodexGroupOf(d) != tab) continue;
+                list.Add(d);
+                if (S.Seen[(int)d.Kind] == 1) claimableInTab++;
+            }
+
+            // 1. 3×3 奶油米白雕花格卡滚动区（立绘呼吸 + 左上贴框丝带角标 + 石青名字 + 可领奖提醒）
+            float viewTop = top - 82f;
+            float viewBot = -top + 198f;
+            float viewH = viewTop - viewBot;
+            const float cardW = 274f, cardH = 308f, colStep = 292f, rowStep = 324f;
+            int rows = (list.Count + 2) / 3;
+            float contentH = Mathf.Max(viewH, rows * rowStep + 22f);
+
             var view = Ui.Rect(p, "view");
-            view.sizeDelta = new Vector2(940, viewH);
-            view.anchoredPosition = new Vector2(0, (viewTop + viewBottom) * 0.5f);
+            view.sizeDelta = new Vector2(900, viewH);
+            view.anchoredPosition = new Vector2(0, (viewTop + viewBot) * 0.5f);
             view.gameObject.AddComponent<RectMask2D>();
             var content = Ui.Rect(view, "content");
             content.anchorMin = content.anchorMax = new Vector2(0.5f, 1f);
             content.pivot = new Vector2(0.5f, 1f);
-            content.sizeDelta = new Vector2(940, Mathf.Max(viewH, ((list.Count + 2) / 3) * row + 30f));
-            content.anchoredPosition = Vector2.zero;
+            content.sizeDelta = new Vector2(900, contentH);
+            content.anchoredPosition = new Vector2(0, Mathf.Clamp(_codexScroll, 0f, Mathf.Max(0f, contentH - viewH)));
             var sr = view.gameObject.AddComponent<ScrollRect>();
             sr.content = content;
+            sr.viewport = view;
             sr.horizontal = false;
-            sr.movementType = ScrollRect.MovementType.Clamped;
+            sr.movementType = ScrollRect.MovementType.Elastic;
+            sr.elasticity = 0.08f;
+            sr.scrollSensitivity = 40f;
+            sr.onValueChanged.AddListener(_ => _codexScroll = content.anchoredPosition.y);
             Ui.Fill(view, new Color(0, 0, 0, 0.001f), true, "hit").transform.SetAsFirstSibling();
-            float first = -20f - cardH * 0.5f;
+
+            float firstY = -14f - cardH * 0.5f;
             for (int i = 0; i < list.Count; i++)
             {
                 var d = list[i];
                 int st = S.Seen[(int)d.Kind];
-                var pos = new Vector2(((i % 3) - 1) * 300, first - (i / 3) * row);
                 var c = Ui.Rect(content, "enemy" + i);
                 c.anchorMin = c.anchorMax = new Vector2(0.5f, 1f);
-                c.anchoredPosition = pos;
+                c.anchoredPosition = new Vector2(((i % 3) - 1) * colStep, firstY - (i / 3) * rowStep);
                 c.sizeDelta = new Vector2(cardW, cardH);
-                Card(c, st == 0 ? "card_lock" : d.IsBoss ? "card_orange" : d.Big ? "card_purple" : "card_blue", new Vector2(cardW, cardH), Vector2.zero);
-                var art = Ui.Icon(c, d.Art, 176, new Vector2(0, 58));
+
+                string cSkin = st == 0 ? "codex_card_lock" : st == 1 ? "codex_card_claim" : "codex_card";
+                var face = Ui.Skin(c, cSkin, new Vector2(cardW, cardH), Vector2.zero, 1f, null, "card");
+
+                // 脚底温润接触阴影 + 固定视觉身高脚底对齐站位（无论高矮胖瘦都整齐划一！）
+                Ui.Box(c, new Vector2(142, 26), new Vector2(0, -56f),
+                    st == 0 ? new Color(0.20f, 0.18f, 0.16f, 0.22f) : new Color(0.26f, 0.20f, 0.14f, 0.28f),
+                    Art.GroundShadow, "footSh");
+
+                float artH = d.IsBoss ? 186f : d.Big ? 176f : 166f;
+                var art = StandByHeight(c, d.Art, artH, -56f, "art");
+
                 if (st == 0)
                 {
-                    art.color = new Color(0, 0, 0, 0.85f);
-                    Ui.Outlined(c, "???", 40, Color.white, new Vector2(0, -64), new Vector2(260, 50), Pal.Ink, 2f);
-                    Ui.Label(c, "战斗中遇到后解锁", 24, Pal.Hex("D8D0C0"), new Vector2(0, -122), new Vector2(260, 60));
+                    art.color = new Color(0.16f, 0.20f, 0.25f, 0.88f);
+                    Ui.Label(c, "???", 32, Pal.Hex("8A8276"), new Vector2(0, -104), new Vector2(240, 44), TextAnchor.MiddleCenter, Fonts.Heavy);
+                    var lkKind = d;
+                    Ui.Tap(face, () =>
+                    {
+                        Sfx.Play(Snd.Deny, 0.55f);
+                        Ui.Toast($"尚未遭遇该{tabs[tab]}，推进关卡解锁并领 {Meta.CodexReward(lkKind)} 元宝", 180);
+                    }, c, false);
                     continue;
                 }
-                Ui.Outlined(c, d.Name, 34, Color.white, new Vector2(0, -36), new Vector2(270, 46), Pal.Ink, 2f);
-                Ui.Stroke(Ui.Label(c, d.Desc, 20, Color.white, new Vector2(0, -82), new Vector2(250, 52), TextAnchor.MiddleCenter, Fonts.Heavy), Pal.Ink, 1.2f);
+
+                float phOff = i * 0.65f;
+                Tween.Run(art, 999f, k =>
+                {
+                    if (art) art.rectTransform.localScale = new Vector3(1f, 1f + 0.015f * Mathf.Sin(k * 999f * 2.4f + phOff), 1f);
+                });
+
+                // 左上角贴卡边立体折耳丝带角标（紧贴卡片左上缘伸出，不悬空）
+                var pBadge = EnemyText.PrimaryBadge(d);
+                if (pBadge.HasValue)
+                {
+                    var (bTxt, bCol) = pBadge.Value;
+                    float bw = Mathf.Max(108f, bTxt.Length * 23f + 28f);
+                    var tagBg = Ui.Skin(c, "codex_tag_edge", new Vector2(bw, 44f),
+                        new Vector2(-cardW * 0.5f + bw * 0.5f - 5f, cardH * 0.5f - 30f), 0.68f, bCol, "roleTag");
+                    Ui.Outlined(tagBg.transform, bTxt, 20, Color.white, new Vector2(2f, 5f), new Vector2(bw - 12f, 34), bCol.Mul(0.40f), 1.35f);
+                }
+
+                // 底部清爽石青蓝怪名
+                Ui.Label(c, d.Name, 29, st == 1 ? Pal.Hex("7A4B10") : Pal.Hex("4E6E86"),
+                    new Vector2(0, -106), new Vector2(248, 44), TextAnchor.MiddleCenter, Fonts.Heavy);
+
+                // 可领首次收录元宝时：仅在右上角挂一枚精致小元宝 + 红点提醒，绝不遮挡立绘头部
                 if (st == 1)
                 {
-                    var k = d.Kind;
-                    var b = Ui.Btn(c, $"领 {CodexRewardText(d)}", new Vector2(210, 50), new Vector2(0, -134), Pal.Gold, () =>
-                    {
-                        if (!Meta.ClaimCodex(S, k)) return;
-                        Save();
-                        Codex(layer, tab);
-                        Sfx.Play(Snd.Coin);
-                        Ui.Toast($"元宝 +{Meta.CodexReward(Defs.Enemy(k))}", 200);
-                    }, 28, "ic_ingot");
+                    var rwIcon = Ui.Icon(c, "ic_ingot", 42, new Vector2(cardW * 0.5f - 32f, cardH * 0.5f - 30f), "rwIngot");
+                    Dot(c, new Vector2(cardW * 0.5f - 14f, cardH * 0.5f - 14f));
+                    Ui.Breathe(rwIcon, 3.0f);
                 }
-                else Ui.Outlined(c, "已收录", 26, Pal.Hex("B8F0A0"), new Vector2(0, -138), new Vector2(240, 40), Pal.Ink, 1.5f);
+
+                var ek = d.Kind;
+                int curTab = tab;
+                Ui.Tap(face, () => CodexDetail(layer, ek, curTab), c);
+            }
+
+            // 2. 底部分割横线（4x超采样三倒三角装饰） + 收集进度条 + 右侧里程碑宝箱 + 一键领奖
+            float sepY = viewBot - 18f;
+            DrawCodexDivider(p, sepY, 840f);
+
+            var (seenCnt, totalCnt) = Meta.CodexProgress(S, tab);
+            int boxNeed = Meta.CodexBoxNeed(tab);
+            bool boxTaken = Meta.CodexBoxTaken(S, tab);
+            bool boxReady = Meta.CanClaimCodexBox(S, tab);
+
+            // 标题卷轴左上方轻量「全领」胶囊（若有 ≥2 张新卡待领），让底部进度条 + 宝箱 100% 居中舒展如参考图！
+            if (claimableInTab >= 2)
+            {
+                int claimTab = tab;
+                var allBtn = Ui.Btn(p, $"全领 ({claimableInTab})", new Vector2(168, 60), new Vector2(-346f, top + 6f), Pal.Gold, () =>
+                {
+                    int sum = 0;
+                    foreach (var ed in Defs.Enemies)
+                        if (Meta.CodexGroupOf(ed) == claimTab && Meta.ClaimCodex(S, ed.Kind))
+                            sum += Meta.CodexReward(ed);
+                    if (sum <= 0) return;
+                    Save();
+                    Sfx.Play(Snd.Coin);
+                    Codex(layer, claimTab);
+                    ShowRewards(layer, "图鉴收录奖励", new List<Item> { new Item(Cur.Ingot, sum) });
+                }, 24);
+                Dot(allBtn, new Vector2(74, 24));
+            }
+
+            float barY = -top + 116f;
+            const float barW = 620f;
+            const float barX = -46f;
+            Bar(p, new Vector2(barX, barY), new Vector2(barW, 30f), seenCnt / (float)Mathf.Max(1, totalCnt), Pal.Gold, $"{seenCnt}/{totalCnt}");
+
+            float chestX = barX + barW * 0.5f + 46f;
+            var chestSlot = Ui.Rect(p, "codexBox");
+            chestSlot.anchoredPosition = new Vector2(chestX, barY + 10f);
+            chestSlot.sizeDelta = new Vector2(116, 116);
+            if (boxReady)
+            {
+                var glow = Ui.Box(chestSlot, new Vector2(128, 128), Vector2.zero, Pal.Gold.A(0.45f), Art.SoftDot, "glow");
+                Tween.Run(glow, 999f, k => { if (glow) glow.color = Pal.Gold.A(0.30f + 0.20f * Mathf.Sin(k * 999f * 4.5f)); });
+            }
+            string chestArt = boxTaken ? "ic_chest_open" : tab == 2 ? "ic_chest_gold" : tab == 1 ? "ic_chest_silver" : "ic_chest_wood";
+            var chestIc = Ui.Icon(chestSlot, chestArt, 94, Vector2.zero, "chest");
+            if (boxReady)
+            {
+                Dot(chestSlot, new Vector2(36, 36));
+                Tween.Run(chestIc, 999f, k =>
+                {
+                    if (chestIc) chestIc.rectTransform.localRotation = Quaternion.Euler(0, 0, 6.5f * Mathf.Sin(k * 999f * 6.0f));
+                });
+            }
+            var chestHit = Ui.Box(chestSlot, new Vector2(116, 116), Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
+            int boxTab = tab;
+            Ui.Tap(chestHit, () =>
+            {
+                if (Meta.CanClaimCodexBox(S, boxTab))
+                {
+                    var got = Meta.ClaimCodexBox(S, boxTab);
+                    if (got == null) return;
+                    Save();
+                    Codex(layer, boxTab);
+                    ShowRewards(layer, $"{tabs[boxTab]}图鉴宝箱", new List<Item>(got));
+                    return;
+                }
+                string msg = boxTaken
+                    ? $"该{tabs[boxTab]}图鉴宝箱已领取"
+                    : $"解锁 {boxNeed} 种{tabs[boxTab]}图鉴即可开启（当前 {seenCnt}/{boxNeed}）";
+                BoxPreview(layer, Meta.CodexBoxRewards(boxTab), msg);
+            }, chestSlot);
+
+            string footNote = boxTaken
+                ? $"已集齐阶段宝箱 · 点击任意{tabs[tab]}卡片可查看弱点与克制阵容"
+                : $"解锁更多{tabs[tab]}图鉴，获得阶段宝箱奖励";
+            Ui.Label(p, footNote, 25, WarmSub, new Vector2(0, -top + 54f), new Vector2(840, 38), TextAnchor.MiddleCenter, Fonts.Heavy);
+        }
+
+        static int FirstCodexTab()
+        {
+            for (int i = 0; i < 3; i++) if (Meta.CodexGroupBadge(S, i) > 0) return i;
+            return 0;
+        }
+
+        /// <summary>复刻参考图优雅对称细分割线（4x 超采样三枚朝下圆润小三角 + 两端短破折点，零锯齿）。</summary>
+        static void DrawCodexDivider(Transform p, float y, float totalW)
+        {
+            var img = Ui.Box(p, new Vector2(totalW, 28f), new Vector2(0, y), Color.white, Art.Img("ui/codex_divider"), "divider");
+            img.type = Image.Type.Simple;
+        }
+
+        /// <summary>按固定视觉身高渲染角色立绘并脚底居中对齐，彻底消除因原画宽高比不一导致的参差不齐。</summary>
+        static Image StandByHeight(Transform parent, string artName, float targetH, float footY, string objName = "art")
+        {
+            var sp = Art.Img(artName);
+            float w = targetH, h = targetH;
+            if (sp != null && sp.rect.height > 1f && sp.rect.width > 1f)
+            {
+                float ratio = sp.rect.width / sp.rect.height;
+                w = targetH * ratio;
+                if (w > targetH * 1.25f) { w = targetH * 1.25f; h = w / ratio; }
+            }
+            var img = Ui.Box(parent, new Vector2(w, h), Vector2.zero, Color.white, sp, objName);
+            img.type = Image.Type.Simple;
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+            img.rectTransform.pivot = new Vector2(0.5f, 0f);
+            img.rectTransform.anchoredPosition = new Vector2(0f, footY);
+            return img;
+        }
+
+        /// <summary>复刻参考图 2 的「怪物/精英/首领详情」二级弹窗：贴框丝带角标 + 纹章立绘舞台 + 空心双菱花线 + 像素级对齐机制框与推荐好汉 + 单方块清爽领奖。</summary>
+        public static void CodexDetail(Transform layer, EnemyKind kind, int fromTab = 0)
+        {
+            var d = Defs.Enemy(kind);
+            int st = S.Seen[(int)kind];
+            if (st <= 0) return;
+
+            // 打开详情时暂时隐藏背后图鉴主窗，关闭详情时恢复，画面干干净净不叠两顶帽子
+            var bgCodexRoot = layer.Find("modal_codex");
+            CanvasGroup bgCg = null;
+            if (bgCodexRoot)
+            {
+                bgCg = bgCodexRoot.GetComponent<CanvasGroup>();
+                if (bgCg) { bgCg.alpha = 0f; bgCg.blocksRaycasts = false; }
+            }
+
+            var unlocked = new List<EnemyKind>();
+            foreach (var ed in Defs.Enemies)
+                if (Meta.CodexGroupOf(ed) == fromTab && S.Seen[(int)ed.Kind] > 0) unlocked.Add(ed.Kind);
+            int curIdx = unlocked.IndexOf(kind);
+
+            string title = d.IsBoss ? "首领详情" : d.Big ? "精英详情" : "怪物详情";
+            var m = Modal(layer, "codexDetail", title, new Vector2(880, 1180), out var p, null, 0f);
+            float top = 590f;
+
+            void RestoreBg()
+            {
+                if (bgCg) { bgCg.alpha = 1f; bgCg.blocksRaycasts = true; }
+            }
+            void RestoreAndClose()
+            {
+                RestoreBg();
+                Close(m);
+            }
+            var dimBtn = m.Find("dim")?.GetComponent<Button>();
+            if (dimBtn) { dimBtn.onClick.RemoveAllListeners(); dimBtn.onClick.AddListener(RestoreAndClose); }
+            var closeBtn = p.Find("close")?.GetComponent<Button>();
+            if (closeBtn) { closeBtn.onClick.RemoveAllListeners(); closeBtn.onClick.AddListener(RestoreAndClose); }
+
+            // 右下角极淡雅水泊星轨暗纹水印（对标参考图右下星球暗印，撑满底部留白高级感）
+            var wm = Ui.Box(p, new Vector2(236, 176), new Vector2(296f, -top + 112f), Color.white, Art.Img("ui/codex_watermark"), "watermark");
+            wm.type = Image.Type.Simple;
+
+            // 左上角贴着面板内框左缘伸出的立体折耳丝带角标（仅在有明确定位词条时显示，普通步卒不挂突兀灰标）
+            var pBadge = EnemyText.PrimaryBadge(d);
+            if (pBadge.HasValue)
+            {
+                var (bTxt, bCol) = pBadge.Value;
+                float bw = Mathf.Max(148f, bTxt.Length * 30f + 46f);
+                var tag = Ui.Skin(p, "codex_tag_edge", new Vector2(bw, 58f),
+                    new Vector2(-440f + bw * 0.5f - 6f, top - 94f), 0.90f, bCol, "typeTag");
+                Ui.Outlined(tag.transform, bTxt, 27, Color.white, new Vector2(3f, 6f), new Vector2(bw - 14f, 46), bCol.Mul(0.40f), 1.55f);
+            }
+
+            // 中央淡米金双环四尖拱纹章底盘 + 底部对齐站位（无论高矮体型都稳稳踩在底影中心）
+            float stageY = top - 236f;
+            var crest = Ui.Box(p, new Vector2(320, 320), new Vector2(0, stageY + 14f), Color.white, Art.Img("ui/codex_crest"), "crest");
+            crest.type = Image.Type.Simple;
+            Ui.Box(p, new Vector2(188, 34), new Vector2(0, stageY - 102f), new Color(0.24f, 0.18f, 0.12f, 0.30f), Art.GroundShadow, "shadow");
+            float artH = d.IsBoss ? 256f : d.Big ? 242f : 228f;
+            var art = StandByHeight(p, d.Art, artH, stageY - 102f, "art");
+            Tween.Run(art, 999f, k =>
+            {
+                if (art) art.rectTransform.localScale = new Vector3(1f, 1f + 0.014f * Mathf.Sin(k * 999f * 2.2f), 1f);
+            });
+
+            if (unlocked.Count > 1 && curIdx >= 0)
+            {
+                var swipeZone = Ui.Box(p, new Vector2(720, 310), new Vector2(0, stageY + 10f), new Color(0, 0, 0, 0), Art.White, "swipeZone");
+                swipeZone.raycastTarget = true;
+                var sw = swipeZone.gameObject.AddComponent<HorizontalSwipe>();
+                sw.OnStep = dir =>
+                {
+                    int nxt = (curIdx + dir + unlocked.Count) % unlocked.Count;
+                    Sfx.Play(Snd.Tap, 0.6f);
+                    CodexDetail(layer, unlocked[nxt], fromTab);
+                };
+            }
+
+            // 怪名 + 左右对称 4x 超采样空心双菱细花线（完全复刻参考图「·——◇◇ 双头绿皮 ◇◇——·」）
+            float nameY = top - 404f;
+            var nameLbl = Ui.Label(p, d.Name, 38, Pal.Hex("466C88"), new Vector2(0, nameY), new Vector2(360, 52), TextAnchor.MiddleCenter, Fonts.Heavy, "enemyName");
+            Canvas.ForceUpdateCanvases();
+            float nameHalf = Mathf.Max(78f, nameLbl.preferredWidth * 0.5f + 22f);
+            const float wingW = 228f, wingH = 34f;
+            var wingL = Ui.Box(p, new Vector2(wingW, wingH), new Vector2(-(nameHalf + wingW * 0.5f), nameY), Color.white, Art.Img("ui/codex_name_wing"), "wingL");
+            wingL.type = Image.Type.Simple;
+            var wingR = Ui.Box(p, new Vector2(wingW, wingH), new Vector2(nameHalf + wingW * 0.5f, nameY), Color.white, Art.Img("ui/codex_name_wing"), "wingR");
+            wingR.type = Image.Type.Simple;
+            wingR.rectTransform.localScale = new Vector3(-1f, 1f, 1f);
+
+            // 特性与弱点内凹说明框：4x 超采样圆润菱星与首行文字中线严格 100% 水平对齐！
+            float descY = top - 550f;
+            const float boxW = 784f, descH = 186f;
+            Ui.Skin(p, "modal_well", new Vector2(boxW, descH), new Vector2(0, descY), 1f, null, "descBox");
+            string bodyRich = EnemyText.SheetBody(d);
+            // 文本顶边固定在 descY + 58，字号 28 首行中心恰在 descY + 40，菱星同步锚在 descY + 40 丝毫不差
+            var bullet = Ui.Box(p, new Vector2(24, 24), new Vector2(-346f, descY + 40f), Color.white, Art.Img("ui/codex_bullet"), "bullet");
+            bullet.type = Image.Type.Simple;
+            var descLbl = Ui.Label(p, bodyRich, 28, WarmTitle, new Vector2(18f, descY - 6f), new Vector2(684f, 128f), TextAnchor.UpperLeft, Fonts.Heavy, "descText");
+            descLbl.lineSpacing = 1.28f;
+
+            // 克制推荐好汉横条（与上方说明框等宽左对齐，左缘严格同在 x=-356；4位Q版好汉全部按脚底对齐在同一基准线！）
+            float recY = top - 734f;
+            const float recH = 144f;
+            Ui.Skin(p, "modal_well", new Vector2(boxW, recH), new Vector2(0, recY), 1f, null, "recBox");
+            Ui.Label(p, "推荐好汉：", 28, WarmTitle, new Vector2(-264f, recY), new Vector2(184, 52), TextAnchor.MiddleLeft, Fonts.Heavy);
+
+            var recs = EnemyText.RecommendedHeroes(d);
+            for (int i = 0; i < recs.Length; i++)
+            {
+                var hid = recs[i];
+                var hd = Defs.Hero(hid);
+                bool owned = Meta.Owned(S, hid);
+                float hx = -98f + i * 144f;
+                var hSlot = Ui.Rect(p, "recHero" + i);
+                hSlot.anchoredPosition = new Vector2(hx, recY);
+                hSlot.sizeDelta = new Vector2(128, 130);
+
+                // 统一视觉身高 104px + 脚底踩齐 y=-46，四位Q版好汉头顶与脚底严丝合缝成一条直线！
+                Ui.Box(hSlot, new Vector2(84, 18), new Vector2(0, -46f), new Color(0.20f, 0.15f, 0.10f, 0.30f), Art.GroundShadow, "sh");
+                var hArt = StandByHeight(hSlot, hd.Art, 104f, -46f, "art");
+                if (!owned) hArt.color = new Color(0.62f, 0.62f, 0.66f, 0.92f);
+
+                var hHit = Ui.Box(hSlot, new Vector2(128, 130), Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
+                var targetHero = hid;
+                Ui.Tap(hHit, () =>
+                {
+                    RestoreBg();
+                    Close(m);
+                    HeroDetail(layer, targetHero);
+                }, hSlot);
+            }
+
+            // 底部装饰三倒三角分割线（与上方双框严格同宽 784px 对齐！）
+            DrawCodexDivider(p, top - 838f, boxW);
+
+            // 底部首次遭遇元宝奖励区（100% 复刻参考图：中央单枚精致暖金奖励方格 + 下方清爽状态字，砍掉冗余笨重大黄钮！）
+            float rwY = top - 968f;
+            int reward = Meta.CodexReward(d);
+            var rwTile = ItemTile(p, new Item(Cur.Ingot, reward), new Vector2(0, rwY + 12f), 134f, false, st == 2 ? layer : null);
+
+            if (st == 1)
+            {
+                var glow = Ui.Box(rwTile, new Vector2(180, 180), Vector2.zero, Pal.Gold.A(0.45f), Art.SoftDot, "rwGlow");
+                glow.transform.SetAsFirstSibling();
+                Tween.Run(glow, 999f, k => { if (glow) glow.color = Pal.Gold.A(0.30f + 0.20f * Mathf.Sin(k * 999f * 4.2f)); });
+                Dot(rwTile, new Vector2(58, 58));
+                var rwOrigin = rwTile.anchoredPosition;
+                Tween.Run(rwTile, 999f, k =>
+                {
+                    if (rwTile) rwTile.anchoredPosition = rwOrigin + new Vector2(0f, 4.2f * Mathf.Sin(k * 999f * 4.2f));
+                });
+
+                var hintLbl = Ui.Label(p, "点击领取", 28, Pal.Hex("C87412"), new Vector2(0, rwY - 86f), new Vector2(260, 42), TextAnchor.MiddleCenter, Fonts.Heavy, "claimTxt");
+                var claimHit = Ui.Box(p, new Vector2(220, 210), new Vector2(0, rwY - 12f), new Color(0, 0, 0, 0), Art.White, "claimHit");
+                Ui.Tap(claimHit, () =>
+                {
+                    if (!Meta.ClaimCodex(S, kind)) return;
+                    Save();
+                    Sfx.Play(Snd.Coin);
+                    Codex(layer, fromTab);
+                    CodexDetail(layer, kind, fromTab);
+                    ShowRewards(layer, "首次遭遇奖励", new List<Item> { new Item(Cur.Ingot, reward) });
+                }, rwTile);
+                hintLbl.raycastTarget = false;
+            }
+            else
+            {
+                Ui.Label(p, "已领取", 28, Pal.Hex("3B8E3E"), new Vector2(0, rwY - 86f), new Vector2(240, 42), TextAnchor.MiddleCenter, Fonts.Heavy);
             }
         }
 
-        static string CodexRewardText(EnemyDef d) => Meta.CodexReward(d).ToString();
-        static int Group(EnemyDef d) => d.IsBoss ? 2 : d.Big ? 1 : 0;
+        sealed class HorizontalSwipe : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+        {
+            public Action<int> OnStep;
+            Vector2 _start;
+            public void OnBeginDrag(PointerEventData e) => _start = e.position;
+            public void OnDrag(PointerEventData e) { }
+            public void OnEndDrag(PointerEventData e)
+            {
+                float dx = e.position.x - _start.x;
+                if (Mathf.Abs(dx) >= 48f && Mathf.Abs(dx) > Mathf.Abs(e.position.y - _start.y))
+                    OnStep?.Invoke(dx < 0 ? 1 : -1);
+            }
+        }
 
         // ---------------- 设置 ----------------
 
@@ -700,13 +1069,173 @@ namespace Liangshan
         public static string RoleArt(Role r) =>
             r == Role.Archer ? "ic_arrow" : r == Role.Bomber ? "ic_bomb" : r == Role.Mage ? "fx_zap" : r == Role.Fighter ? "ic_fist" : r == Role.Support ? "ic_heart" : "ic_hand";
 
-        /// <summary>里程碑说明：达成的把关键字标橙。</summary>
-        static string HighlightTalent(HeroId h, int i, bool on)
+        static readonly Color SkillOn = Pal.Hex("1874B0");
+        static readonly Color SkillOff = Pal.Hex("C46A28");
+
+        /// <summary>已达成的百分比用霁蓝标出。</summary>
+        static string HighlightNums(string s, bool on)
         {
-            string t = Meta.Talent(h, i);
-            if (!on) return t;
-            t = System.Text.RegularExpressions.Regex.Replace(t, "「(.*?)」", m => HeroText.O("[" + m.Groups[1].Value + "]"));
-            return System.Text.RegularExpressions.Regex.Replace(t, @"([+-]\d+%)", m => HeroText.O(m.Groups[1].Value));
+            if (!on || string.IsNullOrEmpty(s)) return s;
+            return System.Text.RegularExpressions.Regex.Replace(s, @"([+-]\d+%)", m => "<color=#1874B0>" + m.Groups[1].Value + "</color>");
+        }
+
+        static string Plain(string s) =>
+            System.Text.RegularExpressions.Regex.Replace(s ?? "", @"</?color(?:=[^>]+)?>", "");
+
+        /// <summary>点技能名：按所在那一行认技能。解锁等级跟这一行走，不跟同名的另一条走。</summary>
+        static void ShowSkill(RectTransform anchor, HeroId h, int row, string name, bool on)
+        {
+            var d = Defs.Hero(h);
+            int lv = Mathf.Max(1, S.HeroLv[(int)h]);
+            int need = row >= 0 && row < Meta.UnlockLv.Length ? Meta.UnlockLv[row] : 1;
+            var kind = Meta.TalentSkillOf(h, row, name);
+            string icon = d.AtkIcon;
+            string tag = "技能";
+            var tagCol = Pal.Hex("2B88C4");
+            string cd = null;
+            string body;
+            string foot = on ? "" : $"{need}级解锁";
+            string AtkCd() => (d.Interval * (lv >= Meta.SurgePlusLv ? 0.9f : 1f)).ToString("0.00") + "s";
+            var surge = Meta.OptPerk(h, 1);
+            var top = Meta.OptPerk(h, 2);
+            if (kind == Meta.TalentSkill.Attack)
+            {
+                cd = AtkCd();
+                body = Plain(HeroText.Atk(d, null, Mathf.Max(0, Meta.HeroDisplayAtk(S, h))));
+                if (!on) foot = "尚未解锁";
+            }
+            else if (kind == Meta.TalentSkill.Ult)
+            {
+                icon = string.IsNullOrEmpty(d.UltIcon) ? "ic_lock" : d.UltIcon;
+                tag = "大招";
+                tagCol = Pal.Hex("E07A2E");
+                cd = d.UltCd.ToString("0.00") + "s";
+                body = Plain(HeroText.Ult(d));
+                foot = on ? "局内强化抽到后释放" : $"{need}级解锁后，局内强化可抽到";
+            }
+            else if (kind == Meta.TalentSkill.Passive)
+            {
+                int unlock = Meta.PassiveUnlock(h);
+                bool lit = S.HeroLv[(int)h] >= unlock;
+                icon = "ic_star";
+                tag = "被动";
+                tagCol = Pal.Hex("8E5CE0");
+                body = Plain(HeroText.Passive(d));
+                foot = lit ? "解锁后永久生效" : $"{unlock}级解锁";
+                Ui.SkillCard(anchor, icon, d.Rarity, !lit, name, tag, tagCol, cd, body, foot);
+                return;
+            }
+            else if (kind == Meta.TalentSkill.SurgePlus)
+            {
+                tag = "强化";
+                tagCol = Pal.Hex("C48A14");
+                body = h == HeroId.HuaRong
+                    ? "场上满 4 位时穿透 +1。此招必定暴击，技能冷却 -10%"
+                    : d.Buff.HasValue
+                        ? "此招效果翻倍，技能冷却 -10%"
+                        : "此招必定暴击，触发几率 +10%，技能冷却 -10%";
+                foot = on ? "解锁后永久生效" : $"{need}级解锁";
+            }
+            else if (kind == Meta.TalentSkill.Top && top != null)
+            {
+                tag = "强化";
+                tagCol = Pal.Hex("C48A14");
+                body = Plain(top.Desc);
+                foot = on ? "局内强化可抽到" : $"{need}级解锁后，局内强化可抽到";
+            }
+            else if (surge != null)
+            {
+                tag = "强化";
+                tagCol = Pal.Hex("C48A14");
+                body = Plain(surge.Desc);
+                foot = on ? "局内强化可抽到" : $"{need}级解锁后，局内强化可抽到";
+            }
+            else
+            {
+                tag = "强化";
+                tagCol = Pal.Hex("C48A14");
+                body = on ? "已解锁" : "尚未解锁";
+                foot = on ? "局内强化可抽到" : $"{need}级解锁";
+            }
+            Ui.SkillCard(anchor, icon, d.Rarity, !on, name, tag, tagCol, cd, body, foot);
+        }
+
+        /// <summary>点六边形技能：弹出说明卡。没有大招的好汉单独说明。</summary>
+        static void OpenHexSkill(RectTransform anchor, HeroId h, int i, int ulv)
+        {
+            var d = Defs.Hero(h);
+            if (i == 1 && !d.HasUlt)
+            {
+                Ui.SkillCard(anchor, "ic_lock", d.Rarity, true, "无", "大招", Pal.Hex("E07A2E"), null, "仅传说好汉拥有大招", null);
+                return;
+            }
+            string name = i == 0 ? d.AtkName : i == 1 ? d.UltName : d.PassiveName;
+            int row = i == 0 ? 0 : i == 1 ? 1 : 2;
+            bool on = i == 0 || (i == 1 ? ulv >= Meta.UltLv : ulv >= Meta.PassiveUnlock(h));
+            ShowSkill(anchor, h, row, name, on);
+        }
+
+        /// <summary>里程碑一行：技能名单独成段，可点开说明。已解锁霁蓝，未解锁赭石。</summary>
+        static void TalentLine(Transform p, HeroId h, int i, bool on, float y)
+        {
+            string raw = Meta.Talent(h, i);
+            var re = new System.Text.RegularExpressions.Regex("「(.*?)」");
+            var ms = re.Matches(raw);
+            if (ms.Count == 0)
+            {
+                Fit(Ui.Label(p, HighlightNums(raw, on), 26, on ? WarmTitle : WarmSub, new Vector2(28, y), new Vector2(628, 56), TextAnchor.MiddleLeft, Fonts.Heavy), 20);
+                return;
+            }
+
+            var host = Ui.Rect(p, "talent");
+            host.pivot = new Vector2(0f, 0.5f);
+            host.anchoredPosition = new Vector2(28f - 314f, y);
+            host.sizeDelta = new Vector2(628, 56);
+
+            var segs = new List<(string text, string skill)>();
+            int last = 0;
+            foreach (System.Text.RegularExpressions.Match m in ms)
+            {
+                if (m.Index > last) segs.Add((raw.Substring(last, m.Index - last), null));
+                segs.Add((null, m.Groups[1].Value));
+                last = m.Index + m.Length;
+            }
+            if (last < raw.Length) segs.Add((raw.Substring(last), null));
+
+            float x = 0f;
+            var links = new List<(Text t, string skill)>();
+            foreach (var seg in segs)
+            {
+                bool link = seg.skill != null;
+                string shown = link ? (on ? "[" + seg.skill + "]" : "「" + seg.skill + "」") : HighlightNums(seg.text, on);
+                if (string.IsNullOrEmpty(shown)) continue;
+                Color col = link ? (on ? SkillOn : SkillOff) : (on ? WarmTitle : WarmSub);
+                var t = Ui.Label(host, shown, 26, col, Vector2.zero, new Vector2(900, 56), TextAnchor.MiddleLeft, Fonts.Heavy, link ? "skill" : "txt");
+                t.horizontalOverflow = HorizontalWrapMode.Overflow;
+                // Label 默认锚在父节点中心。这里要从说明区左缘接上，和没有「」的行对齐。
+                var rt = t.rectTransform;
+                rt.anchorMin = rt.anchorMax = new Vector2(0f, 0.5f);
+                rt.pivot = new Vector2(0f, 0.5f);
+                Canvas.ForceUpdateCanvases();
+                float w = t.preferredWidth;
+                if (w < 1f) w = shown.Length * t.fontSize;
+                rt.anchoredPosition = new Vector2(x, 0f);
+                rt.sizeDelta = new Vector2(w, 56f);
+                if (link)
+                {
+                    var bar = Ui.Box(t.rectTransform, new Vector2(Mathf.Max(12f, w - 6f), 3f), new Vector2(0f, -18f), col, Art.White, "ul");
+                    bar.raycastTarget = false;
+                    links.Add((t, seg.skill));
+                }
+                x += w;
+            }
+            foreach (var lk in links)
+            {
+                var rt = lk.t.rectTransform;
+                string title = lk.skill;
+                Ui.Tap(lk.t, () => ShowSkill(rt, h, i, title, on));
+            }
+            if (x > 620f) host.localScale = Vector3.one * (620f / x);
         }
 
         static void StatBox(Transform p, Vector2 pos, string icon, string label, string value, string sub, Color? iconBg = null)
@@ -716,8 +1245,8 @@ namespace Liangshan
             r.sizeDelta = new Vector2(430, 120);
             Ui.Skin(r, "row", new Vector2(430, 120), Vector2.zero, 0.6f);
             Slot(r, "slot_wood", 96, new Vector2(-152, 0));
-            if (iconBg.HasValue) Ui.Box(r, Vector2.one * 74, new Vector2(-152, 0), iconBg.Value, Art.Circle, "roleBg");
-            Ui.Icon(r, icon, 70, new Vector2(-152, 2));
+            if (iconBg.HasValue) Ui.Box(r, Vector2.one * 68, new Vector2(-152, 0), iconBg.Value, Art.Circle, "roleBg");
+            Ui.Icon(r, icon, 62, new Vector2(-152, 2));
             Ui.Label(r, label, 26, Pal.SubInk, new Vector2(10, 28), new Vector2(200, 36), TextAnchor.MiddleLeft, Fonts.Heavy);
             Ui.Label(r, value, 38, Pal.Ink, new Vector2(10, -16), new Vector2(200, 50), TextAnchor.MiddleLeft, Fonts.Heavy);
             if (sub != null)
@@ -730,8 +1259,19 @@ namespace Liangshan
             r.anchoredPosition = pos;
             r.sizeDelta = new Vector2(140, 170);
             var face = Slot(r, skin, 130, new Vector2(0, 16));
-            Ui.Icon(r, icon, 104, new Vector2(0, 20));
-            if (shard) Ui.Icon(r, "ic_shard", 48, new Vector2(-42, 58));
+            if (shard)
+            {
+                var mask = Ui.Rect(r, "bustMask");
+                mask.sizeDelta = Vector2.one * 100f;
+                mask.anchoredPosition = new Vector2(0, 17);
+                mask.gameObject.AddComponent<RectMask2D>();
+                Ui.Icon(mask, icon, 122, new Vector2(0, -14));
+                Ui.Icon(r, "ic_shard", 46, new Vector2(-42, 58));
+            }
+            else
+            {
+                Ui.Icon(r, icon, 92, new Vector2(0, 18));
+            }
             Ui.Outlined(r, text, 28, ok ? Color.white : Pal.Hex("FF7A6A"), new Vector2(0, -66), new Vector2(200, 40), Pal.Ink, 2f);
             if (!ok)
             {
@@ -742,7 +1282,7 @@ namespace Liangshan
         }
 
         /// <summary>参考视频的好汉详情：头像压在框顶，伤害/职业两格，三个六边形技能（点选看说明），等级里程碑，底部碎片、铜钱和大号升级键。</summary>
-        public static void HeroDetail(Transform layer, HeroId h, int skill = 0)
+        public static void HeroDetail(Transform layer, HeroId h)
         {
             var d = Defs.Hero(h);
             int lv = S.HeroLv[(int)h];
@@ -773,11 +1313,6 @@ namespace Liangshan
                     var tag = Ui.Icon(p, "ui/tag_red", 132, new Vector2(-372, 670), "onTag");
                     Ui.Outlined(tag.transform, "出战中", 26, Color.white, new Vector2(-6, 2), new Vector2(112, 48), Pal.RedDeep, 1.4f);
                 }
-                else
-                {
-                    var b = Ui.Btn(p, "上阵", new Vector2(176, 84), new Vector2(-370, 670), Pal.Teal, () => { Close(m); BeginSwap(layer, h); }, 36);
-                    Tween.Run(b, 999f, k => b.localScale = Vector3.one * (1f + 0.04f * Mathf.Sin(k * 999f * 5f)));
-                }
                 if (Meta.CanResetHero(S, h))
                 {
                     Ui.Btn(p, "免费重置", new Vector2(184, 72), new Vector2(366, 616), Pal.Slate, () =>
@@ -785,7 +1320,7 @@ namespace Liangshan
                         if (!Meta.ResetHero(S, h, out int rc2, out int rs2)) return;
                         Save();
                         Sfx.Play(Snd.Coin, 0.85f);
-                        HeroDetail(layer, h, skill);
+                        HeroDetail(layer, h);
                         Ui.Toast($"已重置为1级 · 返还铜钱 {Ui.Num(rc2)}、碎片 ×{rs2}", 220);
                     }, 28);
                 }
@@ -800,44 +1335,36 @@ namespace Liangshan
             string[] names = { d.AtkName, d.UltName ?? "无", d.PassiveName };
             for (int i = 0; i < 3; i++)
             {
-                bool locked = (i == 2 && ulv < Meta.PassiveLv) || (i == 1 && (!d.HasUlt || ulv < Meta.UltLv));
+                bool locked = (i == 2 && ulv < Meta.PassiveUnlock(h)) || (i == 1 && (!d.HasUlt || ulv < Meta.UltLv));
                 float x = (i - 1) * 240;
-                if (i == skill)
-                {
-                    var sel = Ui.Box(p, Vector2.one * 224, new Vector2(x, 300), Pal.Azure.A(0.45f), Art.SoftDot, "sel");
-                    Tween.Run(sel, 999f, k => sel.color = Pal.Azure.A(0.32f + 0.18f * Mathf.Sin(k * 999f * 4f)));
-                }
                 var hx = MetaFx.Hex(p, SkillIcon(d, i), 128, new Vector2(x, 304), locked, d.Rarity);
-                Ui.Outlined(p, $"{tags[i]}·{names[i]}", 28, i == skill ? Pal.Champagne : Color.white, new Vector2(x, 210), new Vector2(236, 42), Pal.Ink, 2f);
+                var cap = Ui.Outlined(p, $"{tags[i]}·{names[i]}", 28, Color.white, new Vector2(x, 210), new Vector2(236, 42), Pal.Ink, 2f);
                 int si = i;
                 var hit = Ui.Box(hx, new Vector2(170, 180), Vector2.zero, new Color(0, 0, 0, 0.001f), Art.White, "hit");
-                Ui.Tap(hit, () => { if (si != skill) HeroDetail(layer, h, si); }, hx);
+                void Open() => OpenHexSkill(hx, h, si, ulv);
+                Ui.Tap(hit, Open, hx);
+                Ui.Tap(cap, Open, hx);
             }
-            string desc = skill == 0 ? $"冷却 {HeroText.O((d.Interval * (ulv >= 15 ? 0.9f : 1f)).ToString("0.#") + "秒")}：" + HeroText.Atk(d, null, atk)
-                : skill == 1 ? (d.HasUlt ? $"冷却 {HeroText.O(d.UltCd.ToString("0.#") + "秒")}：" + HeroText.Ult(d) + (ulv < Meta.UltLv ? $"（{HeroText.O(Meta.UltLv + "级")}解锁后进强化池）" : "（局内强化抽到大招卡后释放）") : "仅传说好汉拥有大招")
-                : HeroText.Passive(d) + (ulv >= Meta.PassiveLv ? "" : $"（{HeroText.O(Meta.PassiveLv + "级")}解锁）");
-            Ui.Skin(p, "quest_tray", new Vector2(912, 146), new Vector2(0, 118), 0.78f);
-            Fit(Ui.Label(p, HeroText.OnLight(desc.Replace("\n", " ")), 28, WarmTitle, new Vector2(0, 116), new Vector2(856, 124), TextAnchor.MiddleLeft, Fonts.Heavy), 22);
 
-            Ui.Skin(p, "modal_well", new Vector2(912, 396), new Vector2(0, -194), 1f);
+            Ui.Skin(p, "modal_well", new Vector2(912, 396), new Vector2(0, -54), 1f);
             for (int i = 1; i < Meta.UnlockLv.Length; i++)
             {
                 int need = Meta.UnlockLv[i];
                 bool on = lv >= need;
-                float y = -8 - (i - 1) * 74;
+                float y = 132 - (i - 1) * 74;
                 Ui.Skin(p, on ? "row_claim" : "row", new Vector2(888, 68), new Vector2(0, y), 0.50f);
                 // 徽章右缘 -320，勾选左缘 386：说明严格落在中间，左右各留 16px 以上
                 Badge(p, $"Lv.{need}", on ? Pal.Teal : Pal.Slate, new Vector2(112, 46), new Vector2(-386, y), 24);
-                Fit(Ui.Label(p, HeroText.OnLight(HighlightTalent(h, i, on)), 26, on ? WarmTitle : WarmSub, new Vector2(28, y), new Vector2(628, 56), TextAnchor.MiddleLeft, Fonts.Heavy), 20);
+                TalentLine(p, h, i, on, y);
                 var mark = Ui.Icon(p, on ? "ic_check" : "ic_lock", 36, new Vector2(404, y));
                 if (!on) mark.color = new Color(1, 1, 1, 0.72f);
             }
 
-            float sy = -456;
+            float sy = -316;
             Ui.Box(p, new Vector2(920, 60), new Vector2(0, sy), Pal.Hex("5CD890").A(0.24f), Art.Rounded, "bonus");
             Ui.Label(p, $"升级奖励：全军暴击伤害 <color=#1E7A40>+1%</color>（当前 +{Meta.LevelCritDmg(S) * 100:0}%）", 29, Pal.GreenDeep, new Vector2(0, sy), new Vector2(900, 56), TextAnchor.MiddleCenter, Fonts.Heavy);
 
-            float by = -630;
+            float by = -490;
             if (!owned)
             {
                 string how = "擂鼓招募获得" + (d.Rarity >= 4 && !Meta.OrangeOpened(S) ? $"（通关第 {Meta.OrangeOpen} 关后进入招募池）" : "");
@@ -858,8 +1385,7 @@ namespace Liangshan
             var ct = CostTile(p, new Vector2(-200, cy), "slot_wood", "ic_coins", $"{Ui.Num(S.Copper)}/{Ui.Num(cc)}", copperOk, false);
             Ui.Tap(ct, () => GetPaths(layer, null), ct.transform.parent);
             bool can = shardOk && copperOk;
-            int sk = skill;
-            var up = Ui.Btn(p, "升级", new Vector2(390, 138), new Vector2(200, cy), can ? Pal.Green : Pal.Slate, () => DoLevelUp(layer, h, sk), 56);
+            var up = Ui.Btn(p, "升级", new Vector2(390, 138), new Vector2(200, cy), can ? Pal.Green : Pal.Slate, () => DoLevelUp(layer, h), 56);
             var arrow = Ui.Icon(up.Find("body"), "ic_fast", 66, new Vector2(156, 42), "upArrow");
             arrow.transform.localRotation = Quaternion.Euler(0, 0, 90);
             if (can)
@@ -883,7 +1409,7 @@ namespace Liangshan
             return t;
         }
 
-        static void DoLevelUp(Transform layer, HeroId h, int skill)
+        static void DoLevelUp(Transform layer, HeroId h)
         {
             int lv = S.HeroLv[(int)h];
             float oldPw = Meta.HeroPower(S, h), oldCd = Meta.LevelCritDmg(S);
@@ -896,7 +1422,7 @@ namespace Liangshan
                 return;
             }
             Save();
-            HeroDetail(layer, h, skill);
+            HeroDetail(layer, h);
             MetaFx.LevelUp(layer, new MetaFx.LevelUpInfo
             {
                 Hero = h, NewLv = S.HeroLv[(int)h], OldPower = oldPw, NewPower = Meta.HeroPower(S, h),
@@ -925,8 +1451,12 @@ namespace Liangshan
             {
                 var d = Defs.Hero(hero.Value);
                 Slot(head, RaritySlot(d.Rarity), 132, new Vector2(-300, 0));
-                Ui.Icon(head, d.Art, 120, new Vector2(-300, 4));
-                Ui.Icon(head, "ic_shard", 50, new Vector2(-344, 44));
+                var mask = Ui.Rect(head, "bustMask");
+                mask.sizeDelta = Vector2.one * 102f;
+                mask.anchoredPosition = new Vector2(-300, 1);
+                mask.gameObject.AddComponent<RectMask2D>();
+                Ui.Icon(mask, d.Art, 124, new Vector2(0, -14));
+                Ui.Icon(head, "ic_shard", 48, new Vector2(-344, 44));
                 Ui.Label(head, d.Name + "碎片", 36, Pal.Ink, new Vector2(-50, 40), new Vector2(360, 50), TextAnchor.MiddleLeft, Fonts.Heavy);
                 Ui.Label(head, HeroText.OnLight($"拥有数量：{HeroText.O(S.Shards[(int)hero.Value])}"), 26, Pal.SubInk, new Vector2(240, 40), new Vector2(260, 40), TextAnchor.MiddleRight, Fonts.Heavy);
                 Ui.Label(head, $"用于升级{d.Name}，重复招募到会自动折成碎片", 24, Pal.SubInk, new Vector2(60, -30), new Vector2(580, 70), TextAnchor.MiddleLeft);
@@ -934,7 +1464,7 @@ namespace Liangshan
             else
             {
                 Slot(head, "slot_wood", 132, new Vector2(-300, 0));
-                Ui.Icon(head, "ic_coins", 112, new Vector2(-300, 4));
+                Ui.Icon(head, "ic_coins", 94, new Vector2(-300, 2));
                 Ui.Label(head, "铜钱", 36, Pal.Ink, new Vector2(-50, 40), new Vector2(360, 50), TextAnchor.MiddleLeft, Fonts.Heavy);
                 Ui.Label(head, HeroText.OnLight($"拥有数量：{HeroText.O(Ui.Num(S.Copper))}"), 26, Pal.SubInk, new Vector2(240, 40), new Vector2(260, 40), TextAnchor.MiddleRight, Fonts.Heavy);
                 Ui.Label(head, "好汉升级、装备强化、点亮天赋都要用到", 24, Pal.SubInk, new Vector2(60, -30), new Vector2(580, 70), TextAnchor.MiddleLeft);
@@ -1797,7 +2327,7 @@ namespace Liangshan
                 if (!on && !locked)
                 {
                     hx.Find("frame").GetComponent<Image>().color = next ? Color.white : new Color(0.68f, 0.76f, 0.84f);
-                    hx.Find("icon").GetComponent<Image>().color = next ? Color.white : new Color(0.72f, 0.78f, 0.85f);
+                    hx.Find("window/icon").GetComponent<Image>().color = next ? Color.white : new Color(0.72f, 0.78f, 0.85f);
                 }
                 if (next)
                 {

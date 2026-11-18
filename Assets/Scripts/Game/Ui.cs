@@ -598,6 +598,107 @@ namespace Liangshan
             Tween.Run(c, 0.16f, k => { if (c) c.localScale = Vector3.one * Mathf.Lerp(0.94f, 1f, Tween.OutBack(k)); });
         }
 
+        /// <summary>单行排版宽度，用来决定说明卡要多宽才刚好盛下这段字。</summary>
+        static float TextWidth(Transform host, string s, int size, Font font)
+        {
+            if (string.IsNullOrEmpty(s)) return 0f;
+            var t = Label(host, s, size, Color.white, Vector2.zero, new Vector2(4000f, 800f), TextAnchor.MiddleLeft, font, "probe");
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            Canvas.ForceUpdateCanvases();
+            float w = t.preferredWidth;
+            UnityEngine.Object.DestroyImmediate(t.gameObject);
+            return w;
+        }
+
+        /// <summary>技能说明：屏幕居中。正文按整段排，顶到卡片内宽才换行；短句把卡片收窄，不留大块空白。</summary>
+        public static void SkillCard(Transform anchor, string icon, int rarity, bool locked, string name, string tag, Color tagColor, string cd, string body, string foot)
+        {
+            var old = Root.Find("hint");
+            if (old) UnityEngine.Object.DestroyImmediate(old.gameObject);
+            var root = Rect(Root, "hint");
+            root.anchorMin = Vector2.zero;
+            root.anchorMax = Vector2.one;
+            root.offsetMin = root.offsetMax = Vector2.zero;
+            var hit = Fill(root, new Color(0, 0, 0, 0.001f), true, "hit");
+            var keep = root;
+            Tap(hit.GetComponent<Image>(), () => { if (keep) UnityEngine.Object.Destroy(keep.gameObject); }, null, false);
+
+            const float maxW = 760f;
+            const float minW = 420f;
+            const float padX = 36f;
+            const float iconSize = 108f;
+            const float headH = 118f;
+            const float padT = 22f, padB = 22f, gap = 14f, footH = 36f;
+            const int bodySize = 28;
+            string shown = TintNums((body ?? "").Replace("\r", ""));
+            bool hasCd = !string.IsNullOrEmpty(cd);
+            bool footed = !string.IsNullOrEmpty(foot);
+            bool hasIcon = !string.IsNullOrEmpty(icon);
+            string cdPlain = hasCd ? "冷却：" + cd : "";
+
+            float nameRaw = TextWidth(root, name ?? "", 32, Fonts.Heavy);
+            float cdRaw = TextWidth(root, cdPlain, 22, Fonts.Heavy);
+            float bodyRaw = TextWidth(root, shown, bodySize, Fonts.Bold);
+            float headerNeed = padX + (hasIcon ? iconSize + 18f : 0f) + nameRaw + 24f + (hasCd ? cdRaw + 28f : 0f) + padX;
+            float cap = Mathf.Min(maxW, Mathf.Max(minW, ((RectTransform)Root).rect.width - 48f));
+            float tw = Mathf.Clamp(Mathf.Max(headerNeed, bodyRaw + padX * 2f + 16f), minW, cap);
+            float inner = tw - padX * 2f;
+
+            var probe = Label(root, shown, bodySize, Color.white, Vector2.zero, new Vector2(inner, 640f), TextAnchor.UpperLeft, Fonts.Bold, "probe");
+            probe.lineSpacing = 1.15f;
+            Canvas.ForceUpdateCanvases();
+            float bodyH = Mathf.Max(44f, probe.preferredHeight);
+            UnityEngine.Object.DestroyImmediate(probe.gameObject);
+
+            float th = padT + headH + gap + bodyH + (footed ? gap + footH : 0f) + padB;
+            var card = Rect(root, "card");
+            card.sizeDelta = new Vector2(tw, th);
+            card.anchoredPosition = Vector2.zero;
+            Box(card, new Vector2(tw - 6f, th - 6f), new Vector2(0, -6f), new Color(0.02f, 0.04f, 0.08f, 0.35f), Art.Rounded, "shadow");
+            Skin(card, "dark", new Vector2(tw, th), Vector2.zero, 1f, null, "face");
+
+            float headerY = th * 0.5f - padT - headH * 0.5f;
+            float iconX = -tw * 0.5f + padX + iconSize * 0.5f;
+            if (hasIcon)
+                MetaFx.Hex(card, icon, iconSize, new Vector2(iconX, headerY), locked, rarity);
+
+            float textLeft = hasIcon ? iconX + iconSize * 0.5f + 16f : -tw * 0.5f + padX;
+            float textRight = tw * 0.5f - padX - (hasCd ? cdRaw + 16f : 0f);
+            float nameW = Mathf.Max(96f, textRight - textLeft);
+            Label(card, name ?? "", 32, Color.white, new Vector2(textLeft + nameW * 0.5f, headerY + 24f), new Vector2(nameW, 44),
+                TextAnchor.MiddleLeft, Fonts.Heavy, "name");
+            if (!string.IsNullOrEmpty(tag))
+            {
+                float tagW = Mathf.Max(72f, 22f * tag.Length + 28f);
+                var pill = Box(card, new Vector2(tagW, 32f), new Vector2(textLeft + tagW * 0.5f, headerY - 22f), tagColor, Art.Pill, "tag");
+                pill.raycastTarget = false;
+                var tagText = Label(pill.transform, tag, 18, Color.white, Vector2.zero, new Vector2(tagW, 32f), TextAnchor.MiddleCenter, Fonts.Heavy, "tagText");
+                tagText.raycastTarget = false;
+            }
+            if (hasCd)
+            {
+                var cdText = Label(card, "冷却：<color=#FF9A2E>" + cd + "</color>", 22, Pal.Hex("C5D4E4"),
+                    new Vector2(tw * 0.5f - padX - cdRaw * 0.5f, headerY + 22f), new Vector2(cdRaw + 8f, 36f), TextAnchor.MiddleRight, Fonts.Heavy, "cd");
+                cdText.raycastTarget = false;
+            }
+
+            float bodyTop = headerY - headH * 0.5f - gap;
+            var bodyText = Label(card, shown, bodySize, Pal.Hex("E7F1FA"), new Vector2(0, bodyTop - bodyH * 0.5f), new Vector2(inner, bodyH),
+                TextAnchor.UpperLeft, Fonts.Bold, "text");
+            bodyText.lineSpacing = 1.15f;
+            if (footed)
+            {
+                float footY = bodyTop - bodyH - gap - footH * 0.5f;
+                Label(card, foot, 20, Pal.Hex("A9BDD0"), new Vector2(0, footY), new Vector2(inner, footH),
+                    TextAnchor.MiddleCenter, Fonts.Heavy, "foot");
+            }
+
+            root.SetAsLastSibling();
+            card.localScale = Vector3.one * 0.94f;
+            var c = card;
+            Tween.Run(c, 0.16f, k => { if (c) c.localScale = Vector3.one * Mathf.Lerp(0.94f, 1f, Tween.OutBack(k)); });
+        }
+
         static string TintNums(string s) =>
             System.Text.RegularExpressions.Regex.Replace(s ?? "", @"[+\-]?\d+(?:\.\d+)?%?", m => "<color=#FF9A2E>" + m.Value + "</color>");
 
@@ -609,14 +710,26 @@ namespace Liangshan
             Tween.Run(g, 999f, k => rt.anchoredPosition = origin + new Vector2(0f, amp * Mathf.Sin(k * 999f * 4.2f)));
         }
 
-        public static void Toast(string s, float y = 0)
+        public static void Toast(string s, float y = 0, Color? bg = null)
         {
             int len = Mathf.Max(6, s.Length);
-            var bg = Skin(Root, "pill", new Vector2(Mathf.Min(980, len * 44 + 120), 100), new Vector2(0, y), -1f, null, "toast");
-            Label(bg.transform, s, 42, Pal.Cream, Vector2.zero, new Vector2(960, 96));
-            bg.transform.SetAsLastSibling();
-            Tween.Pop(bg.transform, 0.22f);
-            Tween.Run(bg, 1.5f, k => { }, () => UnityEngine.Object.Destroy(bg.gameObject));
+            var size = new Vector2(Mathf.Min(980, len * 44 + 120), 100);
+            Image plate;
+            Color ink;
+            if (bg.HasValue)
+            {
+                plate = Box(Root, size, new Vector2(0, y), bg.Value, Art.Pill, "toast");
+                ink = Pal.Hex("543006");
+            }
+            else
+            {
+                plate = Skin(Root, "pill", size, new Vector2(0, y), -1f, null, "toast");
+                ink = Pal.Cream;
+            }
+            Label(plate.transform, s, 42, ink, Vector2.zero, new Vector2(960, 96));
+            plate.transform.SetAsLastSibling();
+            Tween.Pop(plate.transform, 0.22f);
+            Tween.Run(plate, 1.5f, k => { }, () => UnityEngine.Object.Destroy(plate.gameObject));
         }
 
         public static bool PointerOverUi()
@@ -697,6 +810,8 @@ namespace Liangshan
         }
 
         static readonly HashSet<Transform> Punching = new HashSet<Transform>();
+
+        public static bool IsPunching(Transform t) => t != null && Punching.Contains(t);
 
         /// <summary>同一个节点正在弹时不叠加，免得基准缩放被带偏。</summary>
         public static void Punch(Transform t, float dur = 0.2f, float amount = 0.15f)
