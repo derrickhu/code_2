@@ -96,9 +96,19 @@ async function inferRegion() {
 async function cos(method, objectPath, body = null, headers = {}, timeoutMs = 60000) {
   const host = `${BUCKET}.cos.${REGION}.myqcloud.com`;
   const uri = `/${encodePathname(objectPath)}`;
-  const res = await request({ method, hostname: host, path: uri, headers: { Host: host, Authorization: cosAuth(method, host, uri), ...headers }, body, timeoutMs });
-  if (res.statusCode < 200 || (res.statusCode >= 300 && !(method === 'DELETE' && res.statusCode === 404)))
-    throw new Error(`${method} ${objectPath} 返回 ${res.statusCode}: ${res.body.toString('utf-8').slice(0, 200)}`);
+  let lastErr;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      const res = await request({ method, hostname: host, path: uri, headers: { Host: host, Authorization: cosAuth(method, host, uri), ...headers }, body, timeoutMs });
+      if (res.statusCode < 200 || (res.statusCode >= 300 && !(method === 'DELETE' && res.statusCode === 404)))
+        throw new Error(`${method} ${objectPath} 返回 ${res.statusCode}: ${res.body.toString('utf-8').slice(0, 200)}`);
+      return;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 4) await new Promise((r) => setTimeout(r, attempt * 1200));
+    }
+  }
+  throw lastErr;
 }
 
 function contentType(file) {

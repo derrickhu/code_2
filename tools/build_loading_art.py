@@ -14,7 +14,10 @@
 
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+try:
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+except ImportError:
+    Image = ImageDraw = ImageFilter = ImageFont = None
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT.parent / "game_assets/code_2/assets/raw"
