@@ -536,6 +536,7 @@ namespace Liangshan
                         var c = Pal.Hex(Defs.Hero(e.Hero).Tint ?? "FFB040");
                         fx.Flash(p + new Vector2(0, 0.3f), 2.2f, c.A(0.7f), 0.25f);
                         fx.GroundWave(p + new Vector2(0, -0.3f), 1.1f, c, 0.4f, 159, 0.35f);
+                        Sfx.Play(Snd.SigTrigger, 0.45f, 1.12f);
                         break;
                     }
                     case Ev.Buff:
@@ -654,7 +655,7 @@ namespace Liangshan
                         fx.Sparks(Art.Img("fx_star"), p + new Vector2(0, 0.6f), 10, 0.28f, 3.1f, Pal.Gold, 0.68f, 9450, 5f, true);
                         fx.ScreenFlash(Pal.Hex("FFE296").A(0.16f), 0.26f);
                         fx.Shake(0.08f, 0.2f);
-                        Sfx.Play(Snd.Reveal, 0.78f);
+                        Sfx.Play(Snd.Awaken, 0.88f);
                         string why = e.Value == 0 ? "本命奥义觉醒！" : "三词条奥义觉醒！";
                         string sub = hd.Buff.HasValue
                             ? $"{why}光环与加持 +40% · 攻速 +20%"
@@ -671,6 +672,7 @@ namespace Liangshan
                         fx.GroundWave(p + new Vector2(0, -0.28f), 1.25f, sigCol.A(0.75f), 0.36f, 159, 0.40f);
                         fx.Glint(p + new Vector2(0, 0.48f), 1.25f, Pal.Hex("FFEAA6"), 0.16f, 9462);
                         if (e.Slot >= 0 && e.Slot < _slots.Count) _slots[e.Slot].Glow(sigCol);
+                        Sfx.Play(Snd.SigTrigger, 0.50f);
                         if (kit.Sig != SigKind.EveryNCast || e.Value <= 3)
                             fx.Say(p + new Vector2(0, 1.28f), kit.SigName, WorldFx.Tx.Skill, sigCol, 0.86f);
                         break;
@@ -801,6 +803,7 @@ namespace Liangshan
                     fx.Glint(p + new Vector2(0, 0.5f), e.Crit ? 1.2f : 0.85f, Pal.Hex("FFF2C8"), 0.14f, 9516);
                     fx.SparkStreaks(p + new Vector2(0, 0.45f), 3, 0.26f, 3.6f, Pal.Hex("FFE29A"), 0.2f, 9515, 4f);
                     Jolt(p, 0.48f, e.Crit ? 0.65f : 0.40f, Away(p));
+                    if (_hitSfxGap <= 0) { Sfx.Play(Snd.Dao, 0.28f, 1.18f); _hitSfxGap = 0.05f; }
                     return;
                 case ShotKind.Slash:
                 {
@@ -815,7 +818,7 @@ namespace Liangshan
                     fx.Glint(body, e.Crit ? 1.7f : 1.25f, Pal.Hex("E8FFFF"), 0.16f, 9563);
                     fx.SparkStreaks(body + fly * 0.2f, e.Crit ? 8 : 5, 0.4f, 5.6f, WorldFx.QiIce, 0.24f, 9562, 3f, fly, 50f);
                     Jolt(p, 0.65f, e.Crit ? 1.15f : 0.82f, fly);
-                    if (_hitSfxGap <= 0) { Sfx.Play(Snd.ArrowHit, 0.3f, 0.8f); _hitSfxGap = 0.05f; }
+                    if (_hitSfxGap <= 0) { Sfx.Play(Snd.Dao, 0.38f, 0.96f); _hitSfxGap = 0.05f; }
                     return;
                 }
                 case ShotKind.Arrow:
@@ -902,7 +905,7 @@ namespace Liangshan
                     }
                     Jolt(p, e.Radius, bd.Rarity >= 3 ? 1.4f : 1.2f);
                     fx.Shake(bd.Rarity >= 3 ? 0.09f : 0.06f, 0.12f);
-                    HeroSfx.Hit(bd, false);
+                    HitSfx(e, 0.06f);
                     break;
                 }
                 case ShotKind.MiniBomb:
@@ -939,7 +942,7 @@ namespace Liangshan
                         if (e.Crit) fx.Debris(p, 3, 0.2f, 2.1f);
                         Jolt(p, e.Radius * 0.8f, e.Crit ? 1.8f : 1.35f, Away(p));
                         fx.Shake(e.Crit ? 0.07f : 0.03f, 0.1f);
-                        HeroSfx.Hit(Defs.Hero(e.Hero), false);
+                        HitSfx(e, 0.06f);
                         break;
                     }
                     // 飞斧/飞刀命中：紧贴兵刃比例的利落弧形刀光（FxUber 刷光+噪波碎散）+ 白钢斩口 + 钢屑火星，绝不夸张喧宾夺主。
@@ -988,7 +991,7 @@ namespace Liangshan
                         fx.Decal(Art.Img("fx_crack"), p, e.Radius * 1.4f, new Color(0.12f, 0.09f, 0.07f, 0.58f), 2.0f, 0.5f, 91);
                         fx.Debris(p, 4, 0.22f, 2.2f);
                     }
-                    HeroSfx.Hit(Defs.Hero(e.Hero), false);
+                    HitSfx(e, 0.06f);
                     break;
                 case ShotKind.Slam:
                 {
@@ -1012,7 +1015,7 @@ namespace Liangshan
                     fx.Debris(p, e.Crit ? 5 : 3, 0.20f, 2.2f);
                     Jolt(p, e.Radius, e.Crit ? 2.0f : 1.5f);
                     fx.Shake(e.Crit ? 0.10f : 0.045f, e.Crit ? 0.16f : 0.10f);
-                    HeroSfx.Hit(Defs.Hero(e.Hero), false);
+                    HitSfx(e, 0.06f);
                     break;
                 }
                 case ShotKind.Spear:
@@ -1093,7 +1096,7 @@ namespace Liangshan
                     fx.LightPool(p, e.Radius * 3f, Pal.Hex("8FD8FF").A(0.8f), 0.8f);
                     fx.ScreenFlash(Pal.Hex("D8F0FF").A(0.3f), 0.3f);
                     fx.Shake(0.15f, 0.3f);
-                    Sfx.Play(Snd.UltThunder, 0.6f, 1.3f);
+                    Sfx.Play(Snd.IceShatter, 0.82f);
                     break;
                 case ShotKind.Fireball:
                     Explosion(p, e.Radius, e.Crit ? 1.5f : 0.9f, Defs.Hero(e.Hero).Rarity);
@@ -1342,8 +1345,8 @@ namespace Liangshan
             fx.ScreenFlash(Pal.Hex("FFE2A0").A(0.22f), 0.3f);
             fx.Shake(0.14f, 0.35f);
             fx.Say(lp + new Vector2(0, 2.1f), Defs.LordSkillName, WorldFx.Tx.Skill, Pal.Hex("FFC63A"), 1.15f);
-            Sfx.Play(Snd.UltFist, 1f, 0.75f);
-            Sfx.Play(Snd.Wave, 0.6f, 1.05f);
+            Sfx.Play(Snd.LordSlash, 0.92f);
+            Sfx.Play(Snd.Wave, 0.45f, 1.05f);
             Hud.OnLordSkill();
         }
 
@@ -1355,7 +1358,7 @@ namespace Liangshan
                 yield return new WaitForSeconds(Battle.LordHitGap);
                 if (WorldFx.I == null) yield break;
                 WorldFx.I.SwordWave(origin, aim);
-                Sfx.Play(Snd.Wave, 0.5f, 1.1f);
+                Sfx.Play(Snd.LordSlash, 0.68f, 1.04f + k * 0.04f);
             }
         }
 
