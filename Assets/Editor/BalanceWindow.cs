@@ -296,6 +296,97 @@ namespace Liangshan.EditorTools
                 c.LordPctBase = EditorGUILayout.Slider("基础剑气伤害倍率 (×统帅攻击)", c.LordPctBase, 0.5f, 5.0f);
                 c.LordCdBase = EditorGUILayout.Slider("基础冷却秒数", c.LordCdBase, 10f, 80f);
                 c.LordFirstCast = EditorGUILayout.Slider("开战首次拔剑秒数", c.LordFirstCast, 5f, 45f);
+                c.LordWaveSpeed = EditorGUILayout.Slider("统帅剑气推进速度 (格/秒)", c.LordWaveSpeed, 6.0f, 24.0f);
+            });
+
+            Section("全职业弹道飞行速度与法术/刀剑特效节奏（×1 第一档速度基准）", () =>
+            {
+                const float refDist = 4.5f;
+                float pace = Mathf.Max(0.25f, c.ProjPace);
+                float arrowT = (c.ArrowBase + refDist / Mathf.Max(1f, c.ArrowSpeed)) * pace;
+                float spearT = (c.SpearBase + refDist / Mathf.Max(1f, c.SpearSpeed)) * pace;
+                float meleeT = (c.MeleeBase + refDist / Mathf.Max(1f, c.MeleeSpeed)) * pace;
+                float slamT = (c.SlamBase + refDist / Mathf.Max(1f, c.SlamSpeed)) * pace;
+                float stoneT = (c.StoneBase + refDist / Mathf.Max(1f, c.StoneSpeed)) * pace;
+                float qiT = c.QiDur * pace;
+                float lordT = 9.0f / Mathf.Max(1f, c.LordWaveSpeed);
+
+                float lightT = c.LightningDur * pace;
+                float hopT = c.LightningChainGap * pace;
+                float dropT = (c.MageDropDur + refDist / Mathf.Max(1f, c.StoneSpeed)) * pace;
+                float windT = (c.WindBase + refDist / Mathf.Max(1f, c.WindSpeed)) * pace;
+                float bombT = (c.BombBase + refDist / Mathf.Max(1f, c.BombSpeed)) * pace;
+                float fireT = (c.FireballBase + refDist / Mathf.Max(1f, c.FireballSpeed)) * pace;
+                float lassoT = (c.LassoBase + refDist / Mathf.Max(1f, c.LassoSpeed)) * pace;
+                EditorGUILayout.HelpBox(
+                    $"第 1 档(×1) 中场 {refDist:0.0} 格实测耗时预览：\n" +
+                    $"【物理】 箭矢={arrowT:0.00}s  |  长枪={spearT:0.00}s  |  刀剑斧拳={meleeT:0.00}s  |  重刀禅杖={slamT:0.00}s  |  飞石={stoneT:0.00}s  |  刀气波={qiT:0.00}s  |  统帅剑气全场={lordT:0.00}s\n" +
+                    $"【法术/火器/控制】 天雷落劈={lightT:0.00}s(弹跳{hopT:0.00}s)  |  法师金砖天降={dropT:0.00}s  |  风法/八阵图={windT:0.00}s  |  射线流速={c.BeamFlowSpeed:0.0}x  |  重炮={bombT:0.00}s  |  火陨={fireT:0.00}s  |  套索={lassoT:0.00}s",
+                    spearT < arrowT * 0.72f ? MessageType.Warning : MessageType.Info);
+
+                c.ProjPace = EditorGUILayout.Slider("全局弹道耗时总倍率 (ProjPace, 越大越慢)", c.ProjPace, 0.50f, 2.00f);
+                c.VfxPace = EditorGUILayout.Slider("全局特效时长总倍率 (VfxPace, 越大越慢)", c.VfxPace, 0.50f, 2.00f);
+                EditorGUILayout.Space(4);
+
+                EditorGUILayout.LabelField("物理兵刃弹道参数（耗时 = 起手秒数 + 距离 / 飞行格速）", EditorStyles.boldLabel);
+                EditorGUILayout.BeginHorizontal();
+                c.ArrowBase = EditorGUILayout.Slider("箭矢·起手秒数", c.ArrowBase, 0.08f, 0.60f);
+                c.ArrowSpeed = EditorGUILayout.Slider("箭矢·飞行速度(格/秒)", c.ArrowSpeed, 6f, 30f);
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                c.SpearBase = EditorGUILayout.Slider("长枪·起手秒数", c.SpearBase, 0.08f, 0.60f);
+                c.SpearSpeed = EditorGUILayout.Slider("长枪·突刺速度(格/秒)", c.SpearSpeed, 6f, 30f);
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                c.MeleeBase = EditorGUILayout.Slider("刀剑斧拳·起手秒数", c.MeleeBase, 0.10f, 0.60f);
+                c.MeleeSpeed = EditorGUILayout.Slider("刀剑斧拳·飞掷速度(格/秒)", c.MeleeSpeed, 6f, 30f);
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                c.SlamBase = EditorGUILayout.Slider("重刀禅杖·起手秒数", c.SlamBase, 0.15f, 0.75f);
+                c.SlamSpeed = EditorGUILayout.Slider("重刀禅杖·劈落速度(格/秒)", c.SlamSpeed, 6f, 28f);
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                c.StoneBase = EditorGUILayout.Slider("飞石·起手秒数", c.StoneBase, 0.08f, 0.60f);
+                c.StoneSpeed = EditorGUILayout.Slider("飞石·飞行速度(格/秒)", c.StoneSpeed, 6f, 30f);
+                EditorGUILayout.EndHorizontal();
+
+                c.QiDur = EditorGUILayout.Slider("刀气/剑气波推进耗时(秒)", c.QiDur, 0.20f, 1.00f);
+
+                EditorGUILayout.Space(4);
+                EditorGUILayout.LabelField("法师、火器与控制弹道参数", EditorStyles.boldLabel);
+                EditorGUILayout.BeginHorizontal();
+                c.LightningDur = EditorGUILayout.Slider("法师天雷·引落耗时(秒)", c.LightningDur, 0.10f, 0.70f);
+                c.LightningChainGap = EditorGUILayout.Slider("法师雷链·弹跳间隔(秒)", c.LightningChainGap, 0.05f, 0.40f);
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                c.MageDropDur = EditorGUILayout.Slider("法师金砖·天降耗时(秒)", c.MageDropDur, 0.25f, 1.10f);
+                c.BeamFlowSpeed = EditorGUILayout.Slider("法术射线·流光流速", c.BeamFlowSpeed, 0.6f, 4.5f);
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                c.WindBase = EditorGUILayout.Slider("风法/阵法·起手秒数", c.WindBase, 0.12f, 0.70f);
+                c.WindSpeed = EditorGUILayout.Slider("风法/阵法·飞行速度", c.WindSpeed, 6f, 26f);
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                c.BombBase = EditorGUILayout.Slider("重炮·起手秒数", c.BombBase, 0.20f, 0.90f);
+                c.BombSpeed = EditorGUILayout.Slider("重炮·飞行速度", c.BombSpeed, 8f, 28f);
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                c.FireballBase = EditorGUILayout.Slider("火陨·起手秒数", c.FireballBase, 0.20f, 0.85f);
+                c.FireballSpeed = EditorGUILayout.Slider("火陨·坠落速度", c.FireballSpeed, 8f, 28f);
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                c.LassoBase = EditorGUILayout.Slider("缚龙索·起手秒数", c.LassoBase, 0.12f, 0.65f);
+                c.LassoSpeed = EditorGUILayout.Slider("缚龙索·抛投速度", c.LassoSpeed, 8f, 28f);
+                EditorGUILayout.EndHorizontal();
             });
         }
 

@@ -213,7 +213,8 @@ namespace Liangshan
                     Tween.Run(glow, 999f, t => glow.color = Pal.Gold.A(0.28f + 0.22f * Mathf.Sin(t * 999f * 5f)));
                 }
 
-                var ic = Ui.Icon(c, o ? "ic_chest_open" : icons[Mathf.Min(k, icons.Length - 1)], 74f, new Vector2(0, 10f));
+                string closedIc = icons[Mathf.Min(k, icons.Length - 1)];
+                var ic = Ui.Icon(c, o ? ChestOpenArt(closedIc) : closedIc, 74f, new Vector2(0, 10f));
                 if (o) ic.color = new Color(0.9f, 0.9f, 0.9f, 0.72f);
 
                 // 箱底清晰门槛数字（暖深棕粗体，如同参考图 20 / 50 / 80 / 100）

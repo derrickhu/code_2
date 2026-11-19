@@ -703,7 +703,7 @@ namespace Liangshan
                 var glow = Ui.Box(chestSlot, new Vector2(128, 128), Vector2.zero, Pal.Gold.A(0.45f), Art.SoftDot, "glow");
                 Tween.Run(glow, 999f, k => { if (glow) glow.color = Pal.Gold.A(0.30f + 0.20f * Mathf.Sin(k * 999f * 4.5f)); });
             }
-            string chestArt = boxTaken ? "ic_chest_open" : tab == 2 ? "ic_chest_gold" : tab == 1 ? "ic_chest_silver" : "ic_chest_wood";
+            string chestArt = boxTaken ? ChestOpenArt(tab) : ChestArt(tab);
             var chestIc = Ui.Icon(chestSlot, chestArt, 94, Vector2.zero, "chest");
             if (boxReady)
             {

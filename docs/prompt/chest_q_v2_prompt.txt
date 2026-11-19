@@ -1,0 +1,12 @@
+A 2x2 grid of four Q-version chibi treasure-chest game icons. Equal square cells, wide even gaps, each chest centered and the same outer width. Straight-on front view, almost orthographic, a very slight low angle. Use the reference image for style, silhouette, materials, and lighting only. Do not copy the red tray, the floor, or any background.
+
+Style match: super-deformed cute mobile-game chests, thick dark-gold ink outlines, soft glossy airbrush shading, chunky toy proportions, candy colors, high-end casual WeChat game icon. Not realistic, not three-quarter perspective, not European medieval, not flat vector, not photoreal, not Song-dynasty wood grain.
+
+Shared shape in every closed cell: a wide short box about twice as wide as it is tall, a thick rounded lid cap like a bun, heavy polished gold metal frame on every edge, two small gold ingot feet, a shield-shaped faceted gem clasp in the center of the front. Vertical candy stripes on the body. No keyhole, no padlock, no clouds, no wood planks.
+
+Top-left: closed chest. Vertical magenta and cream stripes, gold frame, a faceted ruby-red gem.
+Top-right: closed chest. Vertical hot-pink and cream stripes, gold frame, a faceted amber-gold gem.
+Bottom-left: closed chest. Vertical sky-blue and cream stripes, gold frame, a faceted cyan-blue gem. The richest of the three.
+Bottom-right: the sky-blue chest opened. Lid flipped up and back, warm inner glow, a pile of chunky gold coins. Same front view and same outer width as the closed chests.
+
+Plain flat light-gray background. No floor, no red tray, no cast shadow linking the cells, no text, no numbers, no labels, no watermark. NO TEXT.

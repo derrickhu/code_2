@@ -221,6 +221,48 @@ def make_chain_rope():
     return Image.fromarray(out)
 
 
+def make_arrow_blast():
+    """256x256 爆裂箭 / 轻量小火药爆星专属贴图：
+    清脆锐利的八芒火药星瓣 + 纤细赤橙破片冲击环，无厚重黑烟蘑菇云，专配小半径箭簇爆裂与副弹轻爆。
+    """
+    SS = 2
+    bw = bh = 256
+    N = bw * SS
+    yy, xx = np.mgrid[0:N, 0:N].astype(np.float32)
+    ux = (xx - (N - 1) * 0.5) / (N * 0.5)
+    uy = (yy - (N - 1) * 0.5) / (N * 0.5)
+    r = np.hypot(ux, uy)
+    ang = np.arctan2(uy, ux)
+
+    # 4 primary long crisp spikes + 4 secondary diagonal spikes
+    sp4 = np.abs(np.cos(ang * 2.0)) ** 7.0
+    sp_diag = np.abs(np.sin(ang * 2.0)) ** 9.0
+    reach = 0.24 + 0.56 * sp4 + 0.34 * sp_diag
+    star = np.clip((reach - r) / np.maximum(0.08, reach * 0.28), 0.0, 1.0) ** 1.35
+
+    # Crisp thin gunpowder shock ring at r = 0.62
+    ring = gauss(r - 0.62, 0.048) * (0.72 + 0.28 * np.cos(ang * 6.0 + 0.7)) * np.clip((0.92 - r) / 0.12, 0.0, 1.0)
+    core_ball = gauss(r, 0.19)
+
+    c_edge = np.array([150, 34, 10], np.float32)
+    c_orange = np.array([255, 118, 28], np.float32)
+    c_gold = np.array([255, 214, 78], np.float32)
+    c_white = np.array([255, 252, 236], np.float32)
+
+    heat = np.clip(np.maximum(star * 0.92, ring * 0.78) + core_ball * 0.65, 0.0, 1.0)
+    k1 = np.clip(heat / 0.35, 0.0, 1.0)[..., None]
+    k2 = np.clip((heat - 0.35) / 0.38, 0.0, 1.0)[..., None]
+    k3 = np.clip((heat - 0.73) / 0.27, 0.0, 1.0)[..., None]
+    col = c_edge * (1.0 - k1) + c_orange * k1
+    col = col * (1.0 - k2) + c_gold * k2
+    col = col * (1.0 - k3) + c_white * k3
+
+    alpha = np.clip(np.maximum.reduce([star * 0.96, ring * 0.88, core_ball * 0.95]), 0.0, 1.0)
+    alpha *= np.clip((0.96 - r) / 0.08, 0.0, 1.0)
+    arr = np.dstack([col / 255.0, alpha])
+    return Image.fromarray((np.clip(arr, 0.0, 1.0) * 255).astype(np.uint8)).resize((bw, bh), Image.Resampling.LANCZOS)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     jobs = [
@@ -229,6 +271,7 @@ def main():
         ("fx_tornado_lut", make_tornado_lut),
         ("fx_fire_pool_lut", make_fire_pool_lut),
         ("fx_chain_rope", make_chain_rope),
+        ("fx_arrow_blast", make_arrow_blast),
         ("fx_sheet_lightning", make_lightning_sheet),
         ("fx_sheet_explosion", make_explosion_sheet),
     ]

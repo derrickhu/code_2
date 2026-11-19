@@ -173,7 +173,7 @@ namespace Liangshan
                         bool got = Meta.LevelChestGot(S, n, k);
                         bool ready = Meta.CanOpenLevelChest(S, n, k);
                         float x = 204 + k * 76;
-                        var c = Ui.Icon(r, got ? "ic_chest_open" : ChestArt(k), 66, new Vector2(x, 4));
+                        var c = Ui.Icon(r, got ? ChestOpenArt(k) : ChestArt(k), 66, new Vector2(x, 4));
                         if (got) Check(r, new Vector2(x + 18, -18), 28);
                         else if (ready) Dot(c.transform, new Vector2(22, 22));
                         else c.color = new Color(1, 1, 1, 0.45f);
@@ -198,6 +198,13 @@ namespace Liangshan
         }
 
         public static string ChestArt(int k) => k == 0 ? "ic_chest_wood" : k == 1 ? "ic_chest_silver" : "ic_chest_gold";
+
+        public static string ChestOpenArt(int k) => k == 0 ? "ic_chest_wood_open" : k == 1 ? "ic_chest_silver_open" : "ic_chest_open";
+
+        public static string ChestOpenArt(string closedArt) =>
+            closedArt == "ic_chest_wood" ? "ic_chest_wood_open"
+            : closedArt == "ic_chest_silver" ? "ic_chest_silver_open"
+            : "ic_chest_open";
 
         /// <summary>已领取：绿底白勾，压在宝箱右下角。</summary>
         public static void Check(Transform p, Vector2 pos, float size)
@@ -229,7 +236,7 @@ namespace Liangshan
                 string boxSlot = k == 2 ? "slot_orange" : k == 1 ? "slot_blue" : "slot_wood";
                 var sl = Slot(c, boxSlot, 148, new Vector2(0, 18));
                 if (got) sl.color = new Color(0.84f, 0.84f, 0.84f, 0.85f);
-                var ic = Ui.Icon(c, got ? "ic_chest_open" : ChestArt(k), 106, new Vector2(0, 20));
+                var ic = Ui.Icon(c, got ? ChestOpenArt(k) : ChestArt(k), 106, new Vector2(0, 20));
                 Ui.Label(c, $"{Meta.ChestStars[k]} 星", 28, can ? Pal.Hex("B85C08") : WarmTitle, new Vector2(0, -82), new Vector2(160, 36), TextAnchor.MiddleCenter, Fonts.Heavy);
                 if (got) Check(c, new Vector2(46, -28), 38);
                 if (can)
@@ -641,8 +648,8 @@ namespace Liangshan
                     Ui.Outlined(tg.transform, text, 18, Color.white, new Vector2(0, 1), new Vector2(tw, 32), color.Mul(0.45f), 1.2f);
                     tagLeft += tw + 6f;
                 }
-                var body = Ui.Label(r, EnemyText.SheetBody(d), 22, Pal.SubInk, new Vector2(textLeft + 340f, -26), new Vector2(680, 56), TextAnchor.UpperLeft, Fonts.Heavy);
-                body.verticalOverflow = VerticalWrapMode.Truncate;
+                var body = Ui.Label(r, EnemyText.SheetBody(d), 22, Pal.SubInk, new Vector2(textLeft + 340f, -36), new Vector2(680, 76), TextAnchor.UpperLeft, Fonts.Heavy);
+                body.lineSpacing = 0.92f;
             }
         }
 

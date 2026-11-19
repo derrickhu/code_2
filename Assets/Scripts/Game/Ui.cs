@@ -437,7 +437,12 @@ namespace Liangshan
             bool goldFace = baseSkin == "btn_gold";
             float titleY = size.y * 0.20f;
             Text lbl;
-            if (goldFace)
+            if (ornateStart)
+            {
+                lbl = GradOutlined(body, title, titleSize, Pal.Hex("FFF6D4"), Pal.Hex("FFE08A"),
+                    new Vector2(0, titleY), new Vector2(size.x - 40f, size.y * 0.54f), Pal.Hex("8A4E12"), 4.2f);
+            }
+            else if (goldFace)
             {
                 lbl = Label(body, title, titleSize, Pal.Hex("542F06"), new Vector2(0, titleY), new Vector2(size.x - 40f, size.y * 0.54f),
                     TextAnchor.MiddleCenter, Fonts.Heavy, "text");
@@ -593,7 +598,7 @@ namespace Liangshan
             Tap(hit.GetComponent<Image>(), () => { if (keep) UnityEngine.Object.Destroy(keep.gameObject); }, null, false);
 
             bool titled = !string.IsNullOrEmpty(title);
-            string shown = TintNums(body ?? "");
+            string clean = FormatCjkBody(body ?? "");
             float widest = 40f;
             if (titled)
             {
@@ -602,15 +607,10 @@ namespace Liangshan
                 widest = Mathf.Max(widest, tp.preferredWidth);
                 UnityEngine.Object.DestroyImmediate(tp.gameObject);
             }
-            foreach (var line in shown.Split('\n'))
-            {
-                var lp = Label(root, line, 32, Color.white, Vector2.zero, new Vector2(640, 48), TextAnchor.MiddleCenter, Fonts.Heavy, "probe");
-                Canvas.ForceUpdateCanvases();
-                widest = Mathf.Max(widest, lp.preferredWidth);
-                UnityEngine.Object.DestroyImmediate(lp.gameObject);
-            }
+            widest = Mathf.Max(widest, TextWidth(root, clean, 32, Fonts.Heavy));
             float tw = Mathf.Clamp(widest + 128f, 520f, 680f);
             float inner = tw - 88f;
+            string shown = TintNums(FlowText(root, clean, 32, Fonts.Heavy, inner));
             var probe = Label(root, shown, 32, Color.white, Vector2.zero, new Vector2(inner, 220), TextAnchor.MiddleCenter, Fonts.Heavy, "probe");
             probe.lineSpacing = 1.15f;
             Canvas.ForceUpdateCanvases();
@@ -668,7 +668,7 @@ namespace Liangshan
         /// <summary>
         /// 技能说明卡（像素级对标《永远的蔚蓝星球》深靛立体提示卡）：
         /// 1. 头部：六边形技能徽章 + 技能名 + 类型胶囊 + 右上冷却 + 清晰底部分割细线；
-        /// 2. 正文：去除西文断词半角空格，让中文严丝合缝排满左右内边距，绝不右侧空半截或把「+20% / 2位」拆断；
+        /// 2. 正文：原稿里的换行一律接上，排满到左右内边距才断行，数字和「+20% / 2位」保持整段不拆；
         /// 3. 底栏：柔和顶分割线 + 居中解锁状态提示。
         /// </summary>
         public static void SkillCard(Transform anchor, string icon, int rarity, bool locked, string name, string tag, Color tagColor, string cd, string body, string foot)
@@ -691,7 +691,6 @@ namespace Liangshan
             const float padT = 26f, padB = 22f, ruleGapT = 16f, ruleGapB = 20f, footGap = 16f, footH = 38f;
             const int bodySize = 28;
             string clean = FormatCjkBody(body);
-            string shown = TintNums(clean);
             bool hasCd = !string.IsNullOrEmpty(cd);
             bool footed = !string.IsNullOrEmpty(foot);
             bool hasIcon = !string.IsNullOrEmpty(icon);
@@ -699,15 +698,14 @@ namespace Liangshan
 
             float nameRaw = TextWidth(root, name ?? "", 34, Fonts.Heavy);
             float cdRaw = TextWidth(root, cdPlain, 23, Fonts.Heavy);
-            float maxLineRaw = 0f;
-            foreach (var ln in shown.Split('\n'))
-                maxLineRaw = Mathf.Max(maxLineRaw, TextWidth(root, ln, bodySize, Fonts.Bold));
+            float maxLineRaw = TextWidth(root, clean, bodySize, Fonts.Bold);
 
             float headerNeed = padX + (hasIcon ? iconSize + 20f : 0f) + nameRaw + 24f + (hasCd ? cdRaw + 28f : 0f) + padX;
             float cap = Mathf.Min(maxW, Mathf.Max(minW, ((RectTransform)Root).rect.width - 56f));
             // 多句长说明直接撑满标准宽幅卡片（792px），短说明按实际宽度紧凑收束，保证每一行都饱满贴齐左右内框！
             float tw = maxLineRaw > 560f ? cap : Mathf.Clamp(Mathf.Max(headerNeed, maxLineRaw + padX * 2f + 12f), minW, cap);
             float inner = tw - padX * 2f;
+            string shown = TintNums(FlowText(root, clean, bodySize, Fonts.Bold, inner));
 
             var probe = Label(root, shown, bodySize, Color.white, Vector2.zero, new Vector2(inner, 800f), TextAnchor.UpperLeft, Fonts.Bold, "probe");
             probe.lineSpacing = 1.26f;
@@ -770,13 +768,70 @@ namespace Liangshan
             Tween.Run(c, 0.16f, k => { if (c) c.localScale = Vector3.one * Mathf.Lerp(0.94f, 1f, Tween.OutBack(k)); });
         }
 
-        /// <summary>收紧中文句子里数字/符号两侧的半角空格，杜绝 Unity Text 按英文单词提前断行导致右侧留大片空白。</summary>
+        /// <summary>提示正文接成一段：去掉原稿换行和数字两侧的空格，换行只发生在排满内边距的时候。</summary>
         static string FormatCjkBody(string s)
         {
             if (string.IsNullOrEmpty(s)) return "";
-            s = s.Replace("\r", "");
+            s = s.Replace("\r", "").Replace("\n", "");
             s = System.Text.RegularExpressions.Regex.Replace(s, @"[ \t]+", "");
             return s.Trim();
+        }
+
+        static readonly System.Text.RegularExpressions.Regex FlowAtom = new System.Text.RegularExpressions.Regex(
+            @"[+\-×]?\d+(?:\.\d+)?(?:%|s|秒|位|个|名|次|枚|点|级|星|格|波|层)?",
+            System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// <summary>按实际字宽排到 maxWidth 再断行。百分数、次数这类片段整段掉到下一行，不从中间拆开。</summary>
+        static string FlowText(Transform host, string s, int size, Font font, float maxWidth)
+        {
+            if (string.IsNullOrEmpty(s)) return "";
+            var t = Label(host, s, size, Color.white, Vector2.zero, new Vector2(8000f, 200f), TextAnchor.MiddleLeft, font, "probe");
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.supportRichText = false;
+            Canvas.ForceUpdateCanvases();
+            var chars = t.cachedTextGenerator.characters;
+            int n = s.Length;
+            var widths = new float[n];
+            int got = Mathf.Min(n, chars.Count);
+            for (int i = 0; i < got; i++) widths[i] = chars[i].charWidth;
+            float fallback = t.fontSize;
+            for (int i = got; i < n; i++) widths[i] = fallback;
+            UnityEngine.Object.DestroyImmediate(t.gameObject);
+            if (got == 0) return s;
+
+            float limit = Mathf.Max(fallback, maxWidth - 4f);
+            var sb = new System.Text.StringBuilder(n + 8);
+            float line = 0f;
+            int at = 0;
+            foreach (System.Text.RegularExpressions.Match m in FlowAtom.Matches(s))
+            {
+                while (at < m.Index)
+                {
+                    line = AppendAtom(sb, s, widths, at, at + 1, line, limit);
+                    at++;
+                }
+                line = AppendAtom(sb, s, widths, m.Index, m.Index + m.Length, line, limit);
+                at = m.Index + m.Length;
+            }
+            while (at < n)
+            {
+                line = AppendAtom(sb, s, widths, at, at + 1, line, limit);
+                at++;
+            }
+            return sb.ToString();
+        }
+
+        static float AppendAtom(System.Text.StringBuilder sb, string s, float[] widths, int from, int to, float line, float limit)
+        {
+            float w = 0f;
+            for (int i = from; i < to; i++) w += widths[i];
+            if (line > 0f && line + w > limit)
+            {
+                sb.Append('\n');
+                line = 0f;
+            }
+            sb.Append(s, from, to - from);
+            return line + w;
         }
 
         static string TintNums(string s) =>
@@ -888,6 +943,7 @@ namespace Liangshan
         }
 
         public static float OutBack(float k) { const float s = 1.9f; k -= 1; return k * k * ((s + 1) * k + s) + 1; }
+        public static float OutQuad(float k) { k -= 1; return 1f - k * k; }
         public static float OutCubic(float k) { k -= 1; return k * k * k + 1; }
         public static float InCubic(float k) => k * k * k;
 

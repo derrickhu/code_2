@@ -77,10 +77,11 @@ namespace Liangshan
                 From = new V2(a.x, a.y),
                 To = new V2(b.x, b.y),
                 T = -delay,
-                Dur = Battle.ShotDur(kind, Vector2.Distance(a, b)),
+                Dur = Battle.ShotDur(kind, Vector2.Distance(a, b), Defs.Hero(hero).Kind == Role.Mage),
             };
-            _shots.Add(s);
-            _views.Add(new BattleView.ShotView(s, _world));
+                var v = new BattleView.ShotView(s, _world);
+                _shots.Add(s);
+                _views.Add(v);
         }
 
         void Update()

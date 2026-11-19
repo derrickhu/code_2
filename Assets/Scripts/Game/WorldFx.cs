@@ -406,6 +406,7 @@ namespace Liangshan
             sr.flipX = flipX;
             var xy = scaleXY ?? Vector2.one;
             sr.transform.localScale = new Vector3(size * xy.x, size * xy.y, 1f);
+            dur *= Mathf.Max(0.35f, Defs.VfxPace);
             Anim(sr.gameObject, dur, k =>
             {
                 int fi = Mathf.Clamp(Mathf.FloorToInt(k * frames.Length), 0, frames.Length - 1);
@@ -477,11 +478,12 @@ namespace Liangshan
             var scroll = new Vector4(sweepDeg >= 0 ? -2.6f : 2.6f, 0.5f, sweepDeg >= 0 ? -1.4f : 1.4f, -0.9f);
             var nScale = new Vector2(2.2f, 1.2f);
 
-            Anim(root, dur, k =>
+            float dScaled = dur * Mathf.Max(0.35f, Defs.VfxPace);
+            Anim(root, dScaled, k =>
             {
-                float rev = Tween.OutCubic(Mathf.Clamp01(k / 0.34f));
-                float tail = Mathf.Pow(Mathf.Clamp01((k - 0.14f) / 0.86f), 1.35f) * 0.92f;
-                float dis = Mathf.Pow(Mathf.Clamp01((k - 0.22f) / 0.78f), 1.25f) * 0.88f;
+                float rev = Tween.OutCubic(Mathf.Clamp01(k / 0.42f));
+                float tail = Mathf.Pow(Mathf.Clamp01((k - 0.18f) / 0.82f), 1.35f) * 0.92f;
+                float dis = Mathf.Pow(Mathf.Clamp01((k - 0.26f) / 0.74f), 1.25f) * 0.88f;
                 float sc = Mathf.Lerp(0.90f, 1.08f, Tween.OutCubic(k));
                 root.transform.localScale = Vector3.one * sc;
                 SetUber(under, darkOuter.A(0.68f * (1f - k * 0.5f)), outer.A(0.85f), dis * 0.9f, 0.06f, rev, tail, scroll, nScale, 1.3f);
@@ -597,6 +599,7 @@ namespace Liangshan
         public void DissolveBurst(Sprite s, Vector2 pos, float size, float dur, int order, Color? tint = null,
             bool add = false, float from = 0.50f, float spin = 0f, float distort = 0.04f)
         {
+            dur *= Mathf.Max(0.35f, Defs.VfxPace);
             var col = tint ?? Color.white;
             var sr = Take(s, pos, size * from, order, col, add);
             sr.sharedMaterial = UberMat(add);
@@ -631,8 +634,9 @@ namespace Liangshan
         }
 
         /// <summary>刀光：月牙从 fromDeg 扫到 toDeg，先亮后散。外圈一层兵器色的光，内芯是白的。</summary>
-        public void Swing(Vector2 pos, float size, float fromDeg, float toDeg, Color c, float dur = 0.18f, bool flip = false, int order = 9515)
+        public void Swing(Vector2 pos, float size, float fromDeg, float toDeg, Color c, float dur = 0.24f, bool flip = false, int order = 9515)
         {
+            dur *= Mathf.Max(0.35f, Defs.VfxPace);
             var spr = Art.Img("fx_swing");
             var tip = Color.Lerp(Color.white, c, 0.35f);
             var glow = Take(spr, pos, size, order - 1, c.A(0), true);
@@ -640,10 +644,10 @@ namespace Liangshan
             glow.flipX = core.flipX = flip;
             void Step(SpriteRenderer sr, float k, Color col, float a, float sc)
             {
-                float sweep = Tween.OutCubic(Mathf.Min(1f, k * 1.7f));
+                float sweep = Tween.OutCubic(Mathf.Min(1f, k * 1.5f));
                 sr.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Lerp(fromDeg, toDeg, sweep));
                 sr.transform.localScale = Vector3.one * size * sc * Mathf.Lerp(0.75f, 1.05f, sweep);
-                float alpha = k < 0.12f ? k / 0.12f : 1f - Mathf.Pow((k - 0.12f) / 0.88f, 1.4f);
+                float alpha = k < 0.14f ? k / 0.14f : 1f - Mathf.Pow((k - 0.14f) / 0.86f, 1.4f);
                 sr.color = col.A(a * alpha);
             }
             Anim(glow.gameObject, dur, k => Step(glow, k, c, 0.5f, 1.1f));
@@ -651,15 +655,16 @@ namespace Liangshan
         }
 
         /// <summary>斩痕：一道细亮线从中间往两头瞬间拉开横过敌人身上，白芯外裹兵器色，随后变细消失。</summary>
-        public void CutLine(Vector2 pos, float deg, float len, Color c, float dur = 0.2f, float thick = 0.09f, int order = 9530)
+        public void CutLine(Vector2 pos, float deg, float len, Color c, float dur = 0.24f, float thick = 0.09f, int order = 9530)
         {
+            dur *= Mathf.Max(0.35f, Defs.VfxPace);
             var glow = Take(Art.Beam, pos, 1f, order - 1, c.A(0), true);
             var core = Take(Art.Beam, pos, 1f, order, Color.white.A(0), true);
             var rot = Quaternion.Euler(0, 0, deg);
             glow.transform.localRotation = core.transform.localRotation = rot;
             void Step(SpriteRenderer sr, float k, Color col, float w)
             {
-                float open = Tween.OutCubic(Mathf.Min(1f, k * 4f));
+                float open = Tween.OutCubic(Mathf.Min(1f, k * 3.2f));
                 float thin = 1f - Tween.InCubic(k);
                 sr.transform.localScale = new Vector3(len * Mathf.Lerp(0.2f, 1f, open), w * thin, 1f);
                 sr.color = col.A(col.a * (k < 0.6f ? 1f : (1f - k) / 0.4f));
@@ -669,8 +674,9 @@ namespace Liangshan
         }
 
         /// <summary>两点之间的光束：从 a 一头亮起扫到 b，再从 a 那头收掉，像枪芒捅穿过去。</summary>
-        public void Streak(Vector2 a, Vector2 b, Color c, float width, float dur = 0.18f, int order = 9520)
+        public void Streak(Vector2 a, Vector2 b, Color c, float width, float dur = 0.22f, int order = 9520)
         {
+            dur *= Mathf.Max(0.35f, Defs.VfxPace);
             var d = b - a;
             float len = d.magnitude;
             if (len < 0.01f) return;
@@ -679,7 +685,7 @@ namespace Liangshan
             sr.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg);
             Anim(sr.gameObject, dur, k =>
             {
-                float head = Tween.OutCubic(Mathf.Min(1f, k * 2.2f)) * len;
+                float head = Tween.OutCubic(Mathf.Min(1f, k * 2.0f)) * len;
                 float tail = Tween.InCubic(k) * len;
                 float span = Mathf.Max(0.02f, head - tail);
                 sr.transform.localPosition = a + dir * (tail + span * 0.5f);
@@ -692,8 +698,9 @@ namespace Liangshan
         /// 商业级长枪贯阵流场枪罡（fx_spear_thrust_lut + FxUber 双层刷光与噪波碎散）：
         /// 下层深色压住浅砂石面，上层高亮螺旋盘龙气带从枪尾疾刷向枪尖，再化作寒星/金焰消散。
         /// </summary>
-        public void SpearThrust(Vector2 a, Vector2 b, Color outer, Color core, float width = 0.72f, float dur = 0.24f, int order = 9524)
+        public void SpearThrust(Vector2 a, Vector2 b, Color outer, Color core, float width = 0.72f, float dur = 0.30f, int order = 9524)
         {
+            dur *= Mathf.Max(0.35f, Defs.VfxPace);
             var d = b - a;
             float len = d.magnitude;
             if (len < 0.05f) return;
@@ -701,7 +708,7 @@ namespace Liangshan
             var rot = Quaternion.Euler(0, 0, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg);
             var spr = Art.Img("fx_spear_thrust_lut");
             var deep = Color.Lerp(outer, new Color(0.03f, 0.06f, 0.14f, 1f), 0.62f);
-            var scroll = new Vector4(-3.8f, 0.35f, -2.4f, -0.45f);
+            var scroll = new Vector4(-3.2f, 0.35f, -2.0f, -0.45f);
             var nScale = new Vector2(Mathf.Max(1.4f, len * 0.65f), 1.35f);
             // fx_spear_thrust_lut 高宽比 192/512 = 0.375
             float sy = width / 0.375f;
@@ -713,9 +720,9 @@ namespace Liangshan
                 sr.transform.localRotation = rot;
                 Anim(sr.gameObject, dur, k =>
                 {
-                    float rev = Tween.OutCubic(Mathf.Clamp01(k / 0.28f));
-                    float tail = Mathf.Pow(Mathf.Clamp01((k - 0.12f) / 0.88f), 1.25f) * 0.90f;
-                    float dis = Mathf.Pow(Mathf.Clamp01((k - 0.20f) / 0.80f), 1.2f) * 0.88f;
+                    float rev = Tween.OutCubic(Mathf.Clamp01(k / 0.38f));
+                    float tail = Mathf.Pow(Mathf.Clamp01((k - 0.16f) / 0.84f), 1.25f) * 0.90f;
+                    float dis = Mathf.Pow(Mathf.Clamp01((k - 0.24f) / 0.76f), 1.2f) * 0.88f;
                     float thin = Mathf.Lerp(1.06f, 0.68f, Tween.InCubic(k));
                     sr.transform.localScale = new Vector3(len, sy * wMul * thin, 1f);
                     SetUber(sr, col.A(col.a * (1f - k * 0.35f)), hi, dis, 0.065f, rev, tail, scroll, nScale, boost);
@@ -765,12 +772,14 @@ namespace Liangshan
             });
         }
 
-        /// <summary>传说樊瑞立体螺旋龙卷风柱（对标《蔚蓝星球》暴风）：双层 FxUber 高速卷动风柱 + 环绕切割风刃弧。</summary>
-        public void Tornado(Vector2 pos, float radius, Color outer, Color core, float dur = 0.48f)
+        /// <summary>传说樊瑞立体螺旋龙卷风柱（对标《蔚蓝星球》暴风）：双层 FxUber 螺旋卷动风柱 + 环绕风流，速度沉稳清晰。</summary>
+        public void Tornado(Vector2 pos, float radius, Color outer, Color core, float dur = 0.62f)
         {
+            float vp = Mathf.Max(0.35f, Defs.VfxPace);
+            float dScaled = dur * vp;
             var spr = Art.Img("fx_tornado_lut");
             var deep = Color.Lerp(outer, new Color(0.04f, 0.14f, 0.16f, 1f), 0.58f);
-            var scroll = new Vector4(4.2f, -1.5f, -3.2f, -1.1f);
+            var scroll = new Vector4(2.1f / vp, -0.85f / vp, -1.5f / vp, -0.65f / vp);
             var nScale = new Vector2(1.6f, 1.5f);
             float h = Mathf.Clamp(radius * 1.65f, 1.55f, 2.45f);
             float w = h * 0.92f;
@@ -780,16 +789,16 @@ namespace Liangshan
             {
                 var sr = Take(spr, pos, 1f, o, Color.white, add);
                 sr.sharedMaterial = UberMat(add);
-                Anim(sr.gameObject, dur, k =>
+                Anim(sr.gameObject, dScaled, k =>
                 {
-                    float pop = k < 0.18f ? Tween.OutCubic(k / 0.18f) : 1f;
-                    float sway = Mathf.Sin(Time.time * 14f) * 0.06f;
+                    float pop = k < 0.22f ? Tween.OutCubic(k / 0.22f) : 1f;
+                    float sway = Mathf.Sin(Time.time * 10f) * 0.05f;
                     float hh = h * Mathf.Lerp(0.65f, 1.04f, pop);
                     // fx_tornado_lut 宽 320 / 高 448 = 0.714
                     sr.transform.localScale = new Vector3((w * wMul / 0.714f) * Mathf.Lerp(0.75f, 1.05f, pop), hh, 1f);
                     sr.transform.localPosition = pos + new Vector2(sway, hh * 0.46f - 0.06f);
-                    float dis = Mathf.Pow(Mathf.Clamp01((k - 0.42f) / 0.58f), 1.25f) * 0.88f;
-                    float fade = k < 0.12f ? k / 0.12f : 1f - Mathf.Pow(Mathf.Clamp01((k - 0.55f) / 0.45f), 1.4f);
+                    float dis = Mathf.Pow(Mathf.Clamp01((k - 0.45f) / 0.55f), 1.25f) * 0.88f;
+                    float fade = k < 0.14f ? k / 0.14f : 1f - Mathf.Pow(Mathf.Clamp01((k - 0.58f) / 0.42f), 1.4f);
                     SetUber(sr, col.A(col.a * fade), hi, dis, 0.09f, 1f, 0f, scroll, nScale, boost);
                 });
             }
@@ -798,8 +807,8 @@ namespace Liangshan
 
             float dir = UnityEngine.Random.value < 0.5f ? 1f : -1f;
             float startAng = UnityEngine.Random.Range(0f, 360f);
-            ArcSlash(pos + new Vector2(0f, h * 0.36f), radius * 0.78f, radius * 0.22f,
-                startAng, dir * 210f, outer, core, dur * 0.65f, 9545, 0.46f);
+            ArcSlash(pos + new Vector2(0f, h * 0.36f), radius * 0.72f, radius * 0.20f,
+                startAng, dir * 195f, outer, core, dur * 0.72f, 9545, 0.46f);
         }
 
         /// <summary>地上的法阵：压扁贴地慢慢转，先张开再淡掉。</summary>
@@ -1036,45 +1045,47 @@ namespace Liangshan
         /// <summary>天雷：16帧狂暴分叉雷霆图集（fx_sheet_lightning）配地面电弧球与焦痕，底端锚在 pos。</summary>
         public void Strike(Vector2 pos, float height, int order = 9600, bool legendary = false)
         {
+            float vp = Mathf.Max(0.35f, Defs.VfxPace);
             float h = Mathf.Clamp(height, 1.35f, 2.55f);
             bool flip = UnityEngine.Random.value < 0.5f;
             var sheet = Sheet("fx_sheet_lightning", 4, 4, new Vector2(0.5f, 0.12f));
             if (sheet.Length > 0)
             {
                 Color boltTint = legendary ? Pal.Hex("DCE6FF") : Color.white;
-                Flipbook("fx_sheet_lightning", pos, h * 1.12f, 0.28f, order, boltTint, true, new Vector2(0.5f, 0.12f), flip);
+                Flipbook("fx_sheet_lightning", pos, h * 1.12f, 0.40f, order, boltTint, true, new Vector2(0.5f, 0.12f), flip);
             }
             else
             {
                 var sr = Take(Art.Img("fx_lightning"), pos + new Vector2(0, h * 0.48f), h, order, Color.white, true);
                 sr.flipX = flip;
-                Anim(sr.gameObject, 0.24f, k =>
+                Anim(sr.gameObject, 0.36f * vp, k =>
                 {
-                    float a = k < 0.18f ? 1f : (0.55f + 0.45f * Mathf.Abs(Mathf.Sin(k * 24f))) * (1f - k);
+                    float a = k < 0.22f ? 1f : (0.55f + 0.45f * Mathf.Abs(Mathf.Sin(k * 20f))) * (1f - k);
                     sr.color = new Color(1f, 1f, 1f, a);
                     sr.transform.localScale = new Vector3(0.58f + 0.10f * k, 1f, 1f) * h;
                 });
             }
             var zap = Take(Art.Img("fx_zap"), pos + new Vector2(0, h * 0.10f), h * 0.44f, order + 1, legendary ? Pal.Hex("FFE698") : Color.white, true);
             zap.flipX = !flip;
-            Anim(zap.gameObject, 0.26f, k =>
+            Anim(zap.gameObject, 0.36f * vp, k =>
             {
                 zap.transform.localScale = new Vector3(0.88f, 0.68f, 1f) * h * Mathf.Lerp(0.28f, 0.52f, Tween.OutCubic(k));
-                zap.color = zap.color.A(k < 0.22f ? 1f : 1f - (k - 0.22f) / 0.78f);
+                zap.color = zap.color.A(k < 0.24f ? 1f : 1f - (k - 0.24f) / 0.76f);
             });
             if (legendary)
-                Rune(pos, Art.Img("fx_sigil"), h * 0.78f, Pal.Hex("FFD86B").A(0.85f), 0.38f, 110f, 95, 0.48f, true);
-            LightPool(pos, h * 0.92f, legendary ? new Color(0.55f, 0.68f, 1f, 0.88f) : new Color(0.45f, 0.75f, 1f, 0.82f), 0.32f);
-            Flash(pos + new Vector2(0, 0.32f), h * 0.68f, new Color(0.62f, 0.82f, 1f, 0.48f), 0.15f);
+                Rune(pos, Art.Img("fx_sigil"), h * 0.78f, Pal.Hex("FFD86B").A(0.85f), 0.46f * vp, 110f, 95, 0.48f, true);
+            LightPool(pos, h * 0.92f, legendary ? new Color(0.55f, 0.68f, 1f, 0.88f) : new Color(0.45f, 0.75f, 1f, 0.82f), 0.40f * vp);
+            Flash(pos + new Vector2(0, 0.32f), h * 0.68f, new Color(0.62f, 0.82f, 1f, 0.48f), 0.18f * vp);
             Decal(Art.Img("fx_scorch"), pos, h * 0.32f, new Color(0.10f, 0.12f, 0.20f, 0.48f), 1.4f);
         }
 
         /// <summary>传说雷链双层折线电弧：外层紫蓝电晕 + 内芯炽白金跳电 + 首尾爆星。</summary>
-        public void ThunderChain(Vector2 a, Vector2 b, Color outer, Color core, float width = 0.22f, float dur = 0.24f, int order = 9555)
+        public void ThunderChain(Vector2 a, Vector2 b, Color outer, Color core, float width = 0.22f, float dur = 0.30f, int order = 9555)
         {
-            Arc(a, b, outer, width, dur, order);
-            Arc(a, b, core, width * 0.46f, dur * 0.88f, order + 1);
-            Glint(b, 0.85f, core, 0.15f, order + 2);
+            float vp = Mathf.Max(0.35f, Defs.VfxPace);
+            Arc(a, b, outer, width, dur * vp, order);
+            Arc(a, b, core, width * 0.46f, dur * 0.88f * vp, order + 1);
+            Glint(b, 0.85f, core, 0.18f * vp, order + 2);
         }
 
         // ---------- 贴地：让特效“落”在地面上 ----------

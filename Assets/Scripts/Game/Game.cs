@@ -1322,30 +1322,34 @@ namespace Liangshan
                 Sfx.Music = false;
                 var s = Meta.NewSave(20261117);
                 s.TutorialDone = 1;
-                s.HeroLv[(int)HeroId.LiKui] = 5;
-                s.HeroLv[(int)HeroId.HuaRong] = 5;
+                s.HeroLv[(int)HeroId.YanQing] = 5;
                 s.HeroLv[(int)HeroId.LinChong] = 5;
-                s.HeroLv[(int)HeroId.XieZhen] = 5;
-                s.Lineup = new[] { (int)HeroId.LiKui, (int)HeroId.HuaRong, (int)HeroId.LinChong, (int)HeroId.XieZhen };
+                s.HeroLv[(int)HeroId.GuanSheng] = 5;
+                s.HeroLv[(int)HeroId.HuaRong] = 5;
+                s.Lineup = new[] { (int)HeroId.YanQing, (int)HeroId.LinChong, (int)HeroId.GuanSheng, (int)HeroId.HuaRong };
                 Profile.Use(s);
-                Play(Defs.Level(1));
+                Play(Defs.Level(5));
                 while (_battle == null) yield return null;
                 var b = _battle.B;
                 var soldier = Defs.Enemy(EnemyKind.Soldier);
-                b.Enemies.Add(new Enemy { Id = 901, Def = soldier, Hp = 5000, MaxHp = 5000, Pos = new V2(b.Slots[1].Pos.X, -0.4f) });
-                b.Enemies.Add(new Enemy { Id = 902, Def = soldier, Hp = 5000, MaxHp = 5000, Pos = new V2(b.Slots[3].Pos.X, 1.4f) });
-                b.Enemies.Add(new Enemy { Id = 903, Def = soldier, Hp = 5000, MaxHp = 5000, Pos = new V2(b.Slots[3].Pos.X + 0.08f, 3.2f) });
-                b.Enemies.Add(new Enemy { Id = 904, Def = soldier, Hp = 5000, MaxHp = 5000, Pos = new V2(b.Slots[5].Pos.X, 0.4f) });
-                b.Slots[1].Unit = new Unit { Id = 701, Hero = HeroId.LiKui, Star = 2, Cd = 0.05f };
-                b.Slots[3].Unit = new Unit { Id = 702, Hero = HeroId.HuaRong, Star = 2, Cd = 0.05f };
-                b.Slots[5].Unit = new Unit { Id = 703, Hero = HeroId.LinChong, Star = 2, Cd = 0.05f };
-                yield return WaitReal(0.22f);
+                b.Enemies.Add(new Enemy { Id = 901, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[1].Pos.X, 1.2f) });
+                b.Enemies.Add(new Enemy { Id = 902, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[2].Pos.X, 0.8f) });
+                b.Enemies.Add(new Enemy { Id = 903, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[4].Pos.X, 0.6f) });
+                b.Enemies.Add(new Enemy { Id = 904, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[5].Pos.X, 1.4f) });
+                b.Enemies.Add(new Enemy { Id = 905, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[5].Pos.X + 0.06f, 3.0f) });
+                b.Slots[1].Unit = new Unit { Id = 701, Hero = HeroId.YanQing, Star = 2, Cd = 0.05f };
+                b.Slots[2].Unit = new Unit { Id = 702, Hero = HeroId.LinChong, Star = 2, Cd = 0.05f };
+                b.Slots[4].Unit = new Unit { Id = 703, Hero = HeroId.MaLing, Star = 2, Cd = 0.05f };
+                b.Slots[5].Unit = new Unit { Id = 704, Hero = HeroId.HuaRong, Star = 2, Cd = 0.05f };
+                // 给花荣挂上「爆裂箭」词条，同屏对比爆裂箭清脆小火药花 vs 林冲枪罡随枪尖100%同步 vs 马灵法师金砖天降！
+                b.Perks["huarong_morph"] = 1;
+                yield return WaitReal(0.24f);
                 Shot("ui_weapon_midflight");
                 yield return WaitReal(0.18f);
                 Shot("ui_weapon_impact");
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < 4; i++)
                 {
-                    yield return WaitReal(0.07f);
+                    yield return WaitReal(0.10f);
                     Shot("ui_weapon_impact" + i);
                 }
                 yield return WaitReal(0.25f);

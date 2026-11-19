@@ -99,10 +99,63 @@ namespace Liangshan.Sim
         /// <summary>传说大招继承本好汉已选专属词条层数的每层增伤比例。</summary>
         public float UltPerkStackBonus = 0.12f;
 
-        /// <summary>统帅宋江「替天行道」基础伤害倍率、冷却秒数与开场首放秒数。</summary>
+        /// <summary>统帅宋江「替天行道」基础伤害倍率、冷却秒数、开场首放秒数与剑气推进速度(格/秒)。</summary>
         public float LordPctBase = 1.8f;
         public float LordCdBase = 40f;
         public float LordFirstCast = 21f;
+        public float LordWaveSpeed = 12.5f;
+
+        /// <summary>全局武器弹道耗时倍率（1.0=标准；调大整体放慢更看清神兵轨迹，调小整体加快）。</summary>
+        public float ProjPace = 1.0f;
+        /// <summary>全局刀剑枪斧特效时长倍率（1.0=标准；统一控制弧形刀光、破阵枪罡、月牙斩与旋转节奏）。</summary>
+        public float VfxPace = 1.0f;
+
+        /// <summary>箭矢弹道（花荣/燕青/解珍/解宝）：起手基础秒数 + 距离/飞行速度(格/秒)，4.5格约 0.55s。</summary>
+        public float ArrowBase = 0.26f;
+        public float ArrowSpeed = 15.5f;
+
+        /// <summary>长枪突刺弹道（林冲/卢俊义/徐宁/杨志）：比箭略凌厉但绝不瞬移，4.5格约 0.52s。</summary>
+        public float SpearBase = 0.26f;
+        public float SpearSpeed = 17.5f;
+
+        /// <summary>刀/剑/斧/拳近战飞掷弹道（李逵/石秀/杨雄/武松等）：近身利落、远投看清回旋，4.5格约 0.60s。</summary>
+        public float MeleeBase = 0.28f;
+        public float MeleeSpeed = 14.0f;
+
+        /// <summary>重兵腾空劈砸弹道（关胜青龙偃月刀/鲁智深禅杖）：势大力沉高高跃劈，4.5格约 0.71s。</summary>
+        public float SlamBase = 0.36f;
+        public float SlamSpeed = 13.0f;
+
+        /// <summary>刀气/剑气波贴地推进耗时(秒)。</summary>
+        public float QiDur = 0.52f;
+
+        /// <summary>飞石弹道（张清没羽飞石）：起手秒数 + 距离/飞行速度，4.5格约 0.53s。</summary>
+        public float StoneBase = 0.26f;
+        public float StoneSpeed = 16.5f;
+
+        /// <summary>法师·天雷引落耗时与雷链弹跳间隔（公孙胜）：配合 0.40s 雷霆劈落序列帧与双层跳跃电弧。</summary>
+        public float LightningDur = 0.16f;
+        public float LightningChainGap = 0.08f;
+
+        /// <summary>法师·镇魔金砖天降基础耗时（马灵，总耗时 = MageDropDur + 距离/StoneSpeed，4.5格约 0.53s）。</summary>
+        public float MageDropDur = 0.26f;
+
+        /// <summary>法师/控制·风咒/八阵图/迷烟/渔网弹道（樊瑞/朱武/孙二娘/阮小七）：4.5格约 0.59s。</summary>
+        public float WindBase = 0.30f;
+        public float WindSpeed = 15.5f;
+
+        /// <summary>法师·持续射线流光流速（乔道清火焰射线/单廷珪圣水射线，越小火舌水波越清晰）。</summary>
+        public float BeamFlowSpeed = 1.8f;
+
+        /// <summary>火器·重炮高抛与火陨坠落弹道（凌振/魏定国/孔亮/秦明）。</summary>
+        public float BombBase = 0.55f;
+        public float BombSpeed = 20.0f;
+        public float FireballBase = 0.40f;
+        public float FireballSpeed = 17.0f;
+
+        /// <summary>控制·缚龙索抛投弹道（扈三娘）：4.5格约 0.59s。</summary>
+        public float LassoBase = 0.32f;
+        public float LassoSpeed = 16.5f;
     }
 
     /// <summary>波次刷怪节奏、怪物波次肉度与 50 关推进曲线参数。</summary>
@@ -284,6 +337,33 @@ namespace Liangshan.Sim
                 c.Combat.StarMul = new CombatBalance().StarMul;
             if (c.Combat.StarSpeed == null || c.Combat.StarSpeed.Length < 4)
                 c.Combat.StarSpeed = new CombatBalance().StarSpeed;
+            var cd = new CombatBalance();
+            if (c.Combat.LordWaveSpeed <= 0.5f) c.Combat.LordWaveSpeed = cd.LordWaveSpeed;
+            if (c.Combat.ProjPace <= 0.1f) c.Combat.ProjPace = cd.ProjPace;
+            if (c.Combat.VfxPace <= 0.1f) c.Combat.VfxPace = cd.VfxPace;
+            if (c.Combat.ArrowBase <= 0.02f) c.Combat.ArrowBase = cd.ArrowBase;
+            if (c.Combat.ArrowSpeed <= 0.5f) c.Combat.ArrowSpeed = cd.ArrowSpeed;
+            if (c.Combat.SpearBase <= 0.02f) c.Combat.SpearBase = cd.SpearBase;
+            if (c.Combat.SpearSpeed <= 0.5f) c.Combat.SpearSpeed = cd.SpearSpeed;
+            if (c.Combat.MeleeBase <= 0.02f) c.Combat.MeleeBase = cd.MeleeBase;
+            if (c.Combat.MeleeSpeed <= 0.5f) c.Combat.MeleeSpeed = cd.MeleeSpeed;
+            if (c.Combat.SlamBase <= 0.02f) c.Combat.SlamBase = cd.SlamBase;
+            if (c.Combat.SlamSpeed <= 0.5f) c.Combat.SlamSpeed = cd.SlamSpeed;
+            if (c.Combat.QiDur <= 0.05f) c.Combat.QiDur = cd.QiDur;
+            if (c.Combat.StoneBase <= 0.02f) c.Combat.StoneBase = cd.StoneBase;
+            if (c.Combat.StoneSpeed <= 0.5f) c.Combat.StoneSpeed = cd.StoneSpeed;
+            if (c.Combat.LightningDur <= 0.04f) c.Combat.LightningDur = cd.LightningDur;
+            if (c.Combat.LightningChainGap <= 0.03f) c.Combat.LightningChainGap = cd.LightningChainGap;
+            if (c.Combat.MageDropDur <= 0.10f) c.Combat.MageDropDur = cd.MageDropDur;
+            if (c.Combat.WindBase <= 0.02f) c.Combat.WindBase = cd.WindBase;
+            if (c.Combat.WindSpeed <= 0.5f) c.Combat.WindSpeed = cd.WindSpeed;
+            if (c.Combat.BeamFlowSpeed <= 0.1f) c.Combat.BeamFlowSpeed = cd.BeamFlowSpeed;
+            if (c.Combat.BombBase <= 0.05f) c.Combat.BombBase = cd.BombBase;
+            if (c.Combat.BombSpeed <= 0.5f) c.Combat.BombSpeed = cd.BombSpeed;
+            if (c.Combat.FireballBase <= 0.05f) c.Combat.FireballBase = cd.FireballBase;
+            if (c.Combat.FireballSpeed <= 0.5f) c.Combat.FireballSpeed = cd.FireballSpeed;
+            if (c.Combat.LassoBase <= 0.02f) c.Combat.LassoBase = cd.LassoBase;
+            if (c.Combat.LassoSpeed <= 0.5f) c.Combat.LassoSpeed = cd.LassoSpeed;
             if (c.WaveStage.WaveCounts == null || c.WaveStage.WaveCounts.Length == 0)
                 c.WaveStage.WaveCounts = new WaveStageBalance().WaveCounts;
             if (c.WaveStage.EarlyWaveTough == null)
@@ -526,6 +606,32 @@ namespace Liangshan.Sim
                     LordPctBase = c.LordPctBase,
                     LordCdBase = c.LordCdBase,
                     LordFirstCast = c.LordFirstCast,
+                    LordWaveSpeed = c.LordWaveSpeed,
+                    ProjPace = c.ProjPace,
+                    VfxPace = c.VfxPace,
+                    ArrowBase = c.ArrowBase,
+                    ArrowSpeed = c.ArrowSpeed,
+                    SpearBase = c.SpearBase,
+                    SpearSpeed = c.SpearSpeed,
+                    MeleeBase = c.MeleeBase,
+                    MeleeSpeed = c.MeleeSpeed,
+                    SlamBase = c.SlamBase,
+                    SlamSpeed = c.SlamSpeed,
+                    QiDur = c.QiDur,
+                    StoneBase = c.StoneBase,
+                    StoneSpeed = c.StoneSpeed,
+                    LightningDur = c.LightningDur,
+                    LightningChainGap = c.LightningChainGap,
+                    MageDropDur = c.MageDropDur,
+                    WindBase = c.WindBase,
+                    WindSpeed = c.WindSpeed,
+                    BeamFlowSpeed = c.BeamFlowSpeed,
+                    BombBase = c.BombBase,
+                    BombSpeed = c.BombSpeed,
+                    FireballBase = c.FireballBase,
+                    FireballSpeed = c.FireballSpeed,
+                    LassoBase = c.LassoBase,
+                    LassoSpeed = c.LassoSpeed,
                 },
                 WaveStage = new WaveStageBalance
                 {

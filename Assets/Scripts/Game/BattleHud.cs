@@ -1126,16 +1126,37 @@ namespace Liangshan
             var list = B.StageRoster();
             var seen = Profile.S.Seen;
             const float pw = 920f, header = 92f, footer = 56f;
-            float rowH = 142f;
-            float ph = header + list.Count * rowH + footer;
-            if (ph > 1280f)
-            {
-                rowH = (1280f - header - footer) / Mathf.Max(1, list.Count);
-                ph = header + list.Count * rowH + footer;
-            }
+            float iconX = -pw * 0.5f + 92f;
+            float textLeft = -pw * 0.5f + 176f;
+            float textRight = pw * 0.5f - 32f;
+            float textW = textRight - textLeft;
             var c = OpenModal("roster", 0.36f);
             var hit = _modal.GetComponentInChildren<Image>();
             Ui.Tap(hit, () => CloseModal(), null, false);
+
+            float Measure(string s)
+            {
+                var probe = Ui.Label(c, s, 24, Color.white, new Vector2(0, 4000f), new Vector2(textW, 40), TextAnchor.UpperLeft);
+                probe.lineSpacing = 0.92f;
+                Canvas.ForceUpdateCanvases();
+                float h = Mathf.Ceil(probe.preferredHeight);
+                Destroy(probe.gameObject);
+                return Mathf.Max(34f, h + 2f);
+            }
+            var descH = new float[list.Count];
+            var rowH = new float[list.Count];
+            float listH = 0f;
+            for (int i = 0; i < list.Count; i++)
+            {
+                descH[i] = Measure(EnemyText.SheetBody(Defs.Enemy(list[i])));
+                rowH[i] = Mathf.Max(128f, 64f + descH[i]);
+                listH += rowH[i];
+            }
+            float maxPh = Mathf.Min(1200f, Ui.Height - 160f);
+            float viewH = Mathf.Min(listH, Mathf.Max(160f, maxPh - header - footer));
+            float ph = header + viewH + footer;
+            bool scroll = listH > viewH + 1f;
+
             var panel = Ui.Rect(c, "sheet");
             panel.sizeDelta = new Vector2(pw, ph);
             panel.anchoredPosition = new Vector2(0, 48);
@@ -1150,25 +1171,44 @@ namespace Liangshan
             Ui.Box(panel, new Vector2(168, 3), new Vector2(196, titleY), Pal.Hex("D5CBB8"), Art.Pill);
             Ui.Label(panel, "本关怪物", 36, Pal.Hex("3B2E22"), new Vector2(0, titleY), new Vector2(220, 52), TextAnchor.MiddleCenter, Fonts.Heavy);
 
-            float iconX = -pw * 0.5f + 92f;
-            float textLeft = -pw * 0.5f + 176f;
-            float textRight = pw * 0.5f - 32f;
-            float textW = textRight - textLeft;
+            float viewTop = top - header;
+            var view = Ui.Rect(panel, "rows");
+            view.sizeDelta = new Vector2(pw - 8f, viewH);
+            view.anchoredPosition = new Vector2(0, viewTop - viewH * 0.5f);
+            if (scroll) view.gameObject.AddComponent<RectMask2D>();
+            var content = Ui.Rect(view, "content");
+            content.anchorMin = content.anchorMax = new Vector2(0.5f, 1f);
+            content.pivot = new Vector2(0.5f, 1f);
+            content.sizeDelta = new Vector2(pw - 8f, listH);
+            content.anchoredPosition = Vector2.zero;
+            if (scroll)
+            {
+                var sr = view.gameObject.AddComponent<ScrollRect>();
+                sr.content = content;
+                sr.viewport = view;
+                sr.horizontal = false;
+                sr.movementType = ScrollRect.MovementType.Clamped;
+                sr.scrollSensitivity = 40f;
+                Ui.Fill(view, new Color(0, 0, 0, 0.001f), true, "grab").transform.SetAsFirstSibling();
+            }
+
+            float walked = 0f;
             for (int i = 0; i < list.Count; i++)
             {
                 var d = Defs.Enemy(list[i]);
-                float rowTop = top - header - i * rowH;
-                float mid = rowTop - rowH * 0.5f;
+                float h = rowH[i];
+                float mid = listH * 0.5f - walked - h * 0.5f;
+                float rowTop = mid + h * 0.5f;
+                walked += h;
                 if (i > 0)
-                    Ui.Box(panel, new Vector2(pw - 48, 2), new Vector2(0, rowTop), Pal.Hex("E6E0D4"), Art.White);
-                Ui.Icon(panel, d.Art, 108, new Vector2(iconX, mid + 2));
+                    Ui.Box(content, new Vector2(pw - 48, 2), new Vector2(0, rowTop), Pal.Hex("E6E0D4"), Art.White);
+                Ui.Icon(content, d.Art, 108, new Vector2(iconX, mid + 2));
 
                 const int nameSize = 32;
                 float nameW = nameSize * d.Name.Length + 6f;
-                float nameY = mid + 30f;
-                var name = Ui.Label(panel, d.Name, nameSize, Pal.Hex("1E2D3D"), new Vector2(textLeft + nameW * 0.5f, nameY), new Vector2(nameW, 42), TextAnchor.MiddleLeft, Fonts.Heavy);
+                float nameY = rowTop - 32f;
+                var name = Ui.Label(content, d.Name, nameSize, Pal.Hex("1E2D3D"), new Vector2(textLeft + nameW * 0.5f, nameY), new Vector2(nameW, 42), TextAnchor.MiddleLeft, Fonts.Heavy);
                 name.horizontalOverflow = HorizontalWrapMode.Overflow;
-                name.verticalOverflow = VerticalWrapMode.Truncate;
 
                 var tags = EnemyText.Tags(d);
                 if (d.Big) tags.Insert(0, (EnemyText.RankName(d), EnemyText.RankColor(d)));
@@ -1179,17 +1219,15 @@ namespace Liangshan
                 {
                     float tw = 26f * text.Length + 28f;
                     if (tagLeft + tw > textRight) break;
-                    var tg = Ui.Box(panel, new Vector2(tw, 32), new Vector2(tagLeft + tw * 0.5f, nameY), color, Art.RoundedSmall);
+                    var tg = Ui.Box(content, new Vector2(tw, 32), new Vector2(tagLeft + tw * 0.5f, nameY), color, Art.RoundedSmall);
                     Ui.Outlined(tg.transform, text, 20, Color.white, new Vector2(0, 1), new Vector2(tw, 32), color.Mul(0.45f), 1.2f);
                     tagLeft += tw + 8f;
                 }
 
-                float descTop = nameY - 28f;
-                float descBottom = mid - rowH * 0.5f + 14f;
-                float descH = Mathf.Max(48f, descTop - descBottom);
-                var body = Ui.Label(panel, EnemyText.SheetBody(d), 24, Pal.Hex("5C6B78"),
-                    new Vector2(textLeft + textW * 0.5f, (descTop + descBottom) * 0.5f), new Vector2(textW, descH), TextAnchor.UpperLeft);
-                body.verticalOverflow = VerticalWrapMode.Truncate;
+                float dTop = nameY - 26f;
+                float dH = descH[i];
+                var body = Ui.Label(content, EnemyText.SheetBody(d), 24, Pal.Hex("5C6B78"),
+                    new Vector2(textLeft + textW * 0.5f, dTop - dH * 0.5f), new Vector2(textW, dH), TextAnchor.UpperLeft);
                 body.lineSpacing = 0.92f;
             }
             Ui.Box(panel, new Vector2(pw - 64, 2), new Vector2(0, -top + footer), Pal.Hex("E6E0D4"), Art.White);
@@ -1633,14 +1671,14 @@ namespace Liangshan
         void BuildCards(RectTransform c, List<RectTransform> cards)
         {
             var choices = B.Choices;
-            const float cw = 326f, chh = 568f, gap = 22f;
+            const float cw = 326f, chh = 624f, gap = 22f;
             for (int i = 0; i < choices.Length; i++)
             {
                 var p = choices[i];
                 float x = (i - (choices.Length - 1) * 0.5f) * (cw + gap);
                 var card = Ui.Rect(c, "card" + i);
                 card.sizeDelta = new Vector2(cw, chh);
-                card.anchoredPosition = new Vector2(x, 22);
+                card.anchoredPosition = new Vector2(x, -6);
                 var hd = Defs.Hero(p.Hero);
                 var headC = CardHeadColor(p);
 
@@ -1686,8 +1724,8 @@ namespace Liangshan
 
                 Ui.Box(card, new Vector2(cw - 64, 2), new Vector2(0, -44), Pal.Hex("E2DDD0"), Art.White);
                 string note = PerkNote(p);
-                var desc = Ui.Label(card, Colorize(p.Desc), 30, Pal.Hex("243240"), new Vector2(0, -124), new Vector2(cw - 48, 126));
-                desc.lineSpacing = 1.15f;
+                var desc = Ui.Label(card, Colorize(p.Desc), 30, Pal.Hex("243240"), new Vector2(0, -151), new Vector2(cw - 40, 186), TextAnchor.UpperCenter);
+                desc.lineSpacing = 1f;
                 desc.verticalOverflow = VerticalWrapMode.Truncate;
 
                 float foot = -top + 40;

@@ -570,9 +570,14 @@ namespace Liangshan
                         OnBossSkill(e, p);
                         break;
                     case Ev.Explode when e.Value == 1:
-                        // 爆裂箭：小团火光，不震屏，音效限频。
-                        Explosion(p, e.Radius, 0.8f, Defs.Hero(e.Hero).Rarity);
-                        if (_hitSfxGap <= 0) { Sfx.Play(Snd.Bomb, 0.25f, 1.3f); _hitSfxGap = 0.08f; }
+                        // 爆裂箭：清脆轻盈的箭镝火药小爆花（严贴 0.95 格半径，绝不混用重炮巨型蘑菇火云与满地黑焦坑）
+                        ArrowBlast(p, e.Radius, Defs.Hero(e.Hero));
+                        if (_hitSfxGap <= 0) { Sfx.Play(Snd.Bomb, 0.25f, 1.35f); _hitSfxGap = 0.08f; }
+                        break;
+                    case Ev.Explode when e.Value == 2:
+                        // 火系觉醒灼烧阵亡连环爆燃：纯粹的油火蹿燃冲击环与飞溅火星（不抛岩石）
+                        FlamePop(p, e.Radius);
+                        if (_hitSfxGap <= 0) { Sfx.Play(Snd.Bomb, 0.32f, 1.18f); _hitSfxGap = 0.08f; }
                         break;
                     case Ev.Explode:
                         Explosion(p, e.Radius, 1.3f);
@@ -833,21 +838,23 @@ namespace Liangshan
                     var tintHi = Color.Lerp(tint, Color.white, 0.55f);
                     if (ad.Rarity >= 4 && e.Value <= 1)
                     {
-                        fx.ArcSlash(hp, e.Crit ? 0.82f : 0.66f, 0.22f, deg - 70f, 140f, Pal.Hex("FFB830"), Pal.Hex("FFF8D8"), 0.2f, 9558, 0.7f);
-                        fx.Glint(hp, e.Crit ? 1.5f : 1.2f, Pal.Hex("FFF2B8"), 0.18f, 9561);
+                        // 传说弓弩穿甲劲射：锐利金芒破甲星闪 + 顺着箭向窄角迸射的穿甲金羽（不用近战挥刀弧光！）
+                        fx.Glint(hp, e.Crit ? 1.45f : 1.15f, Pal.Hex("FFF2B8"), 0.16f, 9561);
+                        fx.Ring(hp, e.Crit ? 0.58f : 0.46f, Pal.Hex("FFD448").A(0.82f), 0.18f, 9558);
+                        fx.SparkStreaks(hp + flyDir * 0.14f, e.Crit ? 5 : 3, 0.26f, 4.8f, Pal.Hex("FFE488"), 0.18f, 9559, 3f, flyDir, 24f);
                     }
                     else if (ad.Rarity == 3 && e.Value <= 1)
-                        fx.Flash(hp, e.Crit ? 1.1f : 0.85f, tint.A(0.42f), 0.12f, 9530);
+                        fx.Flash(hp, e.Crit ? 0.95f : 0.72f, tint.A(0.38f), 0.12f, 9530);
 
                     if (e.Value > 0)
                     {
                         // 穿透箭飞行途中擦过路径上的每一名敌军（第 1..k 个）：当场爆开锐利冰青破空贯通气环、切线、星芒与顺向火花，并把该敌往箭向震退一下！
                         bool isFirst = e.Value == 1;
                         Color cutCol = e.Crit && isFirst ? Pal.Hex("FFE27A") : tint;
-                        fx.CutLine(hp, deg, e.Crit ? 1.35f : 1.12f, cutCol, 0.16f, 0.075f, 9535);
-                        fx.Ring(hp, e.Crit ? 0.76f : 0.60f, tintHi, 0.20f, 9532);
-                        fx.Glint(hp, e.Crit ? 1.15f : 0.90f, Pal.Hex("D8FCFF"), 0.14f, 9537);
-                        fx.SparkStreaks(hp + flyDir * 0.16f, e.Crit ? 6 : 4, 0.30f, 4.8f, tintHi, 0.20f, 9536, 4f, flyDir, 35f);
+                        fx.CutLine(hp, deg, e.Crit ? 1.25f : 1.02f, cutCol, 0.16f, 0.070f, 9535);
+                        fx.Ring(hp, e.Crit ? 0.68f : 0.52f, tintHi, 0.20f, 9532);
+                        fx.Glint(hp, e.Crit ? 1.08f : 0.85f, Pal.Hex("D8FCFF"), 0.14f, 9537);
+                        fx.SparkStreaks(hp + flyDir * 0.16f, e.Crit ? 5 : 3, 0.28f, 4.6f, tintHi, 0.20f, 9536, 4f, flyDir, 30f);
                         if (e.EnemyId > 0)
                         {
                             foreach (var kv in _enemies)
@@ -856,27 +863,19 @@ namespace Liangshan
                     }
                     else
                     {
-                        // 终末落点：若有穿透（e.Value < 0），在整条射线上拉出一瞬破风贯通气痕；单点箭（e.Value == 0）则在敌身爆出扎实穿甲铁花与插地残箭！
-                        if (e.Value < 0)
+                        // 终末落点：顺着箭势爆出紧凑穿甲铁花与插地残箭（不再滞后重画从城墙拉过来的全屏长线）
+                        Color impCol = e.Crit ? Pal.Hex("FFE27A") : tintHi;
+                        fx.CutLine(hp, deg, e.Crit ? 1.25f : 1.00f, impCol, 0.15f, e.Crit ? 0.080f : 0.058f, 9535);
+                        fx.Glint(hp, e.Crit ? 1.15f : 0.88f, e.Crit ? Pal.Hex("FFF0B0") : Color.white, 0.14f, 9537);
+                        fx.SparkStreaks(hp + flyDir * 0.14f, e.Crit ? 5 : 3, 0.26f, 4.4f, Pal.Hex("FFF2C8"), 0.20f, 9536, 6f, flyDir, 38f);
+                        if (e.Crit) fx.Shards(Art.Img("fx_shard_steel"), hp, 3, 0.38f, 3.2f, Pal.Hex("FFE7A0"), 0.32f, 9538, flyDir, 42f, 8f);
+                        if (e.Value == 0 && Random.value < 0.55f)
                         {
-                            var startP = e.From.ToV() + new Vector2(0, 0.38f) + flyDir * 0.55f;
-                            fx.Streak(startP, hp + flyDir * 0.25f, tint.A(0.72f), e.Crit ? 0.16f : 0.11f, 0.15f, 9528);
-                        }
-                        else
-                        {
-                            Color impCol = e.Crit ? Pal.Hex("FFE27A") : tintHi;
-                            fx.CutLine(hp, deg, e.Crit ? 1.35f : 1.08f, impCol, 0.15f, e.Crit ? 0.085f : 0.062f, 9535);
-                            fx.Glint(hp, e.Crit ? 1.2f : 0.92f, e.Crit ? Pal.Hex("FFF0B0") : Color.white, 0.14f, 9537);
-                            fx.SparkStreaks(hp + flyDir * 0.14f, e.Crit ? 5 : 3, 0.28f, 4.5f, Pal.Hex("FFF2C8"), 0.20f, 9536, 6f, flyDir, 45f);
-                            if (e.Crit) fx.Shards(Art.Img("fx_shard_steel"), hp, 4, 0.42f, 3.4f, Pal.Hex("FFE7A0"), 0.34f, 9538, flyDir, 50f, 8f);
-                            if (Random.value < 0.55f)
-                            {
-                                var lp = p + new Vector2(Random.Range(-0.12f, 0.12f), -0.05f);
-                                if (ad.Proj != null && ad.Proj.StartsWith("wp_"))
-                                    fx.Linger(Art.Img(ad.Proj), lp, 0.62f * ad.ProjSize, 1.35f, false, flyDir.x < 0f ? 28f : -28f, true);
-                                else
-                                    fx.Linger(Art.Img("fx_arrow_stuck"), lp, 0.78f, 1.35f, flyDir.x < 0f);
-                            }
+                            var lp = p + new Vector2(Random.Range(-0.12f, 0.12f), -0.05f);
+                            if (ad.Proj != null && ad.Proj.StartsWith("wp_"))
+                                fx.Linger(Art.Img(ad.Proj), lp, 0.62f * ad.ProjSize, 1.35f, false, flyDir.x < 0f ? 28f : -28f, true);
+                            else
+                                fx.Linger(Art.Img("fx_arrow_stuck"), lp, 0.78f, 1.35f, flyDir.x < 0f);
                         }
                     }
                     HitSfx(e, 0.05f);
@@ -909,7 +908,7 @@ namespace Liangshan
                     break;
                 }
                 case ShotKind.MiniBomb:
-                    Explosion(p, 0.55f, 0.55f);
+                    CompactBlast(p, 0.62f);
                     Jolt(p, 0.6f, 0.65f);
                     HitSfx(e, 0.08f);
                     break;
@@ -955,12 +954,12 @@ namespace Liangshan
                     Color slashOuter = e.Crit ? Pal.Hex("FFA834") : (axe ? Pal.Hex("38CCFF") : Pal.Hex("52E2FF"));
                     Color slashCore = e.Crit ? Pal.Hex("FFFCE4") : Color.white;
                     fx.ArcSlash(hp + new Vector2(0f, -0.05f), (axe ? 0.78f : 0.72f) * big, (axe ? 0.28f : 0.24f) * big,
-                        90f - sweepDir * 85f + tilt * 0.35f, sweepDir * 175f, slashOuter, slashCore, 0.22f, 9559, 0.76f);
+                        90f - sweepDir * 85f + tilt * 0.35f, sweepDir * 175f, slashOuter, slashCore, 0.30f, 9559, 0.76f);
                     if (e.Crit)
                         fx.ArcSlash(hp + new Vector2(0f, -0.03f), 0.62f * big, 0.21f * big,
-                            90f + sweepDir * 78f, -sweepDir * 155f, Pal.Hex("FF6422"), Pal.Hex("FFF4B8"), 0.19f, 9558, 0.74f);
-                    fx.Burst(Art.Img("fx_wind_shell"), hp, (axe ? 1.05f : 0.98f) * big, 0.14f, 9518, Color.white.A(0.55f), 0, 0.8f);
-                    fx.CutLine(hp, tilt, (axe ? 1.08f : 1.15f) * big, steel, 0.16f, e.Crit ? 0.085f : 0.068f, 9557);
+                            90f + sweepDir * 78f, -sweepDir * 155f, Pal.Hex("FF6422"), Pal.Hex("FFF4B8"), 0.26f, 9558, 0.74f);
+                    fx.Burst(Art.Img("fx_wind_shell"), hp, (axe ? 1.05f : 0.98f) * big, 0.20f, 9518, Color.white.A(0.55f), 0, 0.8f);
+                    fx.CutLine(hp, tilt, (axe ? 1.08f : 1.15f) * big, steel, 0.22f, e.Crit ? 0.085f : 0.068f, 9557);
                     fx.Flash(hp, 0.72f * big, Pal.Hex("FFF4D8").A(0.32f), 0.10f, 9554);
                     fx.Glint(hp, 0.98f * big, Color.white, 0.16f, 9560);
                     fx.Shards(Art.Img("fx_shard_steel"), hp, e.Crit ? 6 : 4, 0.45f * big, 3.8f * big, Pal.Hex("F2F6FA"), 0.38f, 9550, up, 70f, 10f);
@@ -1000,11 +999,11 @@ namespace Liangshan
                     var smd = Defs.Hero(e.Hero);
                     var slamCol = Pal.Hex(smd.Tint ?? "FFB038");
                     fx.ArcSlash(p + new Vector2(0f, 0.16f), e.Radius * 0.86f * big, e.Radius * 0.34f * big,
-                        -20f, 220f, slamCol, Pal.Hex("FFFCE8"), 0.24f, 9558, 0.54f);
+                        -20f, 220f, slamCol, Pal.Hex("FFFCE8"), 0.32f, 9558, 0.54f);
                     if (smd.Rarity >= 4)
                     {
                         fx.ArcSlash(p + new Vector2(0f, 0.2f), e.Radius * 0.66f * big, e.Radius * 0.26f * big,
-                            200f, -200f, Color.Lerp(slamCol, Pal.Hex("FFD84A"), 0.35f), Color.white, 0.22f, 9557, 0.5f);
+                            200f, -200f, Color.Lerp(slamCol, Pal.Hex("FFD84A"), 0.35f), Color.white, 0.28f, 9557, 0.5f);
                         fx.Rune(p, e.Radius * 1.9f * big, slamCol.A(0.75f), 0.6f, 80f, 97);
                     }
                     fx.GroundWave(p, e.Radius * 0.92f * big, slamCol.A(0.75f), 0.34f);
@@ -1020,22 +1019,18 @@ namespace Liangshan
                 }
                 case ShotKind.Spear:
                 {
-                    // 一枪捅穿：利落细白破空寒芒贯穿整列，受击整列后仰顿帧。
+                    // 一枪捅穿：顺着枪尖方向笔直刺穿整列敌军（对齐真实 2.2 格穿透判定区，绝不混用横砍弯刀光！）
                     var hp = p + new Vector2(0, 0.45f);
                     var dir = Away(p).normalized;
                     var sd = Defs.Hero(e.Hero);
                     var st = Pal.Hex(sd.Tint ?? "DCEFFF");
-                    fx.SpearThrust(hp - dir * 0.35f, hp + dir * (sd.Rarity >= 4 ? 2.6f : 2.1f), st, Color.Lerp(st, Color.white, 0.7f),
-                        (e.Crit ? 0.62f : 0.48f) * (sd.Rarity >= 4 ? 1.15f : 1f), 0.2f, 9521);
+                    fx.SpearThrust(hp - dir * 0.25f, hp + dir * 2.2f, st, Color.Lerp(st, Color.white, 0.72f),
+                        (e.Crit ? 0.56f : 0.44f) * (sd.Rarity >= 4 ? 1.12f : 1f), 0.28f, 9521);
                     if (sd.Rarity >= 4)
-                    {
-                        float a0 = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-                        fx.ArcSlash(hp, 0.62f, 0.2f, a0 - 60f, 120f, st, Color.white, 0.18f, 9558, 0.72f);
-                        fx.Ring(hp, e.Crit ? 0.9f : 0.7f, Color.Lerp(st, Color.white, 0.4f), 0.22f, 9532);
-                    }
-                    fx.Glint(hp, e.Crit ? 1.5f : 1.1f, Color.white, 0.16f, 9537);
-                    fx.SparkStreaks(hp + dir * 0.35f, e.Crit ? 6 : 4, 0.36f, 5f, Color.Lerp(st, Color.white, 0.5f), 0.22f, 9520, 6f, dir, 40f);
-                    fx.Shards(Art.Img("fx_shard_steel"), hp, e.Crit ? 5 : 3, 0.45f, 3.8f, Pal.Hex("F2F6FA"), 0.38f, 9550, dir, 55f, 9f);
+                        fx.Ring(hp + dir * 0.25f, e.Crit ? 0.78f : 0.62f, Color.Lerp(st, Color.white, 0.45f), 0.24f, 9532);
+                    fx.Glint(hp, e.Crit ? 1.45f : 1.08f, Color.white, 0.16f, 9537);
+                    fx.SparkStreaks(hp + dir * 0.35f, e.Crit ? 6 : 4, 0.34f, 4.8f, Color.Lerp(st, Color.white, 0.5f), 0.22f, 9520, 5f, dir, 32f);
+                    fx.Shards(Art.Img("fx_shard_steel"), hp, e.Crit ? 5 : 3, 0.42f, 3.6f, Pal.Hex("F2F6FA"), 0.36f, 9550, dir, 42f, 9f);
                     if (B.SlowOf(e.Hero) > 0) fx.Decal(Art.Img("fx_scorch"), p, 0.9f, Pal.Hex("BFE6FF").A(0.45f), 1.2f, 0.5f, 92);
                     Jolt(p + new Vector2(0, 1f), 1.3f, e.Crit ? 1.5f : 1.15f, dir);
                     if (e.Crit) fx.Shake(0.05f, 0.09f);
@@ -1072,15 +1067,38 @@ namespace Liangshan
                     var wd = Defs.Hero(e.Hero);
                     var wc = Pal.Hex(wd.Tint ?? "9FF5D8");
                     var wHi = Color.Lerp(wc, Color.white, 0.55f);
-                    if (e.Hero == HeroId.ZhuWu) fx.Rune(p, e.Radius * 2.2f, Pal.Hex("7FB4FF").A(0.9f), 1.1f, -90f, 97);
-                    if (e.Hero == HeroId.FanRui) fx.Tornado(p, e.Radius * (e.Crit ? 1.05f : 0.85f), wc, wHi, 0.5f);
-                    if (e.Hero == HeroId.SunErniang)
-                        fx.Smoke(p + new Vector2(0, 0.25f), 4, 1.1f, Pal.Hex("B070F0").A(0.42f), 1.0f, 0.9f, 0.4f);
-                    fx.Burst(Art.Img("fx_wave"), p + new Vector2(0, 0.3f), e.Radius * 1.8f, 0.4f, 9480, wc.A(0.85f), 300f, 0.4f, true);
-                    fx.GroundWave(p, e.Radius, wHi.A(0.6f), 0.35f);
-                    fx.SparkStreaks(p + new Vector2(0, 0.3f), wd.Rarity >= 4 ? 9 : 6, 0.5f, 4.5f, wHi, 0.3f, 9482, 0f);
-                    if (e.Crit) fx.Smoke(p + new Vector2(0, 0.3f), 3, 1.0f, wHi.A(0.4f), 0.8f, 1.2f, 0.5f);
-                    Jolt(p, e.Radius, wd.Rarity >= 4 ? 0.55f : 0.4f);
+                    if (e.Hero == HeroId.ZhuWu)
+                    {
+                        // 朱武「八阵图」：展开双层奇门八卦阵印锁困敌军，不用狂风刀刃
+                        fx.Rune(p, e.Radius * 2.1f, Pal.Hex("6CAEFF").A(0.92f), 1.25f, -75f, 97, 0.48f);
+                        fx.Rune(p, Art.Img("fx_aoyi_seal"), e.Radius * 1.45f, Pal.Hex("FFE28A").A(0.78f), 1.05f, 65f, 98, 0.48f, true);
+                        fx.GroundWave(p, e.Radius * 0.95f, wHi.A(0.68f), 0.45f);
+                        fx.Motes(p, 6, e.Radius * 0.65f, wc, 0.85f);
+                    }
+                    else if (e.Hero == HeroId.SunErniang)
+                    {
+                        // 孙二娘「蒙汗药」：药包炸开浓柔紫雾迷烟与眩晕小星点
+                        fx.Smoke(p + new Vector2(0, 0.25f), 5, 0.95f, Pal.Hex("B46CF0").A(0.48f), 1.05f, e.Radius * 0.65f, 0.36f);
+                        fx.LightPool(p, e.Radius * 1.6f, Pal.Hex("C878FF").A(0.45f), 0.65f);
+                        fx.GroundWave(p, e.Radius * 0.88f, Pal.Hex("E2A8FF").A(0.6f), 0.42f);
+                        fx.Sparks(Art.Img("fx_star"), p + new Vector2(0, 0.45f), 5, 0.20f, 2.2f, Pal.Hex("F4D4FF"), 0.55f, 9482, 2.5f, true);
+                    }
+                    else if (e.Hero == HeroId.RuanXiaoqi)
+                    {
+                        // 阮小七「天罗地网」：大网张开罩地定身 + 水泊碧浪水花
+                        fx.Linger(Art.Img("wp_net"), p + new Vector2(0, 0.12f), e.Radius * 1.45f, 1.05f, false, Random.Range(-15f, 15f));
+                        fx.GroundWave(p, e.Radius * 0.95f, Pal.Hex("78DCFF").A(0.72f), 0.42f);
+                        fx.SparkStreaks(p + new Vector2(0, 0.25f), 6, 0.30f, 3.8f, Pal.Hex("B8F2FF"), 0.26f, 9482, 5f, Vector2.up, 130f);
+                    }
+                    else
+                    {
+                        // 樊瑞「旋风咒」与风系冲击：立体螺旋龙卷风柱 + 呼啸青风波
+                        if (e.Hero == HeroId.FanRui) fx.Tornado(p, e.Radius * (e.Crit ? 1.05f : 0.85f), wc, wHi, 0.62f);
+                        fx.Burst(Art.Img("fx_wave"), p + new Vector2(0, 0.3f), e.Radius * 1.65f, 0.45f, 9480, wc.A(0.82f), 240f, 0.4f, true);
+                        fx.GroundWave(p, e.Radius, wHi.A(0.6f), 0.40f);
+                        fx.SparkStreaks(p + new Vector2(0, 0.3f), wd.Rarity >= 4 ? 7 : 5, 0.42f, 4.0f, wHi, 0.32f, 9482, 0f);
+                    }
+                    Jolt(p, e.Radius, wd.Rarity >= 4 ? 0.55f : 0.38f);
                     HitSfx(e, 0.2f);
                     break;
                 }
@@ -1099,10 +1117,9 @@ namespace Liangshan
                     Sfx.Play(Snd.IceShatter, 0.82f);
                     break;
                 case ShotKind.Fireball:
-                    Explosion(p, e.Radius, e.Crit ? 1.5f : 0.9f, Defs.Hero(e.Hero).Rarity);
-                    fx.Burst(Art.Img("fx_fireball"), p + new Vector2(0, 0.35f), e.Radius * 1.4f, 0.3f, 9510, null, 0, 0.3f, true);
+                    Explosion(p, e.Radius, e.Crit ? 1.35f : 0.9f, Defs.Hero(e.Hero).Rarity);
                     fx.FirePool(p, e.Radius * 0.8f, Pal.Hex("FF4A14"), Pal.Hex("FFE68A"), 1.4f);
-                    fx.ArcSlash(p + new Vector2(0f, 0.2f), e.Radius * 0.9f, e.Radius * 0.3f, -30f, 240f, Pal.Hex("FF6A1E"), Pal.Hex("FFF2B0"), 0.26f, 9540, 0.5f);
+                    fx.GroundWave(p, e.Radius * 1.12f, Pal.Hex("FF8A28").A(0.78f), 0.38f);
                     Jolt(p, e.Radius, e.Crit ? 1.3f : 0.9f);
                     if (e.Crit) fx.Shake(0.1f, 0.16f);
                     HitSfx(e, 0.06f);
@@ -1257,6 +1274,41 @@ namespace Liangshan
             fx.SparkStreaks(p + new Vector2(0, 0.24f * scale), Mathf.RoundToInt(4 + 3 * scale), 0.28f * Mathf.Sqrt(scale), 4.6f * Mathf.Sqrt(scale), Pal.Hex("FFD890"), 0.25f, 9531, 8f, Vector2.up, 150f);
             fx.Glint(center, r * 0.85f, Pal.Hex("FFF4D8"), 0.12f, 9532);
             if (scale >= 1.8f) fx.Debris(p, 4, 0.20f, 2.4f);
+        }
+
+        /// <summary>爆裂箭专属轻爆：清脆利落的八芒火药星花 + 纤细赤金冲击小环 + 零星火星，严贴 0.95 格半径，绝不糊满屏蘑菇云与焦坑。</summary>
+        void ArrowBlast(Vector2 p, float radius, HeroDef hd)
+        {
+            var fx = WorldFx.I;
+            var center = p + new Vector2(0, 0.34f);
+            var tint = hd != null && hd.Tint != null ? Color.Lerp(Pal.Hex(hd.Tint), Pal.Hex("FF9628"), 0.65f) : Pal.Hex("FF9628");
+            fx.DissolveBurst(Art.Img("fx_arrow_blast"), center, radius * 1.15f, 0.24f, 9522,
+                Color.white, false, 0.45f, Random.Range(-25f, 25f), 0.03f);
+            fx.Ring(p + new Vector2(0, 0.12f), radius * 0.82f, Color.Lerp(tint, Pal.Hex("FFD868"), 0.45f).A(0.85f), 0.22f, 9518);
+            fx.Glint(center, radius * 0.92f, Pal.Hex("FFF6D8"), 0.14f, 9526);
+            fx.SparkStreaks(center, 5, 0.22f, 3.8f, Pal.Hex("FFE288"), 0.19f, 9524, 6f, Vector2.up, 145f);
+        }
+
+        /// <summary>分裂小火雷（MiniBomb）紧凑爆破：与主炮大轰炸拉开轻重层次，干脆爆开一朵小火球与轻烟。</summary>
+        void CompactBlast(Vector2 p, float radius)
+        {
+            var fx = WorldFx.I;
+            var center = p + new Vector2(0, 0.22f);
+            fx.DissolveBurst(Art.Img("fx_arrow_blast"), center, radius * 1.45f, 0.28f, 9516, Color.white, false, 0.48f, 18f, 0.035f);
+            fx.GroundWave(p, radius * 0.92f, Pal.Hex("FFC268").A(0.72f), 0.26f);
+            fx.Smoke(center, 1, radius * 0.48f, SmokeCol.A(0.42f), 0.55f, 0.12f, 0.28f);
+            fx.SparkStreaks(center, 4, 0.24f, 4.0f, Pal.Hex("FFD890"), 0.22f, 9525, 7f, Vector2.up, 140f);
+        }
+
+        /// <summary>灼烧敌军阵亡引燃爆燃：纯粹赤橙火浪腾起与火星四散（无碎石）。</summary>
+        void FlamePop(Vector2 p, float radius)
+        {
+            var fx = WorldFx.I;
+            var center = p + new Vector2(0, 0.28f);
+            fx.DissolveBurst(Art.Img("fx_fireball"), center, radius * 1.05f, 0.28f, 9518, new Color(1f, 0.72f, 0.35f, 0.75f), true, 0.42f, -20f, 0.05f);
+            fx.GroundWave(p, radius * 0.95f, Pal.Hex("FF7824").A(0.82f), 0.32f);
+            fx.LightPool(p, radius * 1.35f, Fire.A(0.48f), 0.34f);
+            fx.SparkStreaks(center, 6, 0.28f, 4.4f, Pal.Hex("FFE078"), 0.24f, 9528, 5f, Vector2.up, 150f);
         }
 
         float _hitPopGap;
@@ -2651,7 +2703,7 @@ namespace Liangshan
             readonly Shot _s;
             readonly Transform _root;
             SpriteRenderer _sr, _shadow, _fuse, _aura;
-            TrailRenderer _trail;
+            readonly List<TrailRenderer> _trails = new List<TrailRenderer>(2);
             float _puffAt;
             bool _started, _weapon, _spin, _melee, _drop;
             float _len;
@@ -2659,7 +2711,6 @@ namespace Liangshan
             int _cut;
             float _side;
             SpriteRenderer _ghostA, _ghostB, _vortex;
-            TrailRenderer[] _trails;
             float _shellSize;
 
             enum MeleeStyle { Blade, Axe, Spear, Fist }
@@ -2689,7 +2740,7 @@ namespace Liangshan
                     _shadow = WorldFx.Spr(_root, Art.GroundShadow, Vector2.zero, 1, 125, new Color(0.02f, 0.05f, 0.1f, 0.45f), "shadow");
                     _fuse = WorldFx.Additive(WorldFx.Spr(_root, Art.SoftDot, Vector2.zero, size * 2.1f, 9199, gold.A(0.75f), "aura"));
                     _sr = WorldFx.Spr(_root, Art.Img(hd.Proj ?? "wp_goldbrick"), Vector2.zero, size, 9200);
-                    _trail = AddTrail(0.14f, size * 0.55f, gold);
+                    AddTrail(0.14f, size * 0.55f, gold);
                     if (s.Scale > 1f) _root.localScale = Vector3.one * s.Scale;
                     Tick();
                     return;
@@ -2707,8 +2758,11 @@ namespace Liangshan
                         bool piercing = s.Pierce > 0 || s.Ult;
                         if (hd.Rarity >= 3)
                         {
-                            _aura = WorldFx.Additive(WorldFx.Spr(_sr.transform, Art.Img("fx_bolt_wing_lut"), new Vector2(0f, -0.06f),
-                                hd.Rarity >= 4 ? 1.0f : 0.84f, 9204, tc.A(hd.Rarity >= 4 ? 0.95f : 0.78f), "wing"));
+                            _aura = WorldFx.Spr(_sr.transform, Art.Img("fx_bolt_wing_lut"), new Vector2(0f, -0.06f),
+                                hd.Rarity >= 4 ? 1.0f : 0.84f, 9204, Color.white, "wing");
+                            _aura.sharedMaterial = WorldFx.UberMat(true);
+                            WorldFx.SetUber(_aura, tc.A(hd.Rarity >= 4 ? 0.92f : 0.76f), Color.white,
+                                0.08f, 0.035f, 1f, 0f, new Vector4(0.35f, -2.6f, -0.35f, -1.8f), new Vector2(1.4f, 1.6f), 1.9f);
                             Wisp(_sr.transform, 0.16f, len * 0.16f, tc, true, 0.7f);
                             if (hd.Rarity >= 4) Wisp(_sr.transform, 0.1f, len * 0.08f, Pal.Hex("FFE48A"), true, 0.9f);
                         }
@@ -2722,7 +2776,7 @@ namespace Liangshan
                     {
                         var hot = Color.Lerp(tc, Pal.Hex("FFE27A"), 0.4f);
                         _fuse = WorldFx.Additive(WorldFx.Spr(_sr.transform, Art.SoftDot, Vector2.zero, 1.5f, 9203, tc.A(0.55f), "heat"));
-                        _trail = AddTrail(0.18f, len * 0.4f, hot.A(0.7f));
+                        AddTrail(0.18f, len * 0.4f, hot.A(0.7f));
                     }
                     else
                     {
@@ -2731,7 +2785,7 @@ namespace Liangshan
                             _aura = WorldFx.Spr(_sr.transform, Art.Img("fx_spin_vortex"), Vector2.zero, 1.48f, 9204, Color.white.A(0.92f), "vortex");
                             Wisp(_sr.transform, 0.2f, len * 0.5f, s.Crit ? Pal.Hex("FFC24A") : Pal.Hex("1A9BE8"), false, 0.75f);
                         }
-                        else _trail = AddTrail(0.14f, len * 0.28f, s.Crit ? Pal.Hex("FFE29A") : Pal.Hex("18B8F0").A(0.62f), false);
+                        else AddTrail(0.14f, len * 0.28f, s.Crit ? Pal.Hex("FFE29A") : Pal.Hex("18B8F0").A(0.62f), false);
                     }
                     if (s.Scale > 1f) _root.localScale = Vector3.one * s.Scale;
                     Tick();
@@ -2769,7 +2823,7 @@ namespace Liangshan
                         _shadow = WorldFx.Spr(_root, Art.GroundShadow, Vector2.zero, size, 130, new Color(0.02f, 0.05f, 0.1f, 0.45f));
                         _sr = WorldFx.Spr(_root, Art.Img("ic_bomb"), Vector2.zero, size, 9200);
                         _fuse = WorldFx.Additive(WorldFx.Spr(_sr.transform, Art.Sparkle, new Vector2(0.2f, 0.45f), 0.75f, 9201, Fire.A(0.95f), "fuse"));
-                        _trail = AddTrail(0.14f, size * 0.24f, new Color(0.75f, 0.72f, 0.68f, 0.42f), false);
+                        AddTrail(0.14f, size * 0.24f, new Color(0.75f, 0.72f, 0.68f, 0.42f), false);
                         break;
                     }
                     case ShotKind.Bolt:
@@ -2777,7 +2831,7 @@ namespace Liangshan
                         break;
                     case ShotKind.Punch:
                         _sr = WorldFx.Spr(_root, Art.Img("wp_ironfist"), Vector2.zero, s.Ult ? 1.05f : 0.74f, 9200);
-                        if (!s.Ult) _trail = AddTrail(0.11f, 0.22f, Pal.Hex("E8EEF6").A(0.42f), false);
+                        if (!s.Ult) AddTrail(0.11f, 0.22f, Pal.Hex("E8EEF6").A(0.42f), false);
                         break;
                     case ShotKind.Slam:
                     {
@@ -2796,48 +2850,48 @@ namespace Liangshan
                     case ShotKind.Stone:
                         _shadow = WorldFx.Spr(_root, Art.GroundShadow, Vector2.zero, 1, 125, new Color(0.02f, 0.05f, 0.1f, 0.40f), "shadow");
                         _sr = WorldFx.Spr(_root, Art.Img("fx_rock" + Random.Range(0, 3)), Vector2.zero, s.Ult ? 0.60f : 0.46f, 9200);
-                        _trail = AddTrail(0.10f, s.Ult ? 0.16f : 0.11f, Pal.Hex("E4DFD4").A(0.48f), false);
+                        AddTrail(0.10f, s.Ult ? 0.16f : 0.11f, Pal.Hex("E4DFD4").A(0.48f), false);
                         break;
                     case ShotKind.Spear:
                         _sr = WorldFx.Spr(_root, Art.Img("ic_sword"), Vector2.zero, 0.95f, 9200, Pal.Hex("E8F2FF"));
-                        _trail = AddTrail(0.12f, 0.22f, Pal.Hex("CFE8FF"));
+                        AddTrail(0.12f, 0.22f, Pal.Hex("CFE8FF"));
                         break;
                     case ShotKind.Wind:
                         _shadow = WorldFx.Spr(_root, Art.GroundShadow, Vector2.zero, 1, 125, new Color(0.02f, 0.05f, 0.1f, 0.28f), "shadow");
                         _sr = WorldFx.Additive(WorldFx.Spr(_root, Art.Img("fx_wave"), Vector2.zero, s.Ult ? 1.5f : 0.78f, 9200, Pal.Hex("9FF5D8").A(0.88f)));
-                        _trail = AddTrail(0.16f, s.Ult ? 0.52f : 0.28f, Pal.Hex("B8FFE6"));
+                        AddTrail(0.16f, s.Ult ? 0.52f : 0.28f, Pal.Hex("B8FFE6"));
                         break;
                     case ShotKind.Hammer:
                         _shadow = WorldFx.Spr(_root, Art.GroundShadow, Vector2.zero, 1, 125, new Color(0.02f, 0.05f, 0.1f, 0.42f), "shadow");
                         _sr = WorldFx.Spr(_root, Art.Img("fx_rock1"), Vector2.zero, 0.68f, 9200, Pal.Hex("8C8C96"));
-                        _trail = AddTrail(0.2f, 0.28f, Pal.Hex("FFB070"));
+                        AddTrail(0.2f, 0.28f, Pal.Hex("FFB070"));
                         break;
                     case ShotKind.Boulder:
                         _shadow = WorldFx.Spr(_root, Art.GroundShadow, Vector2.zero, 1, 125, new Color(0.02f, 0.05f, 0.1f, 0.42f), "shadow");
                         _sr = WorldFx.Spr(_root, Art.Img("fx_rock" + Random.Range(0, 3)), Vector2.zero, 0.78f, 9200, Pal.Hex("B09A80"));
-                        _trail = AddTrail(0.16f, 0.25f, Pal.Hex("D8C8B0"), false);
+                        AddTrail(0.16f, 0.25f, Pal.Hex("D8C8B0"), false);
                         break;
                     case ShotKind.Ball:
                         _shadow = WorldFx.Spr(_root, Art.GroundShadow, Vector2.zero, 1, 125, new Color(0.02f, 0.05f, 0.1f, 0.42f), "shadow");
                         _sr = WorldFx.Additive(WorldFx.Spr(_root, Art.Img("fx_fireball"), Vector2.zero, 0.96f, 9200));
-                        _trail = AddTrail(0.3f, 0.5f, Fire);
+                        AddTrail(0.3f, 0.5f, Fire);
                         break;
                     case ShotKind.Fireball:
                         _shadow = WorldFx.Spr(_root, Art.GroundShadow, Vector2.zero, 1, 125, new Color(0.02f, 0.05f, 0.1f, 0.42f), "shadow");
                         _sr = WorldFx.Additive(WorldFx.Spr(_root, Art.Img("fx_fireball"), Vector2.zero, s.Ult ? 1.38f : 0.84f, 9200));
-                        _trail = AddTrail(s.Ult ? 0.3f : 0.2f, s.Ult ? 0.6f : 0.36f, Fire);
+                        AddTrail(s.Ult ? 0.3f : 0.2f, s.Ult ? 0.6f : 0.36f, Fire);
                         break;
                     case ShotKind.Lasso:
                         _shadow = WorldFx.Spr(_root, Art.GroundShadow, Vector2.zero, 1, 125, new Color(0.02f, 0.05f, 0.1f, 0.32f), "shadow");
                         _sr = WorldFx.Spr(_root, Art.Img("wp_lasso"), Vector2.zero, s.Ult ? 0.96f : 0.78f, 9200);
-                        _trail = AddTrail(0.18f, 0.14f, Pal.Hex("E8483A"));
+                        AddTrail(0.18f, 0.14f, Pal.Hex("E8483A"));
                         break;
                     case ShotKind.Qi:
                     {
                         var c = hd.Tint != null ? Pal.Hex(hd.Tint) : Pal.Hex("C8E2FA");
                         _sr = WorldFx.Spr(_root, Art.Crescent, Vector2.zero, 1.38f, 9200, c.A(0.78f));
                         _fuse = WorldFx.Spr(_root, Art.Crescent, Vector2.zero, 1.02f, 9201, Color.white.A(0.92f), "core");
-                        _trail = AddTrail(0.10f, 0.20f, c.A(0.45f), false);
+                        AddTrail(0.10f, 0.20f, c.A(0.45f), false);
                         break;
                     }
                     case ShotKind.Lightning:
@@ -2853,11 +2907,30 @@ namespace Liangshan
 
             static Material _plainMat;
 
+            /// <summary>Unity 单个 GameObject 上最多只能挂载 1 个 TrailRenderer；已有拖尾时自动在子节点上挂第二条主副拖尾。</summary>
+            GameObject TrailHost(Transform host)
+            {
+                var t = host != null ? host : _sr != null ? _sr.transform : _root;
+                if (!t.TryGetComponent<TrailRenderer>(out _)) return t.gameObject;
+                var sub = new GameObject("trail");
+                sub.transform.SetParent(t, false);
+                return sub;
+            }
+
+            void EmitTrails()
+            {
+                for (int i = 0; i < _trails.Count; i++)
+                {
+                    var tr = _trails[i];
+                    if (tr != null && !tr.emitting) tr.emitting = true;
+                }
+            }
+
             TrailRenderer AddTrail(float time, float width, Color c, bool add = true, Transform host = null)
             {
                 if (_trailMat == null) _trailMat = WorldFx.AddMat;
                 if (_plainMat == null) _plainMat = new Material(Shader.Find("Sprites/Default"));
-                var tr = (host != null ? host.gameObject : _sr != null ? _sr.gameObject : _root.gameObject).AddComponent<TrailRenderer>();
+                var tr = TrailHost(host).AddComponent<TrailRenderer>();
                 tr.sharedMaterial = add ? _trailMat : _plainMat;
                 tr.time = time;
                 tr.startWidth = width;
@@ -2867,13 +2940,14 @@ namespace Liangshan
                 tr.sortingOrder = 9150;
                 tr.minVertexDistance = 0.05f;
                 tr.emitting = false;
+                _trails.Add(tr);
                 return tr;
             }
 
             /// <summary>丝缕拖尾：贴图里几股风丝往尾部散开、断开，头实尾透。</summary>
             TrailRenderer Wisp(Transform host, float time, float width, Color c, bool add, float a)
             {
-                var tr = host.gameObject.AddComponent<TrailRenderer>();
+                var tr = TrailHost(host).AddComponent<TrailRenderer>();
                 tr.sharedMaterial = WorldFx.WispTrail(add);
                 tr.time = time;
                 tr.startWidth = width;
@@ -2882,7 +2956,7 @@ namespace Liangshan
                 tr.sortingOrder = add ? 9151 : 9150;
                 tr.minVertexDistance = 0.04f;
                 tr.emitting = false;
-                if (_trail == null) _trail = tr;
+                _trails.Add(tr);
                 return tr;
             }
 
@@ -2903,23 +2977,19 @@ namespace Liangshan
                     if (_shadow) _shadow.enabled = true;
                     if (s.Kind == ShotKind.Lightning)
                     {
-                        var from = s.From.ToV() + (s.Ult ? Vector2.zero : new Vector2(0, 0.4f));
-                        if (!s.Ult) WorldFx.I.Arc(from, s.To.ToV() + new Vector2(0, 0.35f), Pal.Hex("8FD0FF"), 0.14f, 0.18f);
+                        if (!s.Ult && s.Pierce == 0)
+                        {
+                            // 雷链在敌群之间逐跳弹射：在两个受击怪之间拉出清晰的双层跳跃电弧
+                            var hd = Defs.Hero(s.Hero);
+                            var tc = Pal.Hex(hd.Tint ?? "9AB8FF");
+                            WorldFx.I.ThunderChain(s.From.ToV() + new Vector2(0, 0.42f), s.To.ToV() + new Vector2(0, 0.42f),
+                                tc, Pal.Hex("FFF6C8"), hd.Rarity >= 4 ? 0.24f : 0.18f, Mathf.Max(0.24f, s.Dur * 1.8f));
+                        }
                     }
                     if (_drop)
                     {
                         var hd = Defs.Hero(s.Hero);
                         WorldFx.I.Rune(s.To.ToV(), s.Ult ? 2.2f : 1.5f, Pal.Hex(hd.Tint ?? "FFD24A").A(0.9f), s.Dur + 0.35f, 120f, 97);
-                    }
-                    if (_melee && _style == MeleeStyle.Spear)
-                    {
-                        var hd = Defs.Hero(s.Hero);
-                        var tc = Pal.Hex(hd.Tint ?? "DCEFFF");
-                        var a0 = s.From.ToV() + new Vector2(0, 0.5f);
-                        var b0 = s.To.ToV() + new Vector2(0, 0.45f);
-                        var dd = (b0 - a0).sqrMagnitude > 1e-4f ? (b0 - a0).normalized : Vector2.up;
-                        WorldFx.I.SpearThrust(a0 + dd * 0.2f, b0 + dd * 0.5f, tc, Color.Lerp(tc, Color.white, 0.7f),
-                            hd.Rarity >= 4 ? 0.7f : 0.52f, Mathf.Max(0.16f, s.Dur + 0.08f), 9524);
                     }
                 }
                 if (_melee)
@@ -2943,7 +3013,7 @@ namespace Liangshan
                     _shadow.transform.localPosition = b - new Vector2(0, 0.05f);
                     _shadow.transform.localScale = new Vector3(0.6f, 0.16f, 1f) * (0.4f + 0.6f * fall);
                     _shadow.color = new Color(0, 0, 0, 0.1f + 0.3f * fall);
-                    if (_trail && !_trail.emitting) _trail.emitting = true;
+                    EmitTrails();
                     return;
                 }
                 switch (s.Kind)
@@ -2960,7 +3030,7 @@ namespace Liangshan
                         var p = Vector2.Lerp(from, flyEnd, k);
                         _sr.transform.localPosition = p;
                         _sr.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f);
-                        if (_trail && !_trail.emitting && k > 0.02f) _trail.emitting = true;
+                        if (k > 0.02f) EmitTrails();
                         if (_shadow) _shadow.enabled = false;
                         break;
                     }
@@ -2998,7 +3068,7 @@ namespace Liangshan
                             _shadow.transform.localPosition = g - new Vector2(0, 0.06f);
                             _shadow.transform.localScale = new Vector3(0.78f, 0.22f, 1f) * (0.45f + 0.55f * k);
                         }
-                        if (_trail && !_trail.emitting && k > 0.03f) _trail.emitting = true;
+                        if (k > 0.03f) EmitTrails();
                         break;
                     }
                     case ShotKind.Bolt:
@@ -3013,7 +3083,7 @@ namespace Liangshan
                         float ang = Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg;
                         if (s.Kind == ShotKind.Bolt) _sr.transform.localRotation = Quaternion.Euler(0, 0, ang - 45f);
                         else _sr.transform.localRotation = Quaternion.Euler(0, 0, ang - 90f);
-                        if (_trail && !_trail.emitting && k > 0.05f) _trail.emitting = true;
+                        if (k > 0.05f) EmitTrails();
                         break;
                     }
                     case ShotKind.Beam:
@@ -3028,8 +3098,9 @@ namespace Liangshan
                         var rot = Quaternion.Euler(0, 0, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg);
                         _root.localPosition = Vector2.zero;
                         // fx_beam_lut 为 512x128 (高 0.25 单位)，乘 4f 换算世界宽度：0.22 单位仅约人物身宽的 1/4，精致不挡人！
-                        float beamW = Mathf.Clamp(s.Radius * 0.36f + 0.06f, 0.19f, 0.26f) * (0.93f + 0.07f * Mathf.Sin(Time.time * 38f));
-                        var scroll = new Vector4(-3.6f, 0.35f, -2.2f, -0.5f);
+                        float beamW = Mathf.Clamp(s.Radius * 0.36f + 0.06f, 0.19f, 0.26f) * (0.93f + 0.07f * Mathf.Sin(Time.time * 26f));
+                        float flow = Defs.BeamFlowSpeed / Mathf.Max(0.35f, Defs.VfxPace);
+                        var scroll = new Vector4(-flow, 0.22f, -flow * 0.62f, -0.32f);
                         var nScale = new Vector2(Mathf.Max(1.2f, len * 0.75f), 1.3f);
                         if (_aura)
                         {
@@ -3068,7 +3139,7 @@ namespace Liangshan
                         }
                         _shadow.transform.localScale = new Vector3(1.05f, 0.38f, 1f) * baseSize * (0.5f + 0.5f / (1f + z * 0.4f));
                         _shadow.color = new Color(0.02f, 0.05f, 0.1f, 0.46f / (1f + z * 0.28f));
-                        if (_trail && !_trail.emitting) _trail.emitting = true;
+                        EmitTrails();
                         if (s.Kind != ShotKind.MiniBomb && Time.time >= _puffAt)
                         {
                             _puffAt = Time.time + 0.09f;
@@ -3095,7 +3166,7 @@ namespace Liangshan
                             _shadow.transform.localPosition = g - new Vector2(0, 0.3f);
                             _shadow.transform.localScale = new Vector3(0.4f, 0.1f, 1f) * (s.Kind == ShotKind.Stone ? 0.8f : 2f);
                         }
-                        if (_trail && !_trail.emitting && k > 0.05f) _trail.emitting = true;
+                        if (k > 0.05f) EmitTrails();
                         break;
                     }
                     case ShotKind.Spear:
@@ -3105,7 +3176,7 @@ namespace Liangshan
                         var d = b - a;
                         _root.localPosition = Vector2.Lerp(a, b, Tween.OutCubic(k));
                         _sr.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg - 45f);
-                        if (_trail && !_trail.emitting) _trail.emitting = true;
+                        EmitTrails();
                         break;
                     }
                     case ShotKind.Wind:
@@ -3118,7 +3189,7 @@ namespace Liangshan
                             _shadow.transform.localPosition = new Vector2(0, -0.42f);
                             _shadow.transform.localScale = new Vector3(0.55f, 0.16f, 1f);
                         }
-                        if (_trail && !_trail.emitting) _trail.emitting = true;
+                        EmitTrails();
                         break;
                     }
                     case ShotKind.Fireball:
@@ -3140,7 +3211,7 @@ namespace Liangshan
                         _sr.transform.localScale = Vector3.one * (_weapon ? _len : s.Ult ? 1.38f : 0.84f) * (0.92f + 0.08f * Mathf.Sin(Time.time * 30f));
                         _shadow.transform.localPosition = g - new Vector2(0, 0.2f);
                         _shadow.transform.localScale = new Vector3(0.62f, 0.18f, 1f) * (s.Ult ? 2f : 1f) * (0.5f + 0.5f * k);
-                        if (_trail && !_trail.emitting) _trail.emitting = true;
+                        EmitTrails();
                         break;
                     }
                     case ShotKind.Lasso:
@@ -3154,7 +3225,7 @@ namespace Liangshan
                             _shadow.transform.localPosition = new Vector2(0, -0.45f - arc);
                             _shadow.transform.localScale = new Vector3(0.48f, 0.14f, 1f);
                         }
-                        if (_trail && !_trail.emitting) _trail.emitting = true;
+                        EmitTrails();
                         break;
                     }
                     case ShotKind.Qi:
@@ -3167,7 +3238,7 @@ namespace Liangshan
                         float fade = k > 0.8f ? (1f - k) / 0.2f : 1f;
                         _sr.color = _sr.color.A(0.92f * fade);
                         _fuse.color = Color.white.A(fade);
-                        if (_trail && !_trail.emitting) _trail.emitting = true;
+                        EmitTrails();
                         break;
                     }
                     case ShotKind.Lightning:
@@ -3249,17 +3320,22 @@ namespace Liangshan
                 }
                 else if (_style == MeleeStyle.Spear)
                 {
-                    Wisp(_sr.transform, 0.14f, 0.3f * sc, heroTint, true, 0.7f);
-                    if (hd.Rarity >= 4) Wisp(_sr.transform, 0.2f, 0.18f * sc, Color.Lerp(heroTint, Color.white, 0.6f), true, 0.85f);
+                    // 随枪尖 100% 锁死同步的破阵枪罡（挂在本次 ShotView 内，每帧严格对齐当前枪尖 pos，绝不提前跑完脱节！）
+                    var thrustSpr = Art.Img("fx_spear_thrust_lut");
+                    _aura = WorldFx.Spr(_root, thrustSpr, Vector2.zero, 1f, 9538, Color.white, "spearWakeUnder");
+                    _aura.sharedMaterial = WorldFx.UberMat(false);
+                    _vortex = WorldFx.Spr(_root, thrustSpr, Vector2.zero, 1f, 9539, Color.white, "spearWakeCore");
+                    _vortex.sharedMaterial = WorldFx.UberMat(true);
+                    Wisp(_sr.transform, 0.14f, 0.28f * sc, heroTint, true, 0.7f);
+                    if (hd.Rarity >= 4) Wisp(_sr.transform, 0.18f, 0.16f * sc, Color.Lerp(heroTint, Color.white, 0.6f), true, 0.85f);
                 }
                 else
                 {
                     // 武松打虎铁拳：破空音爆锥包裹铁拳呼啸轰出
                     _aura = WorldFx.Spr(_sr.transform, Art.Img("fx_spear_cone"), new Vector2(0f, 0.06f),
                         1.48f, 9209, Pal.Hex("FFCE66").A(0.94f), "fistCone");
-                    _trail = AddTrail(0.16f, 0.48f * sc, Pal.Hex("F29E28").A(0.52f), false);
+                    AddTrail(0.16f, 0.48f * sc, Pal.Hex("F29E28").A(0.52f), false);
                 }
-                _trails = _root.GetComponentsInChildren<TrailRenderer>();
             }
 
             void TickMelee()
@@ -3282,6 +3358,7 @@ namespace Liangshan
                 _shadow.transform.localPosition = groundBase + curveOff * 0.7f - new Vector2(0, 0.05f);
                 _shadow.transform.localScale = new Vector3(_style == MeleeStyle.Axe ? 0.64f : 0.48f, _style == MeleeStyle.Axe ? 0.20f : 0.13f, 1f) * pop;
 
+                float vp = Mathf.Max(0.35f, Defs.VfxPace);
                 (Vector2 pos, float ang) Pose(float t)
                 {
                     t = Mathf.Clamp01(t);
@@ -3290,20 +3367,21 @@ namespace Liangshan
                     {
                         case MeleeStyle.Blade:
                         {
-                            // 石秀拼命快刀也像飞刃旋斩一样高速旋转破风飞出，极具视觉冲击！
+                            // 刀剑旋转破风飞出，转数沉稳清晰不晃眼
                             float arcLift = 0.22f * 4f * t * (1f - t);
                             float dirSign = _cut == 1 ? -_side : _side;
-                            return (p + perp * (dirSign * 0.30f * Mathf.Sin(t * Mathf.PI)) + new Vector2(0, arcLift), face + 25f * dirSign - t * 660f * dirSign);
+                            return (p + perp * (dirSign * 0.30f * Mathf.Sin(t * Mathf.PI)) + new Vector2(0, arcLift), face + 25f * dirSign - t * (460f / vp) * dirSign);
                         }
                         case MeleeStyle.Axe:
                         {
                             float arcLift = 0.34f * 4f * t * (1f - t);
-                            return (p + perp * (_side * 0.42f * Mathf.Sin(t * Mathf.PI)) + new Vector2(0, arcLift), face + 35f * _side - t * 720f * _side);
+                            return (p + perp * (_side * 0.42f * Mathf.Sin(t * Mathf.PI)) + new Vector2(0, arcLift), face + 35f * _side - t * (500f / vp) * _side);
                         }
                         case MeleeStyle.Spear:
                         {
-                            float thrust = Tween.OutCubic(t);
-                            return (Vector2.Lerp(a - dir * 0.22f, b + dir * 0.36f, thrust), face);
+                            // 长枪突刺：摒弃过猛的 OutCubic 前段瞬移，改为稳健加速推进，×1 速度下全程看清整杆神枪贯入敌阵
+                            float thrust = Mathf.Lerp(t, Tween.OutQuad(t), 0.38f);
+                            return (Vector2.Lerp(a - dir * 0.22f, b + dir * 0.32f, thrust), face);
                         }
                         default:
                             return (p + perp * (_side * 0.08f), face);
@@ -3313,24 +3391,46 @@ namespace Liangshan
                 var (pos, ang) = Pose(k);
                 if (_style == MeleeStyle.Spear)
                 {
-                    var tail = pos - dir * _len;
                     _sr.transform.localPosition = pos - dir * (_len * 0.5f);
+                    if (_aura && _vortex)
+                    {
+                        var hd = Defs.Hero(s.Hero);
+                        var tc = Pal.Hex(hd.Tint ?? "DCEFFF");
+                        var deep = Color.Lerp(tc, new Color(0.03f, 0.06f, 0.14f, 1f), 0.62f);
+                        var headPt = pos + dir * 0.06f;
+                        var tailOrigin = a - dir * 0.18f;
+                        var tailFollow = pos - dir * (_len * 1.18f);
+                        var tailPt = Vector2.Lerp(tailOrigin, tailFollow, Mathf.SmoothStep(0f, 1f, k * 0.88f));
+                        float wakeLen = Mathf.Max(0.32f, Vector2.Distance(tailPt, headPt));
+                        var midPt = (tailPt + headPt) * 0.5f;
+                        var wRot = Quaternion.Euler(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg);
+                        float wakeW = (hd.Rarity >= 4 ? 0.62f : 0.46f) * pop / 0.375f;
+                        float dis = Mathf.Clamp01((k - 0.75f) / 0.25f) * 0.52f;
+                        var scroll = new Vector4(-2.4f / vp, 0.28f, -1.5f / vp, -0.35f);
+                        var nScale = new Vector2(Mathf.Max(1.2f, wakeLen * 0.65f), 1.35f);
+                        _aura.transform.localPosition = _vortex.transform.localPosition = midPt;
+                        _aura.transform.localRotation = _vortex.transform.localRotation = wRot;
+                        _aura.transform.localScale = new Vector3(wakeLen, wakeW * 1.08f, 1f);
+                        _vortex.transform.localScale = new Vector3(wakeLen, wakeW * 0.92f, 1f);
+                        WorldFx.SetUber(_aura, deep.A(0.62f * pop), tc, dis, 0.055f, 1f, 0f, scroll, nScale, 1.35f);
+                        WorldFx.SetUber(_vortex, tc.A(0.92f * pop), Color.Lerp(tc, Color.white, 0.72f), dis, 0.055f, 1f, 0f, scroll, nScale, 2.15f);
+                    }
                 }
                 else _sr.transform.localPosition = pos;
                 _sr.transform.localRotation = Quaternion.Euler(0, 0, ang);
                 float size = _len * pop * apex * (_style == MeleeStyle.Fist ? 1f + 0.14f * Mathf.Sin(k * 40f) : 1f);
                 _sr.transform.localScale = Vector3.one * size;
                 if (_fuse) _fuse.transform.parent.localPosition = pos;
-                if (_vortex)
+                if (_vortex && _style != MeleeStyle.Spear)
                 {
                     var (prev, _) = Pose(k - 0.04f);
                     var vel = pos - prev;
                     float head = vel.sqrMagnitude > 1e-6f ? Mathf.Atan2(vel.y, vel.x) * Mathf.Rad2Deg - 90f : face;
-                    float breathe = 1f + 0.05f * Mathf.Sin(Time.time * 38f);
+                    float breathe = 1f + 0.05f * Mathf.Sin(Time.time * 30f);
                     _aura.transform.localPosition = pos;
                     _aura.transform.localRotation = Quaternion.Euler(0, 0, head);
                     _aura.transform.localScale = Vector3.one * (_shellSize * pop * breathe);
-                    _vortex.transform.localRotation = Quaternion.Euler(0, 0, -_side * Time.time * 640f);
+                    _vortex.transform.localRotation = Quaternion.Euler(0, 0, -_side * Time.time * (420f / vp));
                 }
                 if (_ghostA)
                 {
@@ -3347,8 +3447,7 @@ namespace Liangshan
                     _ghostB.enabled = k > 0.12f;
                 }
                 if (_fuse && !_melee) _fuse.transform.localRotation = Quaternion.Euler(0, 0, Time.time * 360f);
-                foreach (var tr in _trails)
-                    if (!tr.emitting && k > 0.02f) tr.emitting = true;
+                if (k > 0.02f) EmitTrails();
             }
 
             /// <summary>好汉兵器弹道：尖朝飞行方向，飞斧、金砖、渔网、套索打着旋，脚下带实影。</summary>
@@ -3358,7 +3457,8 @@ namespace Liangshan
                 var d = b - a;
                 if (_spin)
                 {
-                    float rate = _s.Kind == ShotKind.Wind ? 380f : _s.Kind == ShotKind.Lasso ? 560f : 720f;
+                    float vp = Mathf.Max(0.35f, Defs.VfxPace);
+                    float rate = (_s.Kind == ShotKind.Wind ? 320f : _s.Kind == ShotKind.Lasso ? 440f : 500f) / vp;
                     _sr.transform.localRotation = Quaternion.Euler(0, 0, -Time.time * rate);
                 }
                 else if (_s.Kind != ShotKind.Arrow)

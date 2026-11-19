@@ -3,7 +3,7 @@
 核心美学准则（60-30-10 视觉秩序）：
 1. 石材色温全局统一：将前景城台（home_deck.png）与四连点将石台（h_podium4.png）从偏冷紫钢蓝校准至与远景城墙/石阶（home_road.jpg）完全同源的暖灰青白石色温；将点将台顶面刺眼的科幻霓虹青光圈柔化为温润低饱和宋代青玉石刻凹盘。
 2. 点将台前壁「战力 + 羁绊」克制内嵌：抹平前壁中央杂乱竖向砖缝，雕出与石台同材质的原石浅凹横槽（h_podium_groove.png），配低调半透明青灰玉石签（h_bond_tag.png）与温润双环玉扣小标（ic_bond_knot.png），零黑底金框、零抢戏黄标，完全融入石台结构层。
-3. 三宝箱承托槽同质化（h_chest_mat.png）：去掉突兀的大红黄边地毯，改为沉入桥面的同色系浅凹青石承盘。
+3. 三宝箱红垫（h_chest_mat.png）：圆角胶囊朱红托盘，暗绛描边，脚下一点接触阴影。
 4. 全场唯一鎏金焦点「开始挑战」（h_start_hex.png）+ 青白石切关三角箭头（h_stage_arrow.png）：切关箭头改用与桥面和顶底栏呼应的冷白青石银边质感，把全场唯一的鎏金视觉重心留给「开始挑战」。
 """
 import os
@@ -66,39 +66,56 @@ def harmonize_deck_stone(im: Image.Image) -> Image.Image:
 def harmonize_podium_stone(im: Image.Image) -> Image.Image:
     """
     1) 将点将石台校准至与前景城台同源的沉稳青灰石色温；
-    2) 将刺眼的科幻霓虹青光圈柔化为古朴温润的低饱和宋代青玉石刻圆环；
-    3) 将前壁中央竖向碎石缝平滑收整为一块完整连贯的青石匾额面，供战力与羁绊自然镌刻其上。
+    2) 无损抹除原贴图烤死的四个单调白青色光圈，还原平整细腻的青石台面（交由运行时按上阵好汉真实品级动态铺设专属流光底座）；
+    3) 将正中前壁小区域平滑收整。
     """
     arr = np.array(im, dtype=np.float32)
     c = arr[:, :, :3]
     a = arr[:, :, 3]
     h, w = a.shape
 
-    # 识别原本高饱和霓虹青光圈像素 (B,G 远高于 R)
-    neon = np.clip(((c[:, :, 2] - c[:, :, 0]) * 0.6 + (c[:, :, 1] - c[:, :, 0]) * 0.5 - 26.0) / 75.0, 0.0, 1.0)
-
     lum = 0.299 * c[:, :, 0] + 0.587 * c[:, :, 1] + 0.114 * c[:, :, 2]
-    stone_base = lum[:, :, None] + (c - lum[:, :, None]) * 0.28 + np.array([4.5, 4.0, -1.5], dtype=np.float32)[None, None, :]
+    stone_base = lum[:, :, None] + (c - lum[:, :, None]) * 0.24 + np.array([4.5, 4.0, -1.5], dtype=np.float32)[None, None, :]
 
-    # 温润青玉色（低饱和灰青玉，不再刺眼发光抢角色焦点）
-    jade_col = lum[:, :, None] * 0.80 + np.array([18.0, 42.0, 44.0], dtype=np.float32)[None, None, :]
-    c_toned = stone_base * (1.0 - neon[:, :, None] * 0.82) + jade_col * (neon[:, :, None] * 0.82)
-
-    # 平滑收整前壁中央竖缝区域（y: 59%..88%, x: 16%..84%），消除贴字背后的碎裂竖黑缝
     y_idx, x_idx = np.mgrid[0:h, 0:w].astype(np.float32)
     yn = y_idx / max(1, h - 1)
     xn = x_idx / max(1, w - 1)
+
+    # 精准定位四块石台顶面内膛，将原本烤死的白圈平滑还原为同石台一致的自然青石面（严守在上下石槽与左右斜边以内）
+    slot_fracs = [0.1508, 0.3869, 0.6134, 0.8483]
+    ring_cy = 0.293 * h
+    rx = 0.081 * w
+    ry = 0.156 * h
+    slab_y0, slab_y1 = int(0.118 * h), int(0.476 * h)
+    rng = np.random.default_rng(42)
+    micro_grain = rng.normal(0.0, 0.75, size=(h, w, 1)).astype(np.float32)
+
+    c_toned = stone_base.copy()
+    for sf in slot_fracs:
+        scx = sf * w
+        er = np.hypot((x_idx - scx) / rx, (y_idx - ring_cy) / ry)
+        # 椭圆外沿柔和羽化，且严格限制在石台顶面内槽范围，绝不触碰石台四周边棱
+        emask = np.clip((1.04 - er) / 0.14, 0.0, 1.0)
+        emask *= np.clip((y_idx - slab_y0) / 4.0, 0.0, 1.0) * np.clip((slab_y1 - y_idx) / 4.0, 0.0, 1.0)
+
+        # 取当前石块中心圈内干净石面色（er < 0.36 区域无白圈）并按行平滑过渡
+        core_m = (er < 0.36) & (y_idx >= slab_y0 + 18) & (y_idx <= slab_y1 - 18)
+        base_col = np.median(stone_base[core_m], axis=0)
+        # 顶面轻微前亮后稳自然天光梯度
+        v_grad = ((y_idx - ring_cy) / ry)[:, :, None] * np.array([1.6, 1.6, 1.4], dtype=np.float32)[None, None, :]
+        clean_slab = base_col[None, None, :] + v_grad + micro_grain
+        c_toned = c_toned * (1.0 - emask[:, :, None]) + clean_slab * emask[:, :, None]
+
     apron_mask = (
-        np.clip((yn - 0.59) / 0.03, 0.0, 1.0)
-        * np.clip((0.875 - yn) / 0.03, 0.0, 1.0)
-        * np.clip((xn - 0.15) / 0.05, 0.0, 1.0)
-        * np.clip((0.85 - xn) / 0.05, 0.0, 1.0)
+        np.clip((yn - 0.61) / 0.03, 0.0, 1.0)
+        * np.clip((0.87 - yn) / 0.03, 0.0, 1.0)
+        * np.clip((xn - 0.34) / 0.04, 0.0, 1.0)
+        * np.clip((0.66 - xn) / 0.04, 0.0, 1.0)
         * (a > 200).astype(np.float32)
     )
-    # 用水平中值平滑石壁底色取代竖向黑缝
-    row_med = np.percentile(c_toned[:, int(w * 0.20):int(w * 0.80), :], 58, axis=1, keepdims=True)
+    row_med = np.percentile(c_toned[:, int(w * 0.30):int(w * 0.70), :], 54, axis=1, keepdims=True)
     row_med = np.broadcast_to(row_med, c_toned.shape)
-    c_clean = c_toned * (1.0 - apron_mask[:, :, None] * 0.86) + row_med * (apron_mask[:, :, None] * 0.86)
+    c_clean = c_toned * (1.0 - apron_mask[:, :, None] * 0.88) + row_med * (apron_mask[:, :, None] * 0.88)
 
     out = np.zeros_like(arr, dtype=np.uint8)
     out[:, :, :3] = np.clip(np.round(c_clean), 0, 255).astype(np.uint8)
@@ -211,38 +228,33 @@ def build_podium_crest_suite():
     - ic_bond_knot.png   (64x64)：素雅温润的青玉浅金双环纹
     - ic_bond_go.png     (40x40)：低调冷瓷浅青小箭头（不再用刺眼亮黄播放钮）
     """
-    # --- 1) 原石浅凹石刻槽 h_podium_crest.png (540x62) ---
-    bw, bh = 540, 62
+    # --- 1) 独立悬浮在城台广场上的宋瓷深靛战力铭牌 h_podium_crest.png (540x64) ---
+    bw, bh = 540, 64
     w, h = bw * SS, bh * SS
-    pad_x, pad_y = 4.0 * SS, 4.0 * SS
-    tip_dx = 12.0 * SS
-    round_r = 10.0 * SS
+    pad_x, pad_y = 4.0 * SS, 5.0 * SS
+    tip_dx = 16.0 * SS
+    round_r = 12.0 * SS
 
     d = hex_plaque_sdf(w, h, pad_x, pad_y, tip_dx, round_r)
     alpha = np.clip(0.5 - d, 0.0, 1.0)
-    d_in = d + 2.4 * SS
-    m_in = np.clip(0.5 - d_in, 0.0, 1.0)
+    m_rim = np.clip(0.5 - (d + 2.2 * SS), 0.0, 1.0)
+    m_in = np.clip(0.5 - (d + 4.8 * SS), 0.0, 1.0)
 
     y_idx, _ = np.mgrid[0:h, 0:w].astype(np.float32)
     yn = y_idx / (h - 1)
     tr = np.clip(yn, 0.0, 1.0)[:, :, None]
 
-    # 外唇边：上沿深石缝色 (#414850)，下沿受光青白石亮沿 (#A4AAA8)，呈现真实凿入石壁的阴刻石槽！
-    rim_col = rgb("3F464E") * (1.0 - tr) + rgb("A7ACA8") * tr
+    # 与顶栏胶囊、下方宝箱托盘一脉相承的宋瓷银青细边 + 沉稳深靛石面
+    rim_col = rgb("DCEAF4") * (1.0 - tr) + rgb("789AB0") * tr
+    basin_col = rgb("2B445A") * (1.0 - tr) + rgb("1E3244") * tr
+    gloss = np.clip((0.40 - yn) * 6.0, 0.0, 1.0) * 0.12
+    basin_col = basin_col + (255.0 - basin_col) * gloss[:, :, None]
 
-    # 槽内底面：沉稳深青灰石面 (#4A535C -> #56606A)，比前壁石面略深半调，稳稳托住浅色字又绝不发黑刺眼
-    basin_col = rgb("46505A") * (1.0 - tr) + rgb("54606B") * tr
-    # 顶部 3.5px 凿刻内凹阴影
-    d_down = np.roll(d_in, int(round(3.4 * SS)), axis=0)
-    d_down[:int(round(3.4 * SS)), :] = 999.0
-    top_sh = np.clip(0.5 - d_in, 0.0, 1.0) * np.clip(d_down + 0.5, 0.0, 1.0) * np.clip(1.0 - yn * 2.2, 0.0, 1.0) * 0.46
-    basin_col = basin_col * (1.0 - top_sh[:, :, None]) + rgb("2B333B")[None, None, :] * top_sh[:, :, None]
-
-    col = rim_col * (1.0 - m_in[:, :, None]) + basin_col * m_in[:, :, None]
+    fill_col = rim_col * (1.0 - m_in[:, :, None]) + basin_col * m_in[:, :, None]
+    col = rgb("142230")[None, None, :] * (1.0 - m_rim[:, :, None]) + fill_col * m_rim[:, :, None]
     rgba = np.zeros((h, w, 4), dtype=np.uint8)
     rgba[:, :, :3] = np.clip(np.round(col), 0, 255).astype(np.uint8)
-    # 92% 不透明度让底层青石肌理自然透出少许，彻底融为一体
-    rgba[:, :, 3] = np.clip(np.round(alpha * 236.0), 0, 255).astype(np.uint8)
+    rgba[:, :, 3] = np.clip(np.round(alpha * 238.0), 0, 255).astype(np.uint8)
     Image.fromarray(rgba).resize((bw, bh), Image.LANCZOS).save(os.path.join(UI_DIR, "h_podium_crest.png"))
 
     # --- 2) 温润宋瓷青灰胶囊签 h_bond_pill.png (260x42) + lip (264x46) ---
@@ -331,42 +343,122 @@ def build_podium_crest_suite():
 
 
 def build_chest_mat():
-    """去掉突兀红地毯：改为与城台石面完全同质的【浅凹青白石承盘槽】，稳托三枚宝箱而零色块干扰。"""
-    bw, bh = 456, 48
-    w, h = bw * SS, bh * SS
-    round_r = 9.0 * SS
-    rim_w = 2.8 * SS
+    """对标参考图的三宝箱透视六角展示垫盘（h_chest_mat.png，逻辑尺寸 372×70）。
 
+    关键商业级细节：
+    1. 形态与透视：斜切六角圆角托盘（上下窄、两侧圆角微收），贴合桥面 3/4 俯视透视，上沿延伸到宝箱腰带后方，下沿露出约 12px 盘面。
+    2. 三层精致包边：外圈深绛红描边（#7E3C40）+ 内圈暖香槟浅金嵌线（#C48773）+ 低饱和温润胭脂檀红盘面（#A65050）与上沿微内凹暗影，衬得金边糖果宝箱饱满跳脱。
+    3. 立体投影系统：
+       - 盘面内侧：按左上主光源为三只宝箱（x = -114, 0, +114）绘制边缘利落柔和的卡通投射阴影（#733638）与箱脚紧贴接触暗影（#5C282A），并严格裁切在香槟金内嵌线以内；
+       - 盘底外侧：向青石桥面投下一层通透冷暗接触投影，让整块垫盘稳稳嵌在石砖地面上。
+    """
+    bw, bh = 372, 70
+    w, h = bw * SS, bh * SS
+    y, x = np.mgrid[0:h, 0:w].astype(np.float32)
+
+    # 六角盘体范围：x ∈ [10, 362]（宽 352），y ∈ [5, 62]（高 57），两侧斜收 tip_dx=15.5，圆角 7.5
+    pad_x = 10.0 * SS
+    top_y = 5.0 * SS
+    bot_y = 62.0 * SS
+    round_r = 7.5 * SS
+    tip_dx = 15.5 * SS
+    L = pad_x + round_r
+    R = (w - 1) - pad_x - round_r
+    T = top_y + round_r
+    B = bot_y - round_r
+    my = 0.5 * (T + B)
     verts = [
-        (22.0 * SS, 8.0 * SS),
-        ((bw - 22.0) * SS, 8.0 * SS),
-        ((bw - 10.0) * SS, (bh - 10.0) * SS),
-        (10.0 * SS, (bh - 10.0) * SS),
+        (L + tip_dx, T),
+        (R - tip_dx, T),
+        (R, my),
+        (R - tip_dx, B),
+        (L + tip_dx, B),
+        (L, my),
     ]
     d = sdf_convex_poly(w, h, verts) - round_r
-    alpha = np.clip(0.5 - d, 0.0, 1.0)
-    d_in = d + rim_w
-    m_in = np.clip(0.5 - d_in, 0.0, 1.0)
 
-    y_idx, _ = np.mgrid[0:h, 0:w].astype(np.float32)
-    yn = y_idx / (h - 1)
-    tr = np.clip((yn - 0.14) / 0.72, 0.0, 1.0)[:, :, None]
+    outer_w = 2.1 * SS      # 外圈深绛描边
+    piping_w = 2.0 * SS     # 内圈暖香槟玫瑰金嵌线
+    a_out = np.clip(0.5 - d, 0.0, 1.0)
+    m_piping = np.clip(0.5 - (d + outer_w), 0.0, 1.0)
+    m_surf = np.clip(0.5 - (d + outer_w + piping_w), 0.0, 1.0)
+    # 阴影裁切留出盘面边缘 0.6px 呼吸感，绝不脏边
+    m_shadow_clip = np.clip(0.5 - (d + outer_w + piping_w + 0.6 * SS), 0.0, 1.0)
 
-    # 上沿石刻阴线 (#64696C) -> 下沿受光亮青白石边 (#CECCC4)，槽内略沉半调青石面 (#878B8C -> #949796)
-    rim_col = rgb("62676B") * (1.0 - tr) + rgb("D0CEC6") * tr
-    in_col = rgb("808587") * (1.0 - tr) + rgb("929695") * tr
+    yn = np.clip((y - top_y) / (bot_y - top_y), 0.0, 1.0)
+    tr = yn[:, :, None]
 
-    d_down = np.roll(d_in, int(round(3.0 * SS)), axis=0)
-    d_down[:int(round(3.0 * SS)), :] = 999.0
-    in_sh = np.clip(0.5 - d_in, 0.0, 1.0) * np.clip(d_down + 0.5, 0.0, 1.0) * 0.35
-    in_col = in_col * (1.0 - in_sh[:, :, None]) + rgb("585D62")[None, None, :] * in_sh[:, :, None]
+    # 1) 外圈深绛红轮廓
+    c_outer = rgb("884447") * (1.0 - tr) + rgb("6F3336") * tr
+    # 2) 内圈暖香槟浅金嵌线（上下通透提亮）
+    c_piping = rgb("C78B77") * (1.0 - tr) + rgb("BE826F") * tr
 
-    col = rim_col * (1.0 - m_in[:, :, None]) + in_col * m_in[:, :, None]
-    rgba = np.zeros((h, w, 4), dtype=np.uint8)
-    rgba[:, :, :3] = np.clip(np.round(col), 0, 255).astype(np.uint8)
-    rgba[:, :, 3] = np.clip(np.round(alpha * 228.0), 0, 255).astype(np.uint8)
-    Image.fromarray(rgba).resize((bw, bh), Image.LANCZOS).save(os.path.join(UI_DIR, "h_chest_mat.png"))
-    print("Saved stone-recessed h_chest_mat.png")
+    # 3) 温润低饱和胭脂红盘面 + 上沿浅凹内阴影
+    c_surf = rgb("A85252") * (1.0 - tr) + rgb("A04C4D") * tr
+    top_recess = np.clip((0.18 - yn) * 6.5, 0.0, 1.0) * 0.16
+    c_surf = c_surf * (1.0 - top_recess[:, :, None]) + rgb("873D3F") * top_recess[:, :, None]
+
+    # 4) 三只宝箱投在红盘面上的卡通硬柔投影（#733638）+ 箱脚接触闭塞暗影（#5B282A）
+    # 对应 HomeScreen 宝箱中心 x = -114, 0, +114，箱脚底边落在 y_png ≈ 50.3
+    cx_mid = (w - 1) * 0.5
+    cast_mask = np.zeros((h, w), dtype=np.float32)
+    ao_mask = np.zeros((h, w), dtype=np.float32)
+
+    for k in (-1, 0, 1):
+        bx = cx_mid + k * 114.0 * SS
+        # 左上受光 -> 往右下方投出梯形圆角块状阴影（上窄下略宽、右移约 13px，底端停在 y=53.8，留出下沿亮红边）
+        sy_top, sy_bot = 17.0 * SS, 53.8 * SS
+        st = np.clip((y - sy_top) / (sy_bot - sy_top), 0.0, 1.0)
+        shift_x = (8.0 + 7.5 * st) * SS
+        half_w = (43.5 + 3.5 * st) * SS
+        scx = bx + shift_x
+        scy = 0.5 * (sy_top + sy_bot)
+        sh_r = 9.0 * SS
+        qx = np.abs(x - scx) - (half_w - sh_r)
+        qy = np.abs(y - scy) - (0.5 * (sy_bot - sy_top) - sh_r)
+        sd = np.hypot(np.maximum(qx, 0.0), np.maximum(qy, 0.0)) + np.minimum(np.maximum(qx, qy), 0.0) - sh_r
+        feather = 1.6 * SS
+        sm = np.clip(0.5 - sd / feather, 0.0, 1.0)
+        sm = sm * sm * (3.0 - 2.0 * sm)
+        cast_mask = np.maximum(cast_mask, sm)
+
+        # 箱脚正下方紧贴接触闭塞暗影（y ≈ 44.5..51.8）
+        acy = 48.2 * SS
+        ahw, ahh, ar = 42.0 * SS, 3.8 * SS, 3.2 * SS
+        aqx = np.abs(x - (bx + 2.0 * SS)) - (ahw - ar)
+        aqy = np.abs(y - acy) - (ahh - ar)
+        ad = np.hypot(np.maximum(aqx, 0.0), np.maximum(aqy, 0.0)) + np.minimum(np.maximum(aqx, aqy), 0.0) - ar
+        am = np.clip(0.5 - ad / (2.0 * SS), 0.0, 1.0)
+        ao_mask = np.maximum(ao_mask, am)
+
+    cast_mask *= m_shadow_clip
+    ao_mask *= m_shadow_clip
+
+    c_surf = c_surf * (1.0 - cast_mask[:, :, None]) + rgb("733638") * cast_mask[:, :, None]
+    c_surf = c_surf * (1.0 - ao_mask[:, :, None] * 0.55) + rgb("592628") * (ao_mask[:, :, None] * 0.55)
+
+    fill_piping = c_piping * (1.0 - m_surf[:, :, None]) + c_surf * m_surf[:, :, None]
+    col = c_outer * (1.0 - m_piping[:, :, None]) + fill_piping * m_piping[:, :, None]
+
+    body = np.zeros((h, w, 4), dtype=np.uint8)
+    body[:, :, :3] = np.clip(np.round(col), 0, 255).astype(np.uint8)
+    body[:, :, 3] = np.clip(np.round(a_out * 255.0), 0, 255).astype(np.uint8)
+
+    # 5) 托盘底部投向青石地面的柔和接触暗影
+    shadow_src = Image.fromarray(body[:, :, 3]).filter(ImageFilter.GaussianBlur(radius=2.2 * SS))
+    sh = np.array(shadow_src, dtype=np.float32) * 0.30
+    di = int(round(2.8 * SS))
+    sh_shift = np.zeros_like(sh)
+    sh_shift[di:, :] = sh[:-di, :]
+    shadow = np.zeros((h, w, 4), dtype=np.uint8)
+    shadow[:, :, :3] = [26, 28, 42]
+    shadow[:, :, 3] = np.clip(np.round(sh_shift), 0, 255).astype(np.uint8)
+
+    out = Image.fromarray(shadow)
+    out.alpha_composite(Image.fromarray(body))
+    out = out.resize((bw * 2, bh * 2), Image.LANCZOS)
+    out.save(os.path.join(UI_DIR, "h_chest_mat.png"))
+    print(f"Saved reference-grade hexagonal h_chest_mat.png ({out.size[0]}x{out.size[1]})")
 
 
 def build_hex_start_button():
@@ -520,9 +612,132 @@ def build_stage_arrow():
     print("Saved harmonized stone-celadon h_stage_arrow.png")
 
 
+def build_quality_pads():
+    """构建点将石台四站位专属品级流光镶座（h_pad_0..4.png，输出 276×176，UI 逻辑尺寸 138×88）。
+
+    对标《永远的蔚蓝星球》点将台品质底圈并做商业级精雕升级：
+    1. 石雕内嵌沉槽感：后沿石壁内投影 + 前沿石唇受光亮边，让光座物理嵌进石台顶面而非浮贴；
+    2. 高辨识度通透宝石池：后深前亮的折射焦散渐变，一眼区分 稀有(蓝) / 史诗(紫) / 传说(鎏金) / 绝世(绯红)；
+    3. 阶位递进铭纹：稀有清透单环、史诗四象星芒、传说与绝世双环八方天罡星轨，边缘精致不抢角色中心视线；
+    4. 台面漫反射柔光：向四周青石板自然晕染同色微光。
+    """
+    bw, bh = 276, 176
+    S2 = 2
+    w, h = bw * S2, bh * S2
+    y, x = np.mgrid[0:h, 0:w].astype(np.float32)
+    cx, cy = (w - 1) * 0.5, (h - 1) * 0.5
+
+    # 3/4 俯视透视椭圆半径（逻辑 96×55 -> 2x 下 rx=96, ry=55，完整落在石块顶面内槽）
+    rx = 96.0 * S2
+    ry = 55.0 * S2
+    ux = (x - cx) / rx
+    uy = (y - cy) / ry
+    r = np.hypot(ux, uy)
+    ang = np.arctan2(uy, ux)
+
+    # 品质色板：(tier_id, c_back, c_mid, c_caustic, c_rim, c_spill, spill_strength, prestige_lv)
+    tiers = [
+        (0, "1B6E52", "30A87B", "6EE2B2", "B8F6DC", "42C492", 0.26, 0),
+        (1, "1856B0", "2D8EF2", "6ED4FF", "B2ECFF", "48A8FF", 0.30, 1),
+        (2, "4E22AA", "884AF2", "C68CFF", "EAD0FF", "9E64FF", 0.36, 2),
+        (3, "A85405", "F0A214", "FFE262", "FFF7BE", "FFB82E", 0.44, 3),
+        (4, "981816", "E83C2E", "FF826A", "FFD6C8", "FF5642", 0.44, 3),
+    ]
+
+    aa = 1.5 / rx  # 归一化抗锯齿宽度
+
+    for tid, h_back, h_mid, h_caus, h_rim, h_spill, spill_k, plv in tiers:
+        c_back = rgb(h_back)
+        c_mid = rgb(h_mid)
+        c_caus = rgb(h_caus)
+        c_rim = rgb(h_rim)
+        c_spill = rgb(h_spill)
+
+        # 1) 台面漫射柔光（r: 0.96 -> 1.40）
+        spill_t = np.clip((1.40 - r) / 0.44, 0.0, 1.0)
+        spill_a = (spill_t ** 2.1) * spill_k
+
+        # 2) 石槽前沿受光石唇（r ∈ [0.995, 1.048] 且位于下半弧 uy > 0.05）
+        lip_band = np.clip(1.0 - np.abs(r - 1.022) / 0.028, 0.0, 1.0)
+        lip_front = np.clip((uy - 0.05) / 0.65, 0.0, 1.0)
+        stone_lip_a = lip_band * lip_front * 0.52
+
+        # 3) 宝石能量池主体遮罩（r <= 1.0）
+        pool_m = np.clip((1.0 - r) / aa, 0.0, 1.0)
+
+        # 池内前后景深与底部宝石焦散高光
+        vt = np.clip((uy + 1.0) * 0.5, 0.0, 1.0)[:, :, None]
+        pool_col = c_back * (1.0 - vt) + c_mid * vt
+        # 前偏下焦散聚光核（center at ux=0, uy=0.38）
+        caus_d = np.hypot(ux * 0.88, (uy - 0.38) * 1.25)
+        caus_m = (np.clip(1.0 - caus_d / 0.72, 0.0, 1.0) ** 1.7)[:, :, None]
+        pool_col = pool_col * (1.0 - caus_m * 0.78) + c_caus * (caus_m * 0.78)
+
+        # 上沿石槽内壁压暗（让光池沉入石面以下）
+        back_sh_r = np.clip((r - 0.82) / 0.18, 0.0, 1.0)
+        back_sh_y = np.clip((-uy - 0.05) / 0.75, 0.0, 1.0)
+        recess_sh = (back_sh_r * back_sh_y * 0.46)[:, :, None]
+        pool_col = pool_col * (1.0 - recess_sh) + rgb("141622") * recess_sh
+
+        # 4) 阶位递进内环与星轨阵纹（集中在边缘 0.72..0.95，不干扰中央落脚影）
+        in_ring = np.clip(1.0 - np.abs(r - 0.775) / 0.020, 0.0, 1.0) * (0.42 if plv <= 1 else 0.56)
+        insignia = in_ring.copy()
+
+        if plv == 2:
+            # 史诗（紫）：四象星芒棱点
+            card = np.abs(np.cos(2.0 * ang)) ** 18.0
+            pips = card * np.clip(1.0 - np.abs(r - 0.855) / 0.055, 0.0, 1.0) * 0.72
+            insignia = np.maximum(insignia, pips)
+        elif plv >= 3:
+            # 传说（金）/ 绝世（红）：双环金丝 + 八方天罡星轨刻度 + 左右双耀钻
+            in_ring2 = np.clip(1.0 - np.abs(r - 0.865) / 0.015, 0.0, 1.0) * 0.46
+            ticks8 = (np.abs(np.cos(4.0 * ang)) ** 24.0) * np.clip(1.0 - np.abs(r - 0.82) / 0.052, 0.0, 1.0) * 0.78
+            side_gems = (np.abs(np.cos(ang)) ** 28.0) * np.clip(1.0 - np.abs(r - 0.86) / 0.068, 0.0, 1.0) * 0.90
+            # 斜向高光掠影
+            sweep = np.clip(1.0 - np.abs(ux * 0.65 + uy * 0.55 + 0.18) / 0.22, 0.0, 1.0) * 0.16
+            insignia = np.maximum(insignia, np.maximum(in_ring2, np.maximum(ticks8, side_gems))) + sweep
+
+        insignia = np.clip(insignia, 0.0, 1.0) * pool_m
+
+        # 5) 外圈高亮流光内唇边（r ∈ [0.942, 0.995]，前沿更亮）
+        outer_rim = np.clip(1.0 - np.abs(r - 0.968) / 0.028, 0.0, 1.0)
+        rim_light = outer_rim * (0.62 + 0.38 * np.clip((uy + 0.6) / 1.4, 0.0, 1.0)) * pool_m
+
+        # 合成池内颜色与总 Alpha
+        hi_mix = np.clip(insignia + rim_light, 0.0, 1.0)[:, :, None]
+        pool_col = pool_col * (1.0 - hi_mix) + c_rim * hi_mix
+
+        # 池内主体不透明度（0.82..0.92，既浓郁饱和又保留一丝玉石润泽感）
+        core_alpha = (0.83 + 0.08 * hi_mix[:, :, 0]) * pool_m
+
+        # 叠加底层漫射柔光 + 石唇高光 + 宝石池
+        out_a = np.zeros((h, w), dtype=np.float32)
+        out_c = np.zeros((h, w, 3), dtype=np.float32)
+
+        def over(dst_c, dst_a, src_c, src_a):
+            sa = src_a[:, :, None]
+            da = dst_a[:, :, None]
+            na = sa + da * (1.0 - sa)
+            nc = (src_c * sa + dst_c * da * (1.0 - sa)) / np.maximum(na, 1e-5)
+            return nc, na[:, :, 0]
+
+        out_c, out_a = over(out_c, out_a, np.broadcast_to(c_spill, (h, w, 3)), spill_a)
+        out_c, out_a = over(out_c, out_a, np.broadcast_to(rgb("F2F7FC"), (h, w, 3)), stone_lip_a)
+        out_c, out_a = over(out_c, out_a, pool_col, core_alpha)
+
+        rgba = np.zeros((h, w, 4), dtype=np.uint8)
+        rgba[:, :, :3] = np.clip(np.round(out_c), 0, 255).astype(np.uint8)
+        rgba[:, :, 3] = np.clip(np.round(out_a * 255.0), 0, 255).astype(np.uint8)
+        im_out = Image.fromarray(rgba).resize((bw, bh), Image.LANCZOS)
+        im_out.save(os.path.join(UI_DIR, f"h_pad_{tid}.png"))
+        im_out.save(os.path.join(FINAL_DIR, f"h_pad_{tid}.png"))
+    print("Saved sculpted quality pedestal discs h_pad_0..4.png (276x176)")
+
+
 if __name__ == "__main__":
     process_stage_art()
     build_podium_crest_suite()
     build_chest_mat()
     build_hex_start_button()
     build_stage_arrow()
+    build_quality_pads()

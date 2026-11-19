@@ -673,7 +673,7 @@ namespace Liangshan.Sim
                 list.Add(new PerkDef { Id = key + "_shatter", Hero = d.Id, Name = "破冰追击", Kind = PerkKind.Value, Eff = Eff.Shatter, V = 0.85f, Weight = 1.15f, Desc = "对减速、眩晕敌人\n伤害 +85%，暴击 +25%" });
                 bool carry = d.Kind == Sim.Role.Fighter || d.Kind == Sim.Role.Archer || d.Kind == Sim.Role.Mage || d.Kind == Sim.Role.Bomber;
                 if (carry && d.Rarity >= 3)
-                    list.Add(new PerkDef { Id = key + "_res", Hero = d.Id, Name = "众星捧月", Kind = PerkKind.Value, Eff = Eff.Resonance, V = 0.22f, Weight = 1.15f, Desc = $"场上每有 1 个{d.Role}\n最高星{d.Name}伤害 +22%" });
+                    list.Add(new PerkDef { Id = key + "_res", Hero = d.Id, Name = "众星捧月", Kind = PerkKind.Value, Eff = Eff.Resonance, V = 0.22f, Weight = 1.15f, Desc = $"场上每有 1 个{d.Role}\n最高星{d.Name}\n伤害 +22%" });
                 else
                     list.Add(new PerkDef { Id = key + "_exec", Hero = d.Id, Name = "绝地反击", Kind = PerkKind.Value, Eff = Eff.Exec, V = 0.85f, Weight = 1.1f, Desc = "对半血以下敌人伤害 +85%\n寨墙危急时全伤再 +35%" });
             }
@@ -898,8 +898,12 @@ namespace Liangshan.Sim
         public static float LordPctBase => Balance.Current.Combat.LordPctBase;
         public static float LordCdBase => Balance.Current.Combat.LordCdBase;
         public static float LordFirstCast => Balance.Current.Combat.LordFirstCast;
-        /// <summary>剑气刃口每秒走的格数。要快，慢了像一块布飘过去。</summary>
-        public const float LordWaveSpeed = 16f;
+        /// <summary>剑气刃口每秒走的格数（由数值管理中心 Combat.LordWaveSpeed 统一调控）。</summary>
+        public static float LordWaveSpeed => Balance.Current.Combat.LordWaveSpeed;
+        /// <summary>全局武器弹道与刀剑枪斧特效节奏倍率（由数值管理中心统一调控）。</summary>
+        public static float ProjPace => Balance.Current.Combat.ProjPace;
+        public static float VfxPace => Balance.Current.Combat.VfxPace;
+        public static float BeamFlowSpeed => Balance.Current.Combat.BeamFlowSpeed;
         /// <summary>冷却转满时剑气够不着人，最多再等这么久；再没人就空过这一轮，圈重新转，不能停在满圈上。</summary>
         public const float LordHold = 2.5f;
         public static int SummonsPerSlot => Balance.Current.Economy.SummonsPerSlot;

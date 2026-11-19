@@ -833,10 +833,10 @@ namespace Liangshan.Tests
                 cut = b.Shots.FirstOrDefault(s => s.Kind == ShotKind.Punch && s.Hero == HeroId.ShiXiu);
             }
             Assert.IsNotNull(cut);
-            Assert.AreEqual(Battle.MeleeDur, cut.Dur, 1e-4f);
+            Assert.AreEqual(Battle.ShotDur(ShotKind.Punch, V2.Dist(slot.Pos, foe.Pos)), cut.Dur, 1e-4f);
             Assert.AreEqual(foe.MaxHp, foe.Hp, "刀还在路上就不该掉血");
             float flown = 0f;
-            while (b.Shots.Contains(cut) && flown < 1f)
+            while (b.Shots.Contains(cut) && flown < 1.5f)
             {
                 Assert.AreEqual(foe.MaxHp, foe.Hp);
                 b.Update(1f / 60f);
@@ -844,6 +844,41 @@ namespace Liangshan.Tests
             }
             Assert.Less(foe.Hp, foe.MaxHp);
             Assert.AreEqual(cut.Dur, flown, 2f / 60f);
+
+            // 中场 4.5 格处：长枪比箭略快但绝不能像原先 0.22s 那样过快瞬移，且支持通过数值面板 ProjPace 统一热调
+            const float mid = 4.5f;
+            float arrowDur = Battle.ShotDur(ShotKind.Arrow, mid);
+            float spearDur = Battle.ShotDur(ShotKind.Spear, mid);
+            float meleeDur = Battle.ShotDur(ShotKind.Punch, mid);
+            float slamDur = Battle.ShotDur(ShotKind.Slam, mid);
+            float mageDrop = Battle.ShotDur(ShotKind.Stone, mid, true);
+            float windDur = Battle.ShotDur(ShotKind.Wind, mid);
+            float lightDur = Battle.ShotDur(ShotKind.Lightning, 0f);
+            Assert.That(spearDur, Is.InRange(arrowDur * 0.80f, arrowDur * 1.05f), "长枪虽凌厉，但不得远快于箭矢");
+            Assert.GreaterOrEqual(meleeDur, 0.50f);
+            Assert.GreaterOrEqual(slamDur, meleeDur);
+            Assert.GreaterOrEqual(mageDrop, 0.50f, "法师金砖从天砸落需沉稳看清");
+            Assert.GreaterOrEqual(windDur, 0.58f, "风法/阵法弹道需舒展清晰");
+            Assert.GreaterOrEqual(lightDur, 0.15f, "天雷引落需留足蓄势时间");
+            try
+            {
+                var cfg = Balance.ExportCurrent();
+                cfg.Combat.ProjPace = 1.5f;
+                cfg.Combat.VfxPace = 1.3f;
+                cfg.Combat.LordWaveSpeed = 10f;
+                cfg.Combat.MageDropDur = 0.50f;
+                cfg.Combat.BeamFlowSpeed = 1.4f;
+                Balance.Apply(cfg);
+                Assert.AreEqual(spearDur * 1.5f, Battle.ShotDur(ShotKind.Spear, mid), 1e-4f);
+                Assert.AreEqual((0.50f + mid / 16.5f) * 1.5f, Battle.ShotDur(ShotKind.Stone, mid, true), 1e-4f);
+                Assert.AreEqual(1.3f, Defs.VfxPace, 1e-4f);
+                Assert.AreEqual(10f, Defs.LordWaveSpeed, 1e-4f);
+                Assert.AreEqual(1.4f, Defs.BeamFlowSpeed, 1e-4f);
+            }
+            finally
+            {
+                Balance.ResetToDefault();
+            }
         }
 
         [Test]
@@ -937,7 +972,7 @@ namespace Liangshan.Tests
             Assert.Greater(qi.To.Y, qi.From.Y, "刀气往敌阵方向飞");
             var behind = new Enemy { Id = 901, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e6f, MaxHp = 1e6f, Pos = new V2(qi.From.X, qi.From.Y + 2f) };
             b3.Enemies.Add(behind);
-            for (int i = 0; i < 60 && b3.Shots.Contains(qi); i++) b3.Update(1f / 60f);
+            for (int i = 0; i < 120 && b3.Shots.Contains(qi); i++) b3.Update(1f / 60f);
             Assert.Less(behind.Hp, behind.MaxHp, "刀气打到身后同一列的敌人");
         }
 
