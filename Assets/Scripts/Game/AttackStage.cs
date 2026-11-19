@@ -98,7 +98,18 @@ namespace Liangshan
                 _views[i].Destroy();
                 _views.RemoveAt(i);
                 _shots.RemoveAt(i);
-                if (WorldFx.I != null) WorldFx.I.Flash(at, 1.4f, Color.white.A(0.75f), 0.16f, 9300);
+                var fx = WorldFx.I;
+                if (fx != null)
+                {
+                    var hd = Defs.Hero(s.Hero);
+                    var tc = Pal.Hex(hd.Tint ?? "FFFFFF");
+                    fx.Flash(at, 1.4f, Color.Lerp(Color.white, tc, 0.35f).A(0.75f), 0.16f, 9300);
+                    fx.Glint(at, hd.Rarity >= 4 ? 1.9f : 1.4f, Color.Lerp(tc, Color.white, 0.5f), 0.18f, 9320);
+                    if (hd.Rarity >= 3)
+                        fx.SparkStreaks(at, hd.Rarity >= 4 ? 8 : 5, 0.4f, 5f, Color.Lerp(tc, Color.white, 0.4f), 0.24f, 9318, 6f);
+                    if (hd.Rarity >= 4)
+                        fx.Ring(at, 1.1f, Pal.Hex("FFD84A"), 0.3f, 9310);
+                }
                 Landed?.Invoke();
             }
         }

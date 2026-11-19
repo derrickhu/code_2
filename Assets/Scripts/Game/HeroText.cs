@@ -189,7 +189,12 @@ namespace Liangshan
             return "";
         }
 
-        public static string Passive(HeroDef d) => Defs.EffText(d.Id, d.PassiveEff, d.PassiveV);
+        public static string Passive(HeroDef d) => HeroKits.Of(d.Id).SigDesc;
+
+        public static string Trait(HeroDef d) => HeroKits.Of(d.Id).TraitDesc;
+
+        public static string Finisher(HeroDef d, float pow = 1f)
+            => d.HasUlt ? Ult(d, pow) : HeroKits.Of(d.Id).FinisherDesc;
 
         public static string Tip(HeroDef d) =>
             d.Buff.HasValue ? "辅助：不打伤害，专给队友加持" :

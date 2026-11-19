@@ -63,10 +63,10 @@ namespace Liangshan.Tests
             Assert.AreEqual(5, lo.Lv[ai]);
             Assert.IsFalse(lo.Passive[ai]);
             Assert.IsFalse(lo.Passive[bi]);
-            s.HeroLv[(int)HeroId.WuYong] = 4;
-            Assert.IsFalse(Meta.BuildLoadout(s).Passive[(int)HeroId.WuYong], "吴用 4 级被动还没开");
-            s.HeroLv[(int)HeroId.WuYong] = 5;
-            Assert.IsTrue(Meta.BuildLoadout(s).Passive[(int)HeroId.WuYong], "锦囊妙计 5 级就生效");
+            s.HeroLv[(int)HeroId.WuYong] = 9;
+            Assert.IsFalse(Meta.BuildLoadout(s).Passive[(int)HeroId.WuYong], "吴用 9 级绝技还没开");
+            s.HeroLv[(int)HeroId.WuYong] = 10;
+            Assert.IsTrue(Meta.BuildLoadout(s).Passive[(int)HeroId.WuYong], "全员统一 10 级自动获得本命绝技");
             Assert.AreEqual(Meta.PassiveLv, Meta.PassiveUnlock(HeroId.HuaRong));
             Assert.Greater(lo.CritDmg, Meta.BaseCritDmg);
             Assert.AreEqual(4, s.Task[(int)Act.HeroUp]);
@@ -313,17 +313,20 @@ namespace Liangshan.Tests
                 {
                     var morph = regular.Single(p => p.Kind == PerkKind.Morph);
                     Assert.AreEqual(morph.Id, regular.Single(p => p.Kind == PerkKind.Adv).Req, d.Name + " 进阶接在质变后面");
-                    Assert.AreEqual(13, regular.Count, d.Name);
+                    Assert.AreEqual(14, regular.Count, d.Name);
                 }
-                else Assert.AreEqual(9, regular.Count, d.Name);
+                else Assert.AreEqual(10, regular.Count, d.Name);
                 foreach (var p in regular.Where(p => p.Has2)) Assert.Less(p.V2, 0f, p.Name + " 取舍的代价是负的");
                 Assert.IsNotNull(Meta.OptPerk(d.Id, 1), d.Name);
+                Assert.IsNotNull(Meta.OptPerk(d.Id, 3), d.Name);
+                Assert.IsNotNull(Defs.FinisherPerk(d.Id), d.Name + " 全员皆有第4终结技卡（大招或奥义）");
                 foreach (System.Text.RegularExpressions.Match m in new System.Text.RegularExpressions.Regex("「(.*?)」").Matches(Meta.Talent(d.Id, 1)))
-                    Assert.AreNotEqual(Meta.TalentSkill.Passive, Meta.TalentSkillOf(d.Id, 1, m.Groups[1].Value), d.Name + " 的 5 级技能被认成了 10 级被动");
-                for (int row = 0; row < Meta.UnlockLv.Length; row++)
+                    Assert.AreNotEqual(Meta.TalentSkill.Passive, Meta.TalentSkillOf(d.Id, 1, m.Groups[1].Value), d.Name + " 的 5 级技能被认成了 10 级绝技");
+                for (int row = 0; row <= 4; row++)
                     foreach (System.Text.RegularExpressions.Match m in new System.Text.RegularExpressions.Regex("「(.*?)」").Matches(Meta.Talent(d.Id, row)))
-                        Assert.AreEqual(Meta.UnlockLv[row], SkillRowLevel(Meta.TalentSkillOf(d.Id, row, m.Groups[1].Value)),
-                            d.Name + " Lv." + Meta.UnlockLv[row] + "「" + m.Groups[1].Value + "」");
+                        if (m.Groups[1].Value != d.AtkName)
+                            Assert.AreEqual(Meta.UnlockLv[row], SkillRowLevel(Meta.TalentSkillOf(d.Id, row, m.Groups[1].Value)),
+                                d.Name + " Lv." + Meta.UnlockLv[row] + "「" + m.Groups[1].Value + "」");
                 Assert.IsNotNull(Meta.OptPerk(d.Id, 2), d.Name);
                 Assert.AreEqual(3, Defs.PerksOf(d.Id, true).Count, d.Name);
                 Assert.IsNotNull(Meta.FirstPerk(d.Id));
@@ -331,20 +334,30 @@ namespace Liangshan.Tests
             Assert.AreEqual(Defs.Perks.Length, Defs.Perks.Select(p => p.Id).Distinct().Count());
             foreach (var d in Defs.Heroes)
             {
+                var kit = HeroKits.Of(d.Id);
+                var fourSkills = new[] { d.AtkName, kit.TraitName, kit.SigName, kit.FinisherName };
+                Assert.AreEqual(4, fourSkills.Where(x => !string.IsNullOrEmpty(x)).Distinct().Count(), d.Name + " 四技能名字必须齐全且互不重复");
                 var surge = Meta.OptPerk(d.Id, 1);
+                var opt15 = Meta.OptPerk(d.Id, 3);
                 Assert.IsFalse(LooksLikeSameSkill(surge.Name, d.AtkName), d.Name + " 5级选项「" + surge.Name + "」和开局技能「" + d.AtkName + "」是同一个");
-                for (int row = 1; row < Meta.UnlockLv.Length; row++)
+                Assert.IsFalse(LooksLikeSameSkill(surge.Name, kit.SigName), d.Name + " 5级选项「" + surge.Name + "」和10级绝技「" + kit.SigName + "」撞名");
+                Assert.IsFalse(LooksLikeSameSkill(opt15.Name, kit.SigName), d.Name + " 15级选项「" + opt15.Name + "」和10级绝技「" + kit.SigName + "」撞名");
+                for (int row = 1; row <= 4; row++)
                     foreach (System.Text.RegularExpressions.Match m in new System.Text.RegularExpressions.Regex("「(.*?)」").Matches(Meta.Talent(d.Id, row)))
-                        Assert.IsFalse(LooksLikeSameSkill(m.Groups[1].Value, d.AtkName),
-                            d.Name + " Lv." + Meta.UnlockLv[row] + " 又解锁了开局技能「" + d.AtkName + "」");
-                foreach (var p in Defs.Perks.Where(p => p.Hero == d.Id && !p.Ult && p.Opt == 0))
+                        if (row < 4 || m.Groups[1].Value != d.AtkName)
+                            Assert.IsFalse(LooksLikeSameSkill(m.Groups[1].Value, d.AtkName),
+                                d.Name + " Lv." + Meta.UnlockLv[row] + " 又解锁了开局技能「" + d.AtkName + "」");
+                foreach (var p in Defs.Perks.Where(p => p.Hero == d.Id && !p.Ult && !p.Finisher && p.Opt == 0))
                 {
                     Assert.AreNotEqual(d.AtkName, p.Name, d.Name + " 强化「" + p.Name + "」和普攻同名");
-                    Assert.AreNotEqual(d.PassiveName, p.Name, d.Name + " 强化「" + p.Name + "」和被动同名");
-                    if (!string.IsNullOrEmpty(d.UltName)) Assert.AreNotEqual(d.UltName, p.Name, d.Name);
+                    Assert.AreNotEqual(kit.TraitName, p.Name, d.Name + " 强化「" + p.Name + "」和特性同名");
+                    Assert.AreNotEqual(kit.SigName, p.Name, d.Name + " 强化「" + p.Name + "」和绝技同名");
+                    Assert.AreNotEqual(kit.FinisherName, p.Name, d.Name + " 强化「" + p.Name + "」和终结技同名");
                 }
             }
-            Assert.IsFalse(Meta.Talent(HeroId.WuYong, 2).Contains("获得"), "吴用的锦囊妙计 5 级已经解锁，10 级只加伤害");
+            Assert.IsTrue(Meta.Talent(HeroId.WuYong, 2).Contains("锦囊妙计"), "吴用 10 级获得绝技锦囊妙计");
+            Assert.IsFalse(Meta.Talent(HeroId.WuYong, 1).Contains("锦囊妙计"), "吴用 5 级绝不再重复出现锦囊妙计");
+            Assert.IsFalse(Meta.Talent(HeroId.WuYong, 3).Contains("锦囊妙计"), "吴用 15 级绝不再重复出现锦囊妙计");
             Assert.IsFalse(Meta.Talent(HeroId.GuanSheng, 1).Contains("青龙偃月"), "青龙偃月刀开局就会，5 级不该再解锁");
         }
 
@@ -819,12 +832,16 @@ namespace Liangshan.Tests
         {
             switch (kind)
             {
-                case Meta.TalentSkill.Attack: return 1;
+                case Meta.TalentSkill.Attack:
+                case Meta.TalentSkill.Trait: return 1;
                 case Meta.TalentSkill.Ult:
+                case Meta.TalentSkill.Finisher:
                 case Meta.TalentSkill.Surge: return Meta.SurgeLv;
                 case Meta.TalentSkill.Passive: return Meta.PassiveLv;
+                case Meta.TalentSkill.Opt15:
                 case Meta.TalentSkill.SurgePlus: return Meta.SurgePlusLv;
-                case Meta.TalentSkill.Top: return Meta.TopLv;
+                case Meta.TalentSkill.Top:
+                case Meta.TalentSkill.Rewrite: return Meta.TopLv;
                 default: return -1;
             }
         }

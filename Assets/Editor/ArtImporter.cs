@@ -8,7 +8,7 @@ namespace Liangshan.EditorTools
     /// </summary>
     public sealed class ArtImporter : AssetPostprocessor
     {
-        public override uint GetVersion() => 6;
+        public override uint GetVersion() => 7;
 
         void OnPreprocessTexture()
         {
@@ -20,7 +20,9 @@ namespace Liangshan.EditorTools
             ti.alphaIsTransparency = true;
             ti.npotScale = TextureImporterNPOTScale.None;
             ti.textureCompression = TextureImporterCompression.Uncompressed;
-            ti.wrapMode = UnityEngine.TextureWrapMode.Clamp;
+            ti.wrapMode = assetPath.EndsWith("fx_noise_tile.png") || assetPath.EndsWith("fx_chain_rope.png")
+                ? UnityEngine.TextureWrapMode.Repeat
+                : UnityEngine.TextureWrapMode.Clamp;
             ti.maxTextureSize = 2048;
             var s = new TextureImporterSettings();
             ti.ReadTextureSettings(s);

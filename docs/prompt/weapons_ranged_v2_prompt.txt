@@ -1,0 +1,22 @@
+A 3 columns x 3 rows sprite sheet grid of 9 separate game projectile weapons and combat props for a polished 2D cartoon Chinese Water Margin (水浒) tower-defense mobile game.
+
+Art style: Crisp 2D cel-shaded mobile game icon/projectile art, bold clean dark-brown outlines (#231710), smooth vibrant shading, sharp highlights, clean silhouette readability at small mobile screen sizes. Each item is centered inside its own cell with generous empty margin, on a uniform flat solid pure white (#FFFFFF) background, no ground shadows, no frames, no grid lines.
+
+CRITICAL ORIENTATION: Every arrow, bolt, stone, shell, jar, mace, flag, and pouch is oriented strictly VERTICAL with its front/top pointing straight UP.Notice the clear visual rarity progression from simple Rare items to ornate Golden Legendary items!
+
+Row 1 (Ranged Projectiles — clear Rare -> Epic -> Legendary visual upgrade):
+1. Cell (1,1) Rare Hunter's Iron Arrow (穿林猎箭): Rustic sturdy hunting arrow pointing straight UP. Simple dark forged-iron triangular broadhead tip, natural brown wooden shaft, grey-brown hawk feather fletching at bottom. Grounded, clean, unadorned.
+2. Cell (1,2) Epic Cloud-Piercing Silver Arrow (白翎穿云银箭): Aristocratic streamlined long arrow pointing straight UP. Long razor-sharp winged silver-white arrowhead with an emerald-green jade and gold collar, sleek silver-trimmed green shaft, long pure snow-white eagle feather fletching at bottom.
+3. Cell (1,3) Legendary Golden Swallow Crossbow Bolt (鎏金燕翎连弩矢): High-craft compact mechanical crossbow bolt pointing straight UP. Gleaming tri-bladed golden-steel armor-piercing tip, streamlined royal-azure and gold bolt body with swept-back golden swallow-wing metal fins on both sides, and a bright glowing amber-gold energy crystal core at the tail nock.
+
+Row 2 (Special Stone & Heavy Ordnance):
+4. Cell (2,1) Epic Radiant Celadon Throwing Stone (流光青玉飞蝗石): Aerodynamic pointed almond-shaped throwing stone pointing UP, carved from luminous sky-blue celadon jade with crisp crystalline facets, bright white specular edge highlights, and clean dark outline.
+5. Cell (2,2) Epic Heavy Tiger-Mortar Cannon Shell (霹雳重炮弹): Chunky cylindrical black-iron siege artillery shell pointing UP, reinforced with thick ornate golden-bronze bands and a small roaring flame emblem, with a thick braided lit fuse sparking bright orange-yellow at the top.
+6. Cell (2,3) Epic Blazing Fire-Oil Clay Jar (猛火油罐): Round dark-crimson glazed ceramic oil jar bound in criss-cross hemp rope with a red-and-gold flame diamond talisman (geometric flame pattern only, no text) pasted on the front, bright roaring orange-yellow flames erupting upward from the jar mouth.
+
+Row 3 (Legendary Mace & Strategist/Control Props):
+7. Cell (3,1) Legendary Blazing Wolf-Tooth Fire Mace (霹雳赤焰狼牙火陨): Heavy black-iron spiked wolf-tooth mace club head pointing straight UP with a golden dragon-ring collar and short iron handle stub, fierce stylized golden-orange and bright yellow flames roaring upward around the iron spikes.
+8. Cell (3,2) Epic Strategist Bagua Array Pennant Flag (奇门八卦阵旗): Upright military command pennant flag standing vertical. Polished dark-wood pole with a golden spear-finial at top, fluttering royal-azure silk banner edged in gold trim featuring a glowing golden geometric eight-trigram Bagua octagon wheel in the center (pure geometric lines, NO text).
+9. Cell (3,3) Rare Sleeping-Potion Herb Pouch (母夜叉蒙汗药囊): Plump royal-purple and crimson cloth drawstring pouch bag tied at the neck with a red cord and tiny brass bell, small puffs of dreamy violet-pink mist rising from the top.
+
+NO TEXT, no Chinese characters, no letters, no numbers, no captions, no watermarks anywhere in the image.

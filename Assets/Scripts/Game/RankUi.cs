@@ -741,8 +741,12 @@ namespace Liangshan
                 int idx = i;
                 if (got)
                 {
-                    MetaUi.Check(r, new Vector2(284f, 0f), 34f);
-                    Ui.Label(r, "已领取", 26, Pal.Hex("8A8276"), new Vector2(348f, 0f), new Vector2(120, 44), TextAnchor.MiddleLeft, Fonts.Heavy);
+                    const float mark = 40f, gap = 16f, wordW = 112f;
+                    float left = 326f - (mark + gap + wordW) * 0.5f;
+                    MetaUi.Check(r, new Vector2(left + mark * 0.5f, 0f), mark - 6f);
+                    var done = Ui.Label(r, "已领取", 26, Pal.Hex("8A8276"),
+                        new Vector2(left + mark + gap + wordW * 0.5f, 0f), new Vector2(wordW, 44), TextAnchor.MiddleLeft, Fonts.Heavy);
+                    done.horizontalOverflow = HorizontalWrapMode.Overflow;
                 }
                 else if (can)
                 {
@@ -840,6 +844,8 @@ namespace Liangshan
         }
 
         // ---------------- 玩家自定义榜上名号 ----------------
+
+        public static void OpenRename(Transform layer, Action refresh) => ShowRenameModal(layer, refresh);
 
         static void ShowRenameModal(Transform layer, Action refresh)
         {

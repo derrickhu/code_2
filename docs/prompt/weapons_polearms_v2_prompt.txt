@@ -1,0 +1,19 @@
+A 3 columns x 2 rows sprite sheet grid of 6 separate full-length Chinese Water Margin (水浒) cold weapons for a polished 2D cartoon tower-defense mobile game.
+
+Art style: Crisp 2D chibi/cel-shaded mobile game weapon illustration, bold clean dark-brown outlines (#231710), vibrant saturated colors, sharp metallic steel bevels and gleaming edge highlights, clean readable color blocks (not gritty photorealism), zero motion blur, zero glowing magic aura around the weapon. Every weapon is isolated in the center of its own cell with generous empty margin, on a uniform flat solid pure white (#FFFFFF) background, no drop shadows on background, no frames, no grid lines.
+
+CRITICAL ORIENTATION & PROPORTION:
+- Every weapon stands strictly VERTICAL (90 degrees upright) with the sharp tip / blade pointing straight UP.
+- Show the COMPLETE FULL-LENGTH weapon from tip to butt cap! Long polearms (spears, halberd, monk staff) must have a long, slender, authentic polearm shaft (total height at least 4.5x the width), NEVER cropped short or stubby!
+
+Row 1 (left to right):
+1. Cell (1,1) Lin Chong's Serpent Spear (丈八蛇矛): Full-length slender serpent spear pointing straight UP. Top 35% is a razor-sharp wavy S-curved gleaming silver-white cold-steel serpent spearhead with a crisp central ridge; below the blade is a sculpted silver leopard-head collar and a vibrant flowing crimson-red horsehair tassel; long slender dark ironwood pole shaft with silver ring bands and a pointed silver butt spike at the bottom.
+2. Cell (1,2) Lu Junyi's Golden Qilin Spear (玉麒麟枪): Full-length slender royal spear pointing straight UP. Wide faceted gleaming silver leaf-shaped spearhead flanked by two small golden wing-barbs at its base, ornate sculpted gold Qilin-head collar, lush bright red silk tassel, long straight crimson-lacquered shaft with golden bands and a golden pointed butt cap.
+3. Cell (1,3) Xu Ning's Golden Hooked Spear (钩镰枪): Full-length slender hooked polearm pointing straight UP. Sharp golden-steel main spear point at top with a distinct curved crescent sickle hook blade branching out to the right side just below the tip, small red tassel, long dark hardwood shaft with polished gold ring fittings and gold butt spike.
+
+Row 2 (left to right):
+4. Cell (2,1) Guan Sheng's Green Dragon Crescent Halberd (青龙偃月刀): Full-length Guan Dao polearm pointing straight UP. Large curved emerald-green broad blade with a razor-sharp silver-white cutting edge on the left and notched spine on the right, an ornate golden Chinese dragon head collar biting the base of the blade, green silk tassel, long deep-red wooden pole shaft with golden end cap.
+5. Cell (2,2) Lu Zhishen's Iron Monk Crescent Staff (水磨月牙禅杖): Full-length heavy Buddhist monk spade staff pointing straight UP. Wide gleaming silver-steel upward-facing crescent moon spade blade at the top, heavy dark-iron socket hung with four shiny golden brass rings on the sides, long sturdy dark forged-iron shaft with brass ring bands.
+6. Cell (2,3) Shi Xiu's Swift Steel Sabre (拼命寒钢快刀): Sleek single-edged Song-dynasty martial arts sabre (Podao/Kuaidao) pointing straight UP. Slightly curved bright silver-steel single-edged blade with a dark steel fuller groove, round golden-brass disc handguard, crimson cord-wrapped hilt with a brass ring pommel and short red tassel at bottom.
+
+NO TEXT, no Chinese characters, no letters, no numbers, no labels, no watermarks anywhere in the image.

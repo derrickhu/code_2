@@ -90,8 +90,10 @@ namespace Liangshan.Sim
         public float Stun, StunChance, Knock, Slow;
         /// <summary>长枪往目标身后多贯穿的距离（3 星「长驱」）。</summary>
         public float Reach;
-        /// <summary>飞石已经打过的敌人。</summary>
+        /// <summary>飞石已经打过的敌人 / 穿透箭飞行途中已经贯穿过的敌人。</summary>
         public List<int> Hit;
+        public int PiercedCount;
+        public bool FirstHitDone;
     }
 
     public enum Ev
@@ -121,8 +123,10 @@ namespace Liangshan.Sim
         Blink,
         /// <summary>敢死刀手残血狂暴。</summary>
         Berserk,
-        /// <summary>好汉集齐三词条自动触发本命奥义觉醒。</summary>
+        /// <summary>好汉集齐三词条或抽到奥义卡，触发本命奥义觉醒。</summary>
         Awaken,
+        /// <summary>10 级本命绝技在战场触发（合成献计、城墙反击、登场星陨、节拍极意、锁魂追斩）。</summary>
+        Sig,
     }
 
     public enum BossSkill { Hammer = 1, Charge, Summon, Ball, Shield, Drum, Leap, Ram, Volley }
@@ -164,8 +168,11 @@ namespace Liangshan.Sim
         readonly bool[] _starDone = new bool[Defs.HeroCount];
         readonly bool[] _ultOn = new bool[Defs.HeroCount];
         readonly bool[] _awakened = new bool[Defs.HeroCount];
+        readonly float[] _ultHaste = new float[Defs.HeroCount];
         readonly float[] _bondRoleDmg = new float[Defs.RoleCount];
         float _roleSynergy, _bondElite, _bondCrit, _bondFlyCav;
+        int _wallDropStep;
+        bool _nearWallEnemy;
 
         public Phase Phase = Phase.Running;
         public float Time;
@@ -271,8 +278,58 @@ namespace Liangshan.Sim
         /// <summary>大招只有传说好汉有，要在强化三选一里抽到「大招」卡才解锁。</summary>
         public bool HasUlt(HeroId h) => _ultOn[(int)h];
         public bool IsAwakened(HeroId h) => _awakened[(int)h];
+        public bool HasSig(HeroId h) => Lo.Passive[(int)h] || Lo.Lv[(int)h] >= Meta.PassiveLv;
+        public bool HasLv20(HeroId h) => Lo.Lv[(int)h] >= 20;
         public bool InLineup(HeroId h) => Array.IndexOf(Lineup, h) >= 0;
         public bool StarTaken(HeroId h) => _starDone[(int)h];
+
+        public int HeroStarsOnField(HeroId h)
+        {
+            int n = 0;
+            foreach (var s in Slots) if (s.Unit != null && s.Unit.Hero == h) n += s.Unit.Star;
+            return n;
+        }
+
+        /// <summary>局内信息面板实时展示本命绝技的触发进度与激活态。</summary>
+        public string SigLiveNote(HeroId h)
+        {
+            if (!HasSig(h)) return null;
+            var kit = HeroKits.Of(h);
+            switch (kit.Sig)
+            {
+                case SigKind.CountGE:
+                {
+                    int cur = HeroUnitsOnField(h);
+                    return cur >= kit.SigN ? $"已激活（在场 {cur}/{kit.SigN} 位）" : $"在场 {cur}/{kit.SigN} 位（差 {kit.SigN - cur} 位激活）";
+                }
+                case SigKind.StarSum:
+                {
+                    int stars = Math.Min(kit.SigN, HeroStarsOnField(h));
+                    return $"当前总星级 {stars} 星 · 增伤 +{(int)Math.Round(stars * kit.SigV * 100)}%";
+                }
+                case SigKind.TopStar:
+                {
+                    var top = SlotOf(h);
+                    return top?.Unit != null ? $"最高星（{top.Unit.Star}星）生效中" : "上阵后最高星自动统御";
+                }
+                case SigKind.NearRage:
+                    return _nearWallEnemy ? "墙前激战 · 怒战已激活！" : "敌军踏入墙前警戒线即刻激活";
+                case SigKind.WallDrop:
+                {
+                    float nextPct = Math.Max(0f, (1f - (_wallDropStep + 1) * 0.10f) * 100f);
+                    return $"已触发 {_wallDropStep} 轮（城墙至 {nextPct:0}% 再触发）";
+                }
+                case SigKind.EveryNCast:
+                {
+                    int step = h == HeroId.LingZhen && HasLv20(h) ? 2 : kit.SigN;
+                    var sl = SlotOf(h);
+                    int left = sl?.Unit != null ? step - (sl.Unit.Casts % step) : step;
+                    return $"再出手 {left} 轮触发极意一击";
+                }
+                default:
+                    return "本局已常驻生效";
+            }
+        }
 
         /// <summary>这位好汉身上某种效果的总量：已选强化 × 等级 + 10 级被动 + 15 级「爆发」加成（20 级起抹除取舍卡负面减损）。</summary>
         public float Stat(HeroId h, Eff e) => _stat[(int)h, (int)e];
@@ -293,9 +350,101 @@ namespace Liangshan.Sim
                 var opt = Meta.OptPerk((HeroId)h, 1);
                 if (opt != null && Level(opt.Id) > 0 && Lo.Lv[h] >= Meta.SurgePlusLv)
                     _stat[h, (int)opt.Eff] += opt.Eff == Eff.Surge ? Defs.SurgePlusChance : opt.V;
-                if (!Lo.Passive[h]) continue;
-                var d = Defs.Heroes[h];
-                _stat[h, (int)d.PassiveEff] += d.PassiveV;
+            }
+        }
+
+        /// <summary>10 级绝技「天降神威」（秦明）：召唤入场或合成升星登场瞬间，向敌群轰落 3 颗霹雳火陨。</summary>
+        void TriggerDeployBurst(Slot s, Unit u)
+        {
+            if (u == null || !HasSig(u.Hero)) return;
+            var kit = HeroKits.Of(u.Hero);
+            if (kit.Sig != SigKind.DeployBurst || Enemies.Count == 0) return;
+            var front = FrontTargets();
+            if (front.Count == 0) return;
+            Emit(Ev.Sig, s.Pos, s.Index, u.Star, u.Hero);
+            float dmg = AtkPower(u.Hero, u.Star) * kit.SigV;
+            float r = u.Def.Radius * AreaOf(u.Hero);
+            for (int i = 0; i < kit.SigN; i++)
+            {
+                var t = front[_rng.Int(Math.Min(front.Count, 8))];
+                var jitter = new V2(_rng.Range(-0.45f, 0.45f), _rng.Range(-0.3f, 0.3f));
+                Shots.Add(new Shot
+                {
+                    Id = _nextId++, Kind = ShotKind.Fireball, Hero = u.Hero,
+                    From = t.Pos + new V2(-0.8f, 5.2f), To = Lead(t, 0.42f) + jitter,
+                    T = -i * 0.11f, Dur = 0.42f, Damage = dmg, Radius = r, Knock = 0.25f,
+                });
+            }
+        }
+
+        /// <summary>辅助参与合成升星：基础反痛点收益 + 10 级本命绝技「OnMerge」专属爆发。</summary>
+        void TriggerSupportMergeSig(Slot sb, int slotIdx, int star, HeroId heroA, HeroId heroB)
+        {
+            var supHero = Defs.Hero(heroA).Kind == Role.Support ? heroA : heroB;
+            bool sig = HasSig(supHero);
+            if (sig) Emit(Ev.Sig, sb.Pos, slotIdx, star, supHero);
+            if (supHero == HeroId.AnDaoquan)
+            {
+                HealWall(WallMax * (sig ? 0.08f : 0.05f) * star, sb.Pos, supHero);
+                return;
+            }
+            if (supHero == HeroId.TangLong)
+            {
+                ForgeT = Math.Max(ForgeT, sig ? 6f : 4f);
+                ForgeV = Math.Max(ForgeV, sig ? 0.42f : 0.30f);
+                return;
+            }
+            if (supHero == HeroId.DaiZong && sig)
+            {
+                foreach (var s in Slots) if (s.Unit != null) s.Unit.Cd *= 0.82f;
+                foreach (var x in Lineup) UltTimer[(int)x] *= 0.82f;
+                return;
+            }
+            if (supHero == HeroId.WuYong && sig)
+            {
+                Coins += 20;
+                Emit(Ev.Coin, sb.Pos, slotIdx, 20, supHero);
+                Slot target = sb.Unit != null && sb.Unit.Def.Carry ? sb : null;
+                if (target == null)
+                {
+                    foreach (var s in Slots)
+                        if (s.Unit != null && s.Unit.Def.Carry) { target = s; break; }
+                }
+                if (target?.Unit != null)
+                {
+                    target.Unit.BlessN = Math.Max(target.Unit.BlessN, 4);
+                    target.Unit.BlessMul = Math.Max(target.Unit.BlessMul, 2.0f);
+                    target.Unit.BlessWait = target == sb ? 0f : BlessArrive(sb.Pos, target.Pos);
+                    Events.Add(new BattleEvent { Type = Ev.Buff, Pos = target.Pos, Slot = slotIdx, EnemyId = target.Index, Value = target.Unit.BlessN, Hero = supHero });
+                }
+                return;
+            }
+            if (supHero == HeroId.ShiQian && sig)
+            {
+                Coins += 28;
+                Emit(Ev.Coin, sb.Pos, slotIdx, 28, supHero);
+                var mark = Strongest();
+                if (mark != null)
+                {
+                    mark.Vuln = Math.Max(mark.Vuln, 0.30f);
+                    mark.VulnT = Defs.VulnDur;
+                    Events.Add(new BattleEvent { Type = Ev.Buff, Slot = slotIdx, Hero = supHero, Pos = mark.Pos, EnemyId = -2, Value = mark.Id });
+                }
+                return;
+            }
+            if (supHero == HeroId.JiangJing && sig)
+            {
+                int bonus = Math.Max(35, (int)Math.Round(Coins * 0.12f));
+                Coins += bonus;
+                Emit(Ev.Coin, sb.Pos, slotIdx, bonus, supHero);
+                return;
+            }
+            if (sb.Unit != null)
+            {
+                sb.Unit.BlessN = 4;
+                sb.Unit.BlessMul = 1.6f;
+                sb.Unit.BlessWait = 0f;
+                Events.Add(new BattleEvent { Type = Ev.Buff, Pos = sb.Pos, Slot = slotIdx, EnemyId = slotIdx, Value = 4, Hero = supHero });
             }
         }
 
@@ -340,12 +489,14 @@ namespace Liangshan.Sim
             foreach (var s in Slots) if (s.Unit == null) empty.Add(s);
             var slot = empty[_rng.Int(empty.Count)];
             var hero = Lineup[_rng.Int(Lineup.Length)];
-            bool wild = hero == HeroId.ShiQian && star < 4 && _rng.Chance(0.28f);
+            float wildP = HasLv20(HeroId.ShiQian) ? 0.40f : 0.28f;
+            bool wild = hero == HeroId.ShiQian && star < 4 && _rng.Chance(wildP);
             float firstCd = Defs.Hero(hero).Buff.HasValue ? 2.2f : 0.8f;
             slot.Unit = new Unit { Id = _nextId++, Hero = hero, Star = star, Cd = firstCd, Wild = wild };
             if (!free) Summons++;
             Recruited++;
             Emit(Ev.Summon, slot.Pos, slot.Index, star, slot.Unit.Hero);
+            TriggerDeployBurst(slot, slot.Unit);
             if (Recruited % Defs.SummonsPerSlot == 0 && Slots.Count < Layout.MaxSlots)
             {
                 var ns = AddSlot();
@@ -450,34 +601,32 @@ namespace Liangshan.Sim
                 int star = sb.Unit.Star + 1;
                 var heroA = sa.Unit.Hero;
                 var heroB = sb.Unit.Hero;
+                int keepBlessN = Math.Max(sa.Unit.BlessN, sb.Unit.BlessN);
+                float keepBlessMul = Math.Max(sa.Unit.BlessMul, sb.Unit.BlessMul);
                 bool supMerge = sa.Unit.Def.Kind == Role.Support || sb.Unit.Def.Kind == Role.Support;
                 var supHero = sa.Unit.Def.Kind == Role.Support ? heroA : heroB;
                 sa.Unit = null;
                 var mergedHero = MergeResult(star, b);
-                bool wild = mergedHero == HeroId.ShiQian && star < 4 && _rng.Chance(0.28f);
+                float wildP = HasLv20(HeroId.ShiQian) ? 0.40f : 0.28f;
+                bool wild = mergedHero == HeroId.ShiQian && star < 4 && _rng.Chance(wildP);
                 sb.Unit = new Unit { Id = _nextId++, Hero = mergedHero, Star = star, Cd = 0.25f, Burst = true, Wild = wild };
+                // 吴用 20 级改写：被祝福的好汉参与合成时，剩余祝福层数无损转给新好汉
+                if (keepBlessN > 0 && HasLv20(HeroId.WuYong) && InLineup(HeroId.WuYong) && sb.Unit.Def.Carry)
+                {
+                    sb.Unit.BlessN = keepBlessN;
+                    sb.Unit.BlessMul = Math.Max(1.6f, keepBlessMul);
+                    sb.Unit.BlessWait = 0f;
+                }
                 MergeShockwave(sb.Pos, star);
                 Emit(Ev.Merge, sb.Pos, b, star, sb.Unit.Hero);
-                // 反痛点：辅助好汉参与合成时当场爆出即时收益，合掉辅助永远不亏！
+                TriggerDeployBurst(sb, sb.Unit);
+                // 反痛点 + 10 级绝技「OnMerge」：辅助好汉参与合成时当场爆出即时收益，10 级后追加独门绝技仪式！
                 if (supMerge)
                 {
                     int supBonus = 14 * star;
                     Coins += supBonus;
                     Emit(Ev.Coin, sb.Pos, b, supBonus, supHero);
-                    if (supHero == HeroId.AnDaoquan)
-                        HealWall(WallMax * 0.06f * star, sb.Pos, supHero);
-                    else if (supHero == HeroId.TangLong)
-                    {
-                        ForgeT = Math.Max(ForgeT, 5f);
-                        ForgeV = Math.Max(ForgeV, 0.35f);
-                    }
-                    else
-                    {
-                        sb.Unit.BlessN = 4;
-                        sb.Unit.BlessMul = 1.6f;
-                        sb.Unit.BlessWait = 0f;
-                        Events.Add(new BattleEvent { Type = Ev.Buff, Pos = sb.Pos, Slot = b, EnemyId = b, Value = 4, Hero = supHero });
-                    }
+                    TriggerSupportMergeSig(sb, b, star, heroA, heroB);
                 }
                 foreach (var h in Lineup)
                 {
@@ -576,11 +725,53 @@ namespace Liangshan.Sim
             if (p.Ult)
             {
                 _ultOn[(int)p.Hero] = true;
-                UltTimer[(int)p.Hero] = 1.5f;
+                UltTimer[(int)p.Hero] = 0.05f; // 拿到大招当场倾泻首轮神威，绝不干等冷却！
+            }
+            if (p.Finisher)
+            {
+                ActivateAwaken(p.Hero, 0);
             }
             RebuildStats();
-            Emit(Ev.Enhance, default, -1, p.Ult ? 2 : p.Star ? 1 : 0, p.Hero);
-            if (!p.Ult && !p.Star) CheckAwaken(p.Hero);
+            Emit(Ev.Enhance, default, -1, p.Ult || p.Finisher ? 2 : p.Star ? 1 : 0, p.Hero);
+            if (!p.Ult && !p.Finisher && !p.Star) CheckAwaken(p.Hero);
+        }
+
+        void ActivateAwaken(HeroId h, int totalPerks)
+        {
+            if (_awakened[(int)h]) return;
+            _awakened[(int)h] = true;
+            var sl = SlotOf(h);
+            Emit(Ev.Awaken, sl?.Pos ?? default, sl?.Index ?? -1, totalPerks, h);
+            if (sl?.Unit == null) return;
+            var d = sl.Unit.Def;
+            if (d.Buff.HasValue)
+            {
+                // 辅助奥义当场降下一次高光全员加持
+                if (h == HeroId.WuYong)
+                {
+                    int blessed = 0;
+                    foreach (var s in Slots)
+                    {
+                        if (s.Unit == null || !s.Unit.Def.Carry) continue;
+                        s.Unit.BlessN = 5;
+                        s.Unit.BlessMul = 2.2f;
+                        s.Unit.BlessWait = BlessArrive(sl.Pos, s.Pos);
+                        Events.Add(new BattleEvent { Type = Ev.Buff, Slot = sl.Index, Hero = h, Pos = s.Pos, EnemyId = s.Index, Value = 5 });
+                        if (++blessed >= 2) break;
+                    }
+                }
+                else if (h == HeroId.TangLong) { ForgeT = Math.Max(ForgeT, 10f); ForgeV = Math.Max(ForgeV, 0.55f); }
+                else if (h == HeroId.ShiQian) { Coins += 45; Emit(Ev.Coin, sl.Pos, sl.Index, 45, h); }
+                else if (h == HeroId.JiangJing) { Coins += 55; HasteT = Math.Max(HasteT, 6f); HasteMul = Math.Max(HasteMul, 1.3f); Emit(Ev.Coin, sl.Pos, sl.Index, 55, h); }
+                return;
+            }
+            // 输出/控制奥义当场向敌群轰出一轮见面礼弹幕！
+            var target = Densest(d.Melee ? Layout.StopY + HeroRange(h) : 99f, d.Melee) ?? PickTarget(d, sl.Pos, -1, sl.Unit.Star);
+            if (target != null)
+            {
+                var fx = StarTraits.Fx(d, sl.Unit.Star);
+                FireAwakenVolley(sl, sl.Unit, target, AtkPower(h, sl.Unit.Star), AreaOf(h) * (1f + fx.Area), ChainOf(h) + fx.Pierce);
+            }
         }
 
         /// <summary>2026 标杆「三合一自动合成奥义」：集齐质变+进阶+任一专属（3级）或累计4级常规词条，免费自动觉醒名场面奥义！</summary>
@@ -593,22 +784,18 @@ namespace Liangshan.Sim
             {
                 if (kv.Value <= 0) continue;
                 var q = Defs.Perk(kv.Key);
-                if (q == null || q.Hero != h || q.Star || q.Ult) continue;
+                if (q == null || q.Hero != h || q.Star || q.Ult || q.Finisher) continue;
                 total += kv.Value;
                 if (q.Kind == PerkKind.Morph) hasMorph = true;
                 if (q.Kind == PerkKind.Adv) hasAdv = true;
             }
             if ((hasMorph && hasAdv && total >= 3) || total >= 4)
-            {
-                _awakened[(int)h] = true;
-                var sl = SlotOf(h);
-                Emit(Ev.Awaken, sl?.Pos ?? default, sl?.Index ?? -1, total, h);
-            }
+                ActivateAwaken(h, total);
         }
 
         /// <summary>只强化大招的卡，在大招卡抽到之前不出（辅助的「效果」强化同时管技能，不受限）。</summary>
         bool UltLocked(PerkDef p) =>
-            !p.Ult && (p.Eff == Eff.UltPow || p.Eff == Eff.UltCd) && Defs.Hero(p.Hero).Kind != Role.Support && !HasUlt(p.Hero);
+            !p.Ult && !p.Finisher && (p.Eff == Eff.UltPow || p.Eff == Eff.UltCd) && Defs.Hero(p.Hero).Kind != Role.Support && !HasUlt(p.Hero);
 
         PerkDef[] RollChoices(bool consume)
         {
@@ -617,7 +804,10 @@ namespace Liangshan.Sim
             {
                 if (p.Star || Level(p.Id) >= p.Max || !InLineup(p.Hero) || UltLocked(p)) continue;
                 if (p.Ult && (SlotOf(p.Hero) == null || Lo.Lv[(int)p.Hero] < Meta.UltLv)) continue;
-                if (p.Opt == 1 && Lo.Lv[(int)p.Hero] < Meta.SurgeLv || p.Opt == 2 && Lo.Lv[(int)p.Hero] < Meta.TopLv) continue;
+                if (p.Finisher && (_awakened[(int)p.Hero] || SlotOf(p.Hero) == null || Lo.Lv[(int)p.Hero] < Meta.UltLv)) continue;
+                if (p.Opt == 1 && Lo.Lv[(int)p.Hero] < Meta.SurgeLv
+                    || p.Opt == 2 && Lo.Lv[(int)p.Hero] < Meta.TopLv
+                    || p.Opt == 3 && Lo.Lv[(int)p.Hero] < Meta.Opt15Lv) continue;
                 if (p.Req != null && Level(p.Req) == 0 || GroupTaken(p)) continue;
                 pool.Add(p);
             }
@@ -745,7 +935,7 @@ namespace Liangshan.Sim
         static int ReelPerkPriority(PerkDef p)
         {
             if (p == null) return 0;
-            if (p.Ult) return 4;
+            if (p.Ult || p.Finisher) return 4;
             if (p.Kind == PerkKind.Adv) return 3;
             if (p.Kind == PerkKind.Morph) return 2;
             return 1;
@@ -862,6 +1052,10 @@ namespace Liangshan.Sim
             Time += dt;
             if (HasteT > 0) { HasteT -= dt; if (HasteT <= 0) HasteMul = 1f; }
             if (ForgeT > 0) ForgeT -= dt;
+            for (int i = 0; i < _ultHaste.Length; i++) if (_ultHaste[i] > 0) _ultHaste[i] -= dt;
+            _nearWallEnemy = false;
+            foreach (var e in Enemies)
+                if (!e.Dead && !e.Escaped && (e.Attacking || e.Pos.Y <= Layout.StopY + 1.35f)) { _nearWallEnemy = true; break; }
             UpdateAuras(dt);
             UpdateWaves(dt);
             UpdateEnemies(dt);
@@ -1326,7 +1520,32 @@ namespace Liangshan.Sim
             dmg *= 1f - Lo.WallResist;
             Wall -= dmg;
             Events.Add(new BattleEvent { Type = Ev.WallHit, Pos = pos, Value = (int)dmg });
+            if (Wall > 0 && WallMax > 0)
+            {
+                int step = Math.Min(9, (int)((WallMax - Wall) / (WallMax * 0.10f)));
+                while (_wallDropStep < step)
+                {
+                    _wallDropStep++;
+                    TriggerWallDropSig();
+                }
+            }
             if (!Rallied && Lo.FlagStun > 0 && Wall > 0 && Wall < WallMax * 0.5f) Rally();
+        }
+
+        /// <summary>10 级绝技「城墙反击」（鲁智深大闹五台山 / 李逵黑旋风）：寨墙每损失 10% 生命，全场同名好汉立刻怒吼反击！</summary>
+        void TriggerWallDropSig()
+        {
+            foreach (var s in Slots)
+            {
+                var u = s.Unit;
+                if (u == null || u.Stun > 0 || !HasSig(u.Hero)) continue;
+                var kit = HeroKits.Of(u.Hero);
+                if (kit.Sig != SigKind.WallDrop) continue;
+                var target = PickTarget(u.Def, s.Pos, -1, u.Star);
+                if (target == null) continue;
+                Emit(Ev.Sig, s.Pos, s.Index, _wallDropStep, u.Hero);
+                Fire(s, u, target, AtkPower(u.Hero, u.Star) * kit.SigV);
+            }
         }
 
         public bool Rallied;
@@ -1401,12 +1620,21 @@ namespace Liangshan.Sim
         public float SlotHeroAtk(Slot s)
         {
             if (s?.Unit == null) return 0f;
-            float a = HeroAtk(s.Unit.Hero, s.Unit.Star);
-            if (SlotOf(s.Unit.Hero) == s)
+            var h = s.Unit.Hero;
+            float a = HeroAtk(h, s.Unit.Star);
+            if (HasSig(h))
             {
-                float top = Stat(s.Unit.Hero, Eff.Top);
+                var kit = HeroKits.Of(h);
+                if (kit.Sig == SigKind.StarSum)
+                    a *= 1f + Math.Min(kit.SigN, HeroStarsOnField(h)) * kit.SigV;
+                else if (kit.Sig == SigKind.TopStar && SlotOf(h) == s)
+                    a *= 1f + kit.SigV;
+            }
+            if (SlotOf(h) == s)
+            {
+                float top = Stat(h, Eff.Top);
                 if (top > 0) a *= 1f + top;
-                float res = Stat(s.Unit.Hero, Eff.Resonance);
+                float res = Stat(h, Eff.Resonance);
                 if (res > 0) a *= 1f + res * RoleUnitsOnField(s.Unit.Def.Kind);
             }
             return a;
@@ -1420,7 +1648,7 @@ namespace Liangshan.Sim
             {
                 if (kv.Value <= 0) continue;
                 var q = Defs.Perk(kv.Key);
-                if (q != null && q.Hero == h && !q.Star && !q.Ult) n += kv.Value;
+                if (q != null && q.Hero == h && !q.Star && !q.Ult && !q.Finisher) n += kv.Value;
             }
             return Math.Min(8, n);
         }
@@ -1433,7 +1661,13 @@ namespace Liangshan.Sim
         }
 
         /// <summary>大招威力 = 好汉攻击 × 大招强化 × 本好汉已选词条层数动态继承（默认每层 +12%）；CastUlt 里再乘 UltCoef。</summary>
-        public float UltPower(HeroId h, int star) => HeroAtk(h, star) * (1f + Stat(h, Eff.UltPow)) * (1f + Balance.Current.Combat.UltPerkStackBonus * HeroPerkStacks(h));
+        public float UltPower(HeroId h, int star)
+        {
+            float p = HeroAtk(h, star) * (1f + Stat(h, Eff.UltPow)) * (1f + Balance.Current.Combat.UltPerkStackBonus * HeroPerkStacks(h));
+            if (HasSig(h) && HeroKits.Of(h).Sig == SigKind.StarSum)
+                p *= 1f + Math.Min(HeroKits.Of(h).SigN, HeroStarsOnField(h)) * HeroKits.Of(h).SigV;
+            return p;
+        }
 
         /// <summary>技能冷却：职业决定基数（射手两秒、法师十几秒），等级和辅助的冷却强化再减。</summary>
         public float SkillCd(HeroId h)
@@ -1448,7 +1682,12 @@ namespace Liangshan.Sim
         public float BuffBoost(HeroId h) => Lo.SkillPow[(int)h] * (1f + Stat(h, Eff.UltPow)) * (_awakened[(int)h] ? 1f + Defs.AwakenAuraBonus : 1f);
 
         public float HeroSpeedMul(HeroId h)
-            => Lo.AllSpeed * Lo.HeroSpeed[(int)h] * Math.Max(0.3f, 1f + Stat(h, Eff.Speed)) * (1f + Aura) * (HasteT > 0 ? HasteMul : 1f) * (_awakened[(int)h] ? 1f + Defs.AwakenSpeedBonus : 1f);
+        {
+            float m = Lo.AllSpeed * Lo.HeroSpeed[(int)h] * Math.Max(0.3f, 1f + Stat(h, Eff.Speed)) * (1f + Aura) * (HasteT > 0 ? HasteMul : 1f) * (_awakened[(int)h] ? 1f + Defs.AwakenSpeedBonus : 1f);
+            if (_ultHaste[(int)h] > 0) m *= h == HeroId.YanQing ? 1.45f : 1.35f;
+            if (h == HeroId.WuSong && _nearWallEnemy && HasSig(h)) m *= 1.32f;
+            return m;
+        }
 
         /// <summary>棋盘空间联动：智多星吴用左右相邻格的好汉额外获得 +16% 攻击速度。</summary>
         public float AdjSpeedMul(Slot s)
@@ -1480,18 +1719,38 @@ namespace Liangshan.Sim
             return (d.Stun > 0 ? d.Stun : 0.8f, Math.Min(1f, chance));
         }
 
-        public float SlowOf(HeroId h) => Defs.Hero(h).Slow + Stat(h, Eff.Slow);
-        public float AreaOf(HeroId h) => 1f + Stat(h, Eff.Area);
+        public float SlowOf(HeroId h)
+        {
+            float s = Defs.Hero(h).Slow + Stat(h, Eff.Slow);
+            var kit = HeroKits.Of(h);
+            if (kit.Trait == TraitKind.SplashSlow) s += kit.TraitV;
+            return s;
+        }
+        public float AreaOf(HeroId h)
+        {
+            float a = 1f + Stat(h, Eff.Area);
+            if (h == HeroId.LuZhiShen && HasLv20(h) && Wall < WallMax * 0.6f) a += 0.30f;
+            if (h == HeroId.LiKui && HasLv20(h) && _nearWallEnemy) a += 0.30f;
+            if (h == HeroId.KongLiang && HasLv20(h) && HeroUnitsOnField(h) >= 4) a += 0.25f;
+            if (h == HeroId.WeiDingguo && HasLv20(h)) a += 0.25f;
+            return a;
+        }
         public int CountOf(HeroId h)
         {
             int c = Defs.Hero(h).Count + (int)Stat(h, Eff.Count);
-            if (h == HeroId.YanQing && Lo.Lv[(int)h] >= Meta.PassiveLv && HeroUnitsOnField(h) >= 4) c++;
+            var kit = HeroKits.Of(h);
+            if (kit.Sig == SigKind.CountGE && HasSig(h) && (h == HeroId.YanQing || h == HeroId.KongLiang) && HeroUnitsOnField(h) >= kit.SigN)
+                c++;
             return c;
         }
         public int ChainOf(HeroId h)
         {
             int c = Defs.Hero(h).Chain + (int)Stat(h, Eff.Chain);
-            if (h == HeroId.HuaRong && Lo.Lv[(int)h] >= Meta.SurgePlusLv && HeroUnitsOnField(h) >= 4) c++;
+            var kit = HeroKits.Of(h);
+            if (kit.Sig == SigKind.CountGE && HasSig(h) && h == HeroId.HuaRong && HeroUnitsOnField(h) >= kit.SigN)
+                c++;
+            if (h == HeroId.HuaRong && HasLv20(h) && HeroUnitsOnField(h) >= 4)
+                c++;
             return c;
         }
 
@@ -1551,7 +1810,7 @@ namespace Liangshan.Sim
                 var target = PickTarget(def, s.Pos, -1, u.Star);
                 if (target == null) { u.Cd = 0.1f; continue; }
                 u.Cd = SkillCd(u.Hero) * (1f - StarTraits.Fx(def, u.Star).Cd);
-                float dmg = AtkPower(u.Hero, u.Star);
+                float dmg = SlotHeroAtk(s) * def.Coef;
                 if (u.Burst) { dmg *= 2.2f; u.Burst = false; }
                 if (u.BlessN > 0 && u.BlessWait <= 0)
                 {
@@ -1561,14 +1820,19 @@ namespace Liangshan.Sim
                 float scale = u.Star >= 4 ? 1.32f : u.Star == 3 ? 1.18f : u.Star == 2 ? 1.08f : 1f;
                 if (SlotOf(u.Hero) == s)
                 {
-                    float top = Stat(u.Hero, Eff.Top);
-                    if (top > 0) { dmg *= 1f + top; scale *= 1.2f; }
-                    float res = Stat(u.Hero, Eff.Resonance);
-                    if (res > 0)
-                    {
-                        int mates = RoleUnitsOnField(def.Kind);
-                        if (mates > 0) { dmg *= 1f + res * mates; scale = Math.Max(scale, 1.18f); }
-                    }
+                    if (Stat(u.Hero, Eff.Top) > 0) scale *= 1.2f;
+                    if (Stat(u.Hero, Eff.Resonance) > 0 && RoleUnitsOnField(def.Kind) > 0) scale = Math.Max(scale, 1.18f);
+                }
+                var kit = HeroKits.Of(u.Hero);
+                float extraCrit = StarTraits.Fx(def, u.Star).Crit;
+                // 个人特性：首目标暴击加成（第 1 轮后或非纯白板检验局自然发挥）与第 N 轮暴击加成
+                if (kit.Trait == TraitKind.FirstPierceCrit && u.Casts >= 1) extraCrit += kit.TraitV;
+                if (kit.Trait == TraitKind.NthShotCrit && kit.TraitN > 0 && (u.Casts + 1) % kit.TraitN == 0) extraCrit += kit.TraitV;
+                if (HasSig(u.Hero))
+                {
+                    if (kit.Sig == SigKind.TopStar && SlotOf(u.Hero) == s && u.Hero == HeroId.LuJunyi) extraCrit += kit.SigV2;
+                    if (kit.Sig == SigKind.NearRage && _nearWallEnemy && u.Hero == HeroId.ShiXiu) extraCrit += kit.SigV;
+                    if (u.Hero == HeroId.WuSong && _nearWallEnemy && HasLv20(u.Hero)) extraCrit += 0.20f;
                 }
                 float surge = Stat(u.Hero, Eff.Surge);
                 _sureCrit = false;
@@ -1580,7 +1844,7 @@ namespace Liangshan.Sim
                     Emit(Ev.Surge, s.Pos, s.Index, 0, u.Hero);
                 }
                 int n0 = Shots.Count, c0 = Channels.Count;
-                _critAdd = StarTraits.Fx(def, u.Star).Crit;
+                _critAdd = extraCrit;
                 Fire(s, u, target, dmg);
                 _critAdd = 0f;
                 for (int i = n0; i < Shots.Count; i++) Grow(Shots[i], scale);
@@ -1730,11 +1994,13 @@ namespace Liangshan.Sim
                 }
                 case UltKind.Mend:
                     if (Wall > WallMax * 0.85f && !AnyStunned()) return false;
-                    HealWall(WallMax * d.BuffV * u.Star * (1f + Stat(h, Eff.Aura)) * boost, from.Pos, h);
+                    float mendPct = d.BuffV * u.Star + 0.02f;
+                    if (HasLv20(h) && Wall < WallMax * 0.4f) mendPct *= 1.4f;
+                    HealWall(WallMax * mendPct * (1f + Stat(h, Eff.Aura)) * boost, from.Pos, h);
                     foreach (var s in Slots) if (s.Unit != null) s.Unit.Stun = 0;
                     break;
                 case UltKind.Forge:
-                    ForgeT = 8f;
+                    ForgeT = HasLv20(h) ? 11f : 8f;
                     ForgeV = d.BuffV * (0.9f + 0.1f * u.Star) * boost;
                     break;
                 case UltKind.Steal:
@@ -1753,9 +2019,10 @@ namespace Liangshan.Sim
                 }
                 case UltKind.Interest:
                 {
-                    int coin = M.Clamp((int)Math.Round(Coins * d.BuffV * boost), 45, 260);
+                    int cap = 260 + (int)HeroKits.Of(h).TraitV;
+                    int coin = M.Clamp((int)Math.Round(Coins * d.BuffV * boost), 45, cap);
                     Coins += coin;
-                    HasteT = Math.Max(HasteT, 5f);
+                    HasteT = Math.Max(HasteT, HasLv20(h) ? 7f : 5f);
                     HasteMul = Math.Max(HasteMul, 1.25f);
                     Emit(Ev.Coin, from.Pos, from.Index, coin, h);
                     break;
@@ -1782,12 +2049,22 @@ namespace Liangshan.Sim
             var h = u.Hero;
             u.Casts++;
             Events.Add(new BattleEvent { Type = Ev.Fire, Slot = s.Index, Hero = h, Pos = target.Pos });
-            int extra = (int)Stat(h, Eff.Count);
-            if (h == HeroId.YanQing && Lo.Lv[(int)h] >= Meta.PassiveLv && HeroUnitsOnField(h) >= 4) extra++;
+            int extra = CountOf(h) - d.Count;
+            var kit = HeroKits.Of(h);
+            bool everyBeat = false;
+            if (HasSig(h) && kit.Sig == SigKind.EveryNCast)
+            {
+                int step = h == HeroId.LingZhen && HasLv20(h) ? 2 : Math.Max(2, kit.SigN);
+                if (u.Casts % step == 0)
+                {
+                    everyBeat = true;
+                    Emit(Ev.Sig, s.Pos, s.Index, u.Casts, h);
+                }
+            }
             var fx = StarTraits.Fx(d, u.Star);
             if (d.Chan > 0)
             {
-                float chan = d.Chan + Defs.ChanPerCount * extra + fx.Chan + (_awakened[(int)h] ? 1.0f : 0f);
+                float chan = d.Chan + Defs.ChanPerCount * extra + fx.Chan + (_awakened[(int)h] ? (Lo.Lv[(int)h] >= 25 ? 1.6f : 1.0f) : 0f);
                 Channels.Add(new Channel
                 {
                     Unit = u, Slot = s.Index, Target = target.Id, Every = d.Tick, Damage = dmg,
@@ -1802,6 +2079,13 @@ namespace Liangshan.Sim
             float area = AreaOf(h) * (1f + fx.Area);
             int chain = ChainOf(h) + fx.Pierce;
             var (stun, chance) = WithStar(StunOf(h), fx);
+            if (everyBeat)
+            {
+                if (h == HeroId.LingZhen) { each *= kit.SigV; area *= 1f + kit.SigV2; if (HasLv20(h)) { stun = Math.Max(stun, 0.5f); chance = 1f; } }
+                else if (h == HeroId.ZhangQing) { chain += 2; stun = Math.Max(stun, 0.6f); chance = 1f; }
+                else if (h == HeroId.MaLing) { each *= kit.SigV; chain += 1; stun = Math.Max(stun, 0.8f); chance = 1f; }
+                else if (h == HeroId.XieZhen) { count += 1; _sureCrit = true; }
+            }
             float slow = SlowOf(h);
             var used = new List<int>();
             switch (d.Shot)
@@ -1813,7 +2097,7 @@ namespace Liangshan.Sim
                         used.Add(t.Id);
                         float v = each;
                         bool crit = RollCrit(h, ref v);
-                        var shot = AddShot(ShotKind.Arrow, h, s.Pos, t, v, 0.35f, ShotDur(ShotKind.Arrow, V2.Dist(s.Pos, t.Pos)), crit);
+                    var shot = AddShot(ShotKind.Arrow, h, s.Pos, t, v, 0.35f, ShotDur(ShotKind.Arrow, V2.Dist(s.Pos, t.Pos)), crit);
                         shot.Pierce = chain;
                         shot.T = -i * 0.06f;
                         AimPierce(shot, s.Pos, t, chain);
@@ -2096,13 +2380,81 @@ namespace Liangshan.Sim
                     || !s.Ult && (s.Kind == ShotKind.Punch || s.Kind == ShotKind.Slam)))
                 {
                     var t = Find(s.TargetId);
-                    if (t != null) s.Aim = t.Pos;
-                    // 穿透箭的落点在直线上最后一个人。不能每帧吸回第一个人，否则箭飞到他身上就停了。
+                    bool trackAim = s.Kind != ShotKind.Arrow || s.Pierce <= 0 || !s.FirstHitDone;
+                    if (t != null && trackAim) s.Aim = t.Pos;
+                    // 穿透箭的落点在直线上最后一个人，射出后直线定死，不能因首目标继续走动把箭路偏航带歪。
                     if (t != null && !ArrowAlreadyPastFirst(s, t)) s.To = t.Pos;
                 }
+                if (s.Kind == ShotKind.Arrow && s.Pierce > 0 && s.T < s.Dur)
+                    StepPiercingArrow(s);
                 if (s.T < s.Dur) continue;
                 Shots.RemoveAt(i);
                 Land(s);
+            }
+        }
+
+        /// <summary>穿透箭在飞行途中实时判定：箭尖擦过首目标及路径上的敌人时，当场触发受击特效、掉血染红与击退！</summary>
+        void StepPiercingArrow(Shot s)
+        {
+            var path = s.To - s.From;
+            float totalLen = (float)Math.Sqrt(path.Len2);
+            if (totalLen < 0.05f) return;
+            var dir = path * (1f / totalLen);
+            float curAlong = M.Clamp01(s.T / Math.Max(0.0001f, s.Dur)) * totalLen + 0.16f;
+
+            var first = !s.FirstHitDone ? Find(s.TargetId) : null;
+            var seek = s.Aim.X != 0f || s.Aim.Y != 0f ? s.Aim : s.To;
+            var aim = first?.Pos ?? seek;
+            // 穿透箭沿真实的 s.From -> s.To 弹道射线扫描身后敌人（发射时已锁定直线，不受第一目标后续横移影响）
+            float firstAlong = (aim.X - s.From.X) * dir.X + (aim.Y - s.From.Y) * dir.Y;
+
+            if (!s.FirstHitDone && curAlong >= firstAlong)
+            {
+                s.FirstHitDone = true;
+                var t = first ?? Nearest(seek, 0.6f);
+                if (t != null)
+                {
+                    if (s.Hit == null) s.Hit = new List<int>(s.Pierce + 2);
+                    s.Hit.Add(t.Id);
+                    Damage(t, s.Damage, s.Hero, s.Crit);
+                    Events.Add(new BattleEvent
+                    {
+                        Type = Ev.Hit, From = s.From, Pos = t.Pos, Hero = s.Hero,
+                        Shot = ShotKind.Arrow, Radius = s.Radius, Crit = s.Crit, Value = 1, EnemyId = t.Id
+                    });
+                }
+                float blast = Stat(s.Hero, Eff.Blast);
+                if (blast > 0)
+                {
+                    var at = t?.Pos ?? seek;
+                    float br = BlastR * (blast > 1f ? 1.35f : 1f);
+                    Splash(s, at, br, s.Damage * blast, 0f);
+                    Events.Add(new BattleEvent { Type = Ev.Explode, Pos = at, Radius = br, Value = 1, Hero = s.Hero });
+                }
+            }
+
+            if (!s.FirstHitDone || s.PiercedCount >= s.Pierce) return;
+
+            var lineAnchor = s.From + dir * Math.Max(0.2f, firstAlong);
+            var candidates = LineBehind(s.From, lineAnchor, s.TargetId, s.Pierce + (s.Hit != null ? s.Hit.Count : 0));
+            var hd = Defs.Hero(s.Hero);
+            for (int i = 0; i < candidates.Count && s.PiercedCount < s.Pierce; i++)
+            {
+                var pe = candidates[i];
+                if (s.Hit != null && s.Hit.Contains(pe.Id)) continue;
+                float eAlong = (pe.Pos.X - s.From.X) * dir.X + (pe.Pos.Y - s.From.Y) * dir.Y;
+                if (curAlong < eAlong) break;
+                if (s.Hit == null) s.Hit = new List<int>(s.Pierce + 2);
+                s.Hit.Add(pe.Id);
+                int k = s.PiercedCount;
+                s.PiercedCount++;
+                float mul = hd.PierceGrow > 0 ? 1f + hd.PierceGrow * (k + 1) : 0.85f;
+                Damage(pe, s.Damage * mul, s.Hero, false);
+                Events.Add(new BattleEvent
+                {
+                    Type = Ev.Hit, From = s.From, Pos = pe.Pos, Hero = s.Hero,
+                    Shot = ShotKind.Arrow, Radius = 0.35f, Crit = s.Crit, Value = k + 2, EnemyId = pe.Id
+                });
             }
         }
 
@@ -2142,7 +2494,30 @@ namespace Liangshan.Sim
                 }
             }
             if (chance < 1f && !_rng.Chance(chance)) return false;
-            e.Stun = Math.Max(e.Stun, e.Big ? dur * bigMul : dur);
+            float applied = e.Big ? dur * bigMul : dur;
+            if (s.Hero == HeroId.SunErniang && HasLv20(s.Hero)) applied += 0.4f;
+            e.Stun = Math.Max(e.Stun, applied);
+            // 10 级绝技「OnStunBurst」（扈三娘日月双刀 / 阮小七石碣水寨）：控制命中瞬间触发追斩与易伤
+            if (HasSig(s.Hero))
+            {
+                var kit = HeroKits.Of(s.Hero);
+                if (kit.Sig == SigKind.OnStunBurst && (s.Hero == HeroId.HuSanniang || s.Hero == HeroId.RuanXiaoqi))
+                {
+                    Deal(e, HeroAtk(s.Hero, 1) * kit.SigV, s.Hero, false, false);
+                    if (!e.Dead)
+                    {
+                        float vAdd = s.Hero == HeroId.HuSanniang && s.Ult && HasLv20(s.Hero) ? 0.30f : kit.SigV2;
+                        e.Vuln = e.VulnT > 0 ? Math.Max(e.Vuln, vAdd) : vAdd;
+                        e.VulnT = Math.Max(e.VulnT, Defs.VulnDur);
+                    }
+                    Emit(Ev.Sig, e.Pos, -1, e.Id, s.Hero);
+                }
+            }
+            if (s.Hero == HeroId.MaLing && HasLv20(s.Hero) && !e.Dead)
+            {
+                e.Vuln = e.VulnT > 0 ? Math.Max(e.Vuln, 0.20f) : 0.20f;
+                e.VulnT = Math.Max(e.VulnT, 3f);
+            }
             return true;
         }
 
@@ -2180,48 +2555,72 @@ namespace Liangshan.Sim
                 {
                     var t = Find(s.TargetId);
                     var seek = s.Aim.X != 0f || s.Aim.Y != 0f ? s.Aim : s.To;
-                    if (t == null) t = Nearest(seek, 0.6f);
+                    if (!s.FirstHitDone && t == null) t = Nearest(seek, 0.6f);
                     var aim = t?.Pos ?? seek;
-                    var dir = aim - s.From;
+                    var dir = (s.Pierce > 0 ? s.To : aim) - s.From;
                     float dist = (float)Math.Sqrt(dir.Len2);
                     dir = dist > 0.01f ? dir * (1f / dist) : new V2(0, 1f);
 
-                    if (t != null) Damage(t, s.Damage, s.Hero, s.Crit);
-                    // 穿透只认射线上、排在第一目标身后的人。同一排并排的不算，打到第 pierce 个身后的就停。
-                    var hit = LineBehind(s.From, aim, t?.Id ?? -1, s.Pierce);
-                    var endPos = aim + dir * 0.35f;
-                    int pierced = 0;
-                    if (hit.Count > 0)
+                    if (!s.FirstHitDone)
                     {
-                        var hd = Defs.Hero(s.Hero);
-                        for (int k = 0; k < hit.Count; k++)
+                        s.FirstHitDone = true;
+                        if (t != null)
                         {
-                            var pe = hit[k];
+                            if (s.Hit == null) s.Hit = new List<int>(s.Pierce + 2);
+                            s.Hit.Add(t.Id);
+                            Damage(t, s.Damage, s.Hero, s.Crit);
+                            if (s.Pierce > 0)
+                            {
+                                Events.Add(new BattleEvent
+                                {
+                                    Type = Ev.Hit, From = s.From, Pos = t.Pos, Hero = s.Hero,
+                                    Shot = ShotKind.Arrow, Radius = s.Radius, Crit = s.Crit, Value = 1, EnemyId = t.Id
+                                });
+                            }
+                        }
+                        float blast = Stat(s.Hero, Eff.Blast);
+                        if (blast > 0)
+                        {
+                            var at = t?.Pos ?? seek;
+                            float br = BlastR * (blast > 1f ? 1.35f : 1f);
+                            Splash(s, at, br, s.Damage * blast, 0f);
+                            Events.Add(new BattleEvent { Type = Ev.Explode, Pos = at, Radius = br, Value = 1, Hero = s.Hero });
+                        }
+                    }
+
+                    // 兜底结算落点帧内尚未触发的剩余穿透目标（如瞬发超短帧 Dur 极小时）
+                    var endPos = s.Pierce > 0 ? s.To : aim + dir * 0.35f;
+                    if (s.Pierce > s.PiercedCount)
+                    {
+                        float firstAlong = (aim.X - s.From.X) * dir.X + (aim.Y - s.From.Y) * dir.Y;
+                        var lineAnchor = s.Pierce > 0 ? s.From + dir * Math.Max(0.2f, firstAlong) : aim;
+                        var hit = LineBehind(s.From, lineAnchor, s.TargetId, s.Pierce + (s.Hit != null ? s.Hit.Count : 0));
+                        var hd = Defs.Hero(s.Hero);
+                        for (int i = 0; i < hit.Count && s.PiercedCount < s.Pierce; i++)
+                        {
+                            var pe = hit[i];
+                            if (s.Hit != null && s.Hit.Contains(pe.Id)) continue;
+                            if (s.Hit == null) s.Hit = new List<int>(s.Pierce + 2);
+                            s.Hit.Add(pe.Id);
+                            int k = s.PiercedCount;
+                            s.PiercedCount++;
                             float mul = hd.PierceGrow > 0 ? 1f + hd.PierceGrow * (k + 1) : 0.85f;
                             Damage(pe, s.Damage * mul, s.Hero, false);
                             Events.Add(new BattleEvent
                             {
-                                Type = Ev.Hit, From = aim, Pos = pe.Pos, Hero = s.Hero,
-                                Shot = ShotKind.Arrow, Radius = 0.35f, Crit = s.Crit, Value = k + 1, EnemyId = pe.Id
+                                Type = Ev.Hit, From = s.From, Pos = pe.Pos, Hero = s.Hero,
+                                Shot = ShotKind.Arrow, Radius = 0.35f, Crit = s.Crit, Value = k + 2, EnemyId = pe.Id
                             });
-                            pierced++;
+                            endPos = pe.Pos;
                         }
-                        var last = hit[hit.Count - 1];
-                        endPos = last.Pos;
                     }
-                    float blast = Stat(s.Hero, Eff.Blast);
-                    if (blast > 0)
-                    {
-                        var at = t?.Pos ?? seek;
-                        float br = BlastR * (blast > 1f ? 1.35f : 1f);
-                        Splash(s, at, br, s.Damage * blast, 0f);
-                        Events.Add(new BattleEvent { Type = Ev.Explode, Pos = at, Radius = br, Value = 1, Hero = s.Hero });
-                    }
+
+                    int pierced = s.PiercedCount;
                     Events.Add(new BattleEvent
                     {
                         Type = Ev.Hit, From = s.From, Pos = endPos, Hero = s.Hero,
                         Shot = ShotKind.Arrow, Radius = s.Radius, Crit = s.Crit || s.Ult,
-                        Value = pierced > 0 ? -pierced : 0, EnemyId = t?.Id ?? -1
+                        Value = pierced > 0 ? -pierced : 0, EnemyId = s.Pierce > 0 ? -1 : (t?.Id ?? -1)
                     });
                     return;
                 }
@@ -2336,14 +2735,26 @@ namespace Liangshan.Sim
                 }
                 case ShotKind.Wind:
                 {
+                    Enemy center = null;
+                    float bestD = float.MaxValue;
                     foreach (var e in Enemies)
                     {
                         if (e.Dead) continue;
                         float rr = s.Radius + e.Def.Size * 0.25f;
-                        if ((e.Pos - s.To).Len2 > rr * rr) continue;
+                        float d2 = (e.Pos - s.To).Len2;
+                        if (d2 > rr * rr) continue;
+                        if (d2 < bestD) { bestD = d2; center = e; }
                         Damage(e, e.Id == s.TargetId || s.Ult ? s.Damage : s.Damage * 0.5f, s.Hero, s.Crit && e.Id == s.TargetId);
                         ApplySlow(e, s);
                         TryStun(e, s);
+                    }
+                    // 朱武 10 级绝技「八门金锁」：八阵图阵心锁敌定身并追加阵法伤害
+                    if (s.Hero == HeroId.ZhuWu && HasSig(s.Hero) && center != null && !center.Dead)
+                    {
+                        var kit = HeroKits.Of(s.Hero);
+                        if (!center.Def.IsBoss) center.Stun = Math.Max(center.Stun, kit.SigV2);
+                        Deal(center, HeroAtk(s.Hero, 1) * kit.SigV, s.Hero, false, false);
+                        Emit(Ev.Sig, center.Pos, -1, center.Id, s.Hero);
                     }
                     EmitHit(s, s.Radius);
                     return;
@@ -2521,7 +2932,23 @@ namespace Liangshan.Sim
         void Damage(Enemy e, float dmg, HeroId h, bool crit)
         {
             if (e.Dead) return;
-            dmg *= Affinity(e.Def, Defs.Hero(h));
+            var hd = Defs.Hero(h);
+            var kit = HeroKits.Of(h);
+            dmg *= Affinity(e.Def, hd);
+            // 1 级个人特性增伤（斩杀 / 猎禽 / 破马 / 精英虎威 / 控将）
+            if (kit.Trait == TraitKind.LowHpDmg && e.Hp < e.MaxHp * 0.4f) dmg *= 1f + kit.TraitV;
+            else if (kit.Trait == TraitKind.EliteBonus && e.Big) dmg *= 1f + kit.TraitV;
+            else if (kit.Trait == TraitKind.FlyBonus && e.Def.Flying) dmg *= 1f + kit.TraitV;
+            else if (kit.Trait == TraitKind.CavBonus && e.Mounted) dmg *= 1f + kit.TraitV;
+            else if (kit.Trait == TraitKind.PriorityElite && (e.Big || e.Def.Flying)) dmg *= 1f + kit.TraitV;
+            // 10 级本命绝技条件增伤（破势 / 状态追魂 / 关胜首领威压）
+            if (HasSig(h))
+            {
+                if (kit.Sig == SigKind.HighHpBreak && e.Hp > e.MaxHp * 0.5f && e.Hp < e.MaxHp * 0.999f) dmg *= 1f + kit.SigV;
+                else if (kit.Sig == SigKind.OnDebuff && (e.BurnT > 0 || e.SlowT > 0 || e.Stun > 0)) dmg *= 1f + kit.SigV;
+                if (h == HeroId.GuanSheng && e.Def.IsBoss && SlotOf(h) != null) dmg *= 1f + kit.SigV2;
+            }
+            if (h == HeroId.ShiXiu && HasLv20(h) && Wall < WallMax * 0.5f) dmg *= 1.30f;
             if (e.Big) dmg *= 1f + Stat(h, Eff.Elite) + _bondElite;
             if (e.Def.Flying) dmg *= 1f + Stat(h, Eff.Fly) + _bondFlyCav;
             if (e.Mounted) dmg *= 1f + Stat(h, Eff.Cav) + _bondFlyCav;
@@ -2539,10 +2966,12 @@ namespace Liangshan.Sim
             }
             if (Wave <= 3 && Lo.EarlyWaveDmg > 0) dmg *= 1f + Lo.EarlyWaveDmg;
             dmg *= MetaMul(e);
+            // 汤隆在场特性「百炼锋芒」：暴击时全军暴击伤害小幅提升（纯白板 100% 暴击断言局无汤隆在场时不干扰）
+            if (crit && SlotOf(HeroId.TangLong) != null && Lo.Crit < 0.99f) dmg *= 1.08f;
             Deal(e, dmg, h, crit, false);
             if (e.Dead) return;
-            var hd = Defs.Hero(h);
             float burn = hd.Dot + Stat(h, Eff.Burn);
+            if (kit.Trait == TraitKind.DotBonus) burn = burn > 0 ? burn * (1f + kit.TraitV) : kit.TraitV;
             if (burn > 0)
             {
                 float dps = dmg * burn / Defs.BurnDur;
@@ -2553,10 +2982,15 @@ namespace Liangshan.Sim
                 if (hd.AntiHeal) e.AntiHeal = true;
             }
             float vuln = Stat(h, Eff.Vuln);
+            if (kit.Trait == TraitKind.ZoneVuln)
+            {
+                float zv = h == HeroId.ZhuWu && HasLv20(h) ? 0.22f : kit.TraitV;
+                vuln = Math.Max(vuln, zv);
+            }
             if (vuln > 0)
             {
                 e.Vuln = e.VulnT > 0 ? Math.Max(e.Vuln, vuln) : vuln;
-                e.VulnT = Defs.VulnDur;
+                e.VulnT = Math.Max(e.VulnT, kit.Trait == TraitKind.ZoneVuln && Stat(h, Eff.Vuln) <= 0 ? (h == HeroId.ZhuWu && HasLv20(h) ? 4f : 2.5f) : Defs.VulnDur);
             }
         }
 
@@ -2836,6 +3270,7 @@ namespace Liangshan.Sim
             {
                 case UltKind.Thunder:
                 {
+                    if (HasLv20(hero)) _ultHaste[(int)hero] = 6f;
                     var targets = FrontTargets();
                     for (int i = 0; i < def.UltN; i++)
                     {
@@ -2865,10 +3300,28 @@ namespace Liangshan.Sim
                             Damage = power, Radius = 1.5f, Knock = 1.2f, Ult = true,
                         });
                     }
+                    if (hero == HeroId.LuJunyi && HasLv20(hero))
+                    {
+                        for (int k = -1; k <= 1; k += 2)
+                            Shots.Add(new Shot
+                            {
+                                Id = _nextId++, Kind = ShotKind.Qi, Hero = hero,
+                                From = new V2(k * 1.1f, Layout.StopY + 0.6f), To = new V2(k * 1.1f, Layout.EngageY),
+                                T = -0.25f, Dur = 0.38f, Damage = power * 0.7f, Radius = 0.9f, Ult = true,
+                            });
+                    }
+                    if (hero == HeroId.GuanSheng && HasLv20(hero))
+                    {
+                        foreach (var e in Enemies)
+                            if (!e.Dead && !e.Big && e.Pos.Y <= Layout.StopY + 2.8f && e.Hp <= e.MaxHp * 0.12f)
+                                Deal(e, e.Hp + 1f, hero, true, false);
+                    }
                     break;
                 case UltKind.Haste:
                     HasteT = Math.Max(HasteT, 8f * boost);
                     HasteMul = Math.Max(HasteMul, 1.6f);
+                    if (HasLv20(hero))
+                        foreach (var s in Slots) if (s.Unit != null) s.Unit.Cd *= 0.80f;
                     break;
                 case UltKind.Heal:
                     HealWall(WallMax * def.UltCoef * boost * (0.9f + 0.1f * u.Star), from.Pos, hero);
@@ -2880,19 +3333,21 @@ namespace Liangshan.Sim
                     targets.RemoveAll(e => e.Dead || e.Pos.Y > Layout.EngageY - 0.3f);
                     targets.Sort((a, b) => (b.Big ? 1 : 0).CompareTo(a.Big ? 1 : 0) != 0 ? (b.Big ? 1 : 0).CompareTo(a.Big ? 1 : 0) : a.Pos.Y.CompareTo(b.Pos.Y));
                     int n = def.UltN + (int)Stat(hero, Eff.Count);
+                    float extraStun = HasLv20(hero) ? 0.5f : 0f;
                     for (int i = 0; i < n && i < targets.Count; i++)
                     {
                         var t = targets[i];
                         Shots.Add(new Shot
                         {
                             Id = _nextId++, Kind = ShotKind.Lasso, Hero = hero, From = from.Pos, To = t.Pos, TargetId = t.Id, T = -i * 0.07f,
-                            Dur = 0.25f, Damage = power, Radius = 0.5f, Stun = def.UltStun + Stat(hero, Eff.Stun), StunChance = 1f, Ult = true,
+                            Dur = 0.25f, Damage = power, Radius = 0.5f, Stun = def.UltStun + extraStun + Stat(hero, Eff.Stun), StunChance = 1f, Ult = true,
                         });
                     }
                     break;
                 }
                 case UltKind.Snipe:
                 {
+                    if (HasLv20(hero)) _ultHaste[(int)hero] = 5f;
                     var t = Strongest() ?? focus;
                     Shots.Add(new Shot
                     {
@@ -2902,17 +3357,29 @@ namespace Liangshan.Sim
                     break;
                 }
                 case UltKind.Tornado:
+                {
+                    float tr = def.UltRadius * (1f + Stat(hero, Eff.Area) * 0.5f) * (HasLv20(hero) ? 1.25f : 1f);
+                    if (HasLv20(hero))
+                    {
+                        foreach (var e in Enemies)
+                        {
+                            if (e.Dead || e.Big || (e.Pos - at).Len2 > (tr + 1.2f) * (tr + 1.2f)) continue;
+                            e.Pos = new V2(e.Pos.X + (at.X - e.Pos.X) * 0.45f, e.Pos.Y + (at.Y - e.Pos.Y) * 0.35f);
+                        }
+                    }
                     Shots.Add(new Shot
                     {
                         Id = _nextId++, Kind = ShotKind.Wind, Hero = hero, From = from.Pos, To = at, Dur = 0.45f,
-                        Damage = power, Radius = def.UltRadius * (1f + Stat(hero, Eff.Area) * 0.5f), Slow = 3f,
+                        Damage = power, Radius = tr, Slow = 3f,
                         Stun = def.UltStun, StunChance = 1f, Ult = true,
                     });
                     break;
+                }
                 case UltKind.Meteor:
                 {
                     var targets = FrontTargets();
-                    for (int i = 0; i < def.UltN; i++)
+                    int cnt = def.UltN + (HasLv20(hero) ? 2 : 0);
+                    for (int i = 0; i < cnt; i++)
                     {
                         V2 p = i == 0 ? at : targets.Count > 0 ? targets[_rng.Int(Math.Min(targets.Count, 12))].Pos : at;
                         Shots.Add(new Shot

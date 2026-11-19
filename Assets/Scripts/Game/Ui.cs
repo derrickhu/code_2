@@ -419,12 +419,12 @@ namespace Liangshan
             var holder = Rect(parent, ornateStart ? "start" : "subBtn");
             holder.sizeDelta = size;
             holder.anchoredPosition = pos;
-            string skin = ornateStart ? "h_start" : BtnSkin(face);
+            string skin = ornateStart ? "h_start_hex" : BtnSkin(face);
             string baseSkin = ornateStart ? "btn_gold" : skin;
             Color stroke = BtnStroke(baseSkin);
             float sink = ornateStart ? 8.5f : Mathf.Clamp(size.y * 0.068f, 5.5f, 8f);
-            float bScale = ornateStart ? 1f : Mathf.Min(1f, size.y / 112f);
-            float lipPad = 8f * bScale;
+            float bScale = ornateStart ? -1f : Mathf.Min(1f, size.y / 112f);
+            float lipPad = 8f * (ornateStart ? 1f : bScale);
 
             var lip = Skin(holder, skin + "_lip", size + new Vector2(lipPad * 2f, lipPad * 2f), new Vector2(0, -sink), bScale, null, "lip");
             lip.raycastTarget = false;
@@ -476,9 +476,64 @@ namespace Liangshan
                 dummy.rectTransform.anchoredPosition = new Vector2(0, wellY + 1f);
             }
 
+            if (ornateStart) AttachStartGlint(holder, body, faceImg, size);
+
             var hit = Box(holder, size, Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
             Tap(hit, onClick, body, true, sink);
             return holder;
+        }
+
+        /// <summary>首页「开始挑战」六边鎏金按钮氛围灯效：温润克制的柔金呼吸晕 + 低频斜向流光扫掠 + 精致小金芒星微闪。</summary>
+        static void AttachStartGlint(RectTransform holder, RectTransform body, Image faceImg, Vector2 size)
+        {
+            var glow = Box(holder, new Vector2(size.x + 84f, size.y + 56f), new Vector2(0f, -2f), Pal.Gold.A(0.18f), Art.SoftDot, "glow");
+            glow.transform.SetAsFirstSibling();
+
+            var mask = faceImg.gameObject.AddComponent<Mask>();
+            mask.showMaskGraphic = true;
+
+            float span = size.x * 0.5f + 125f;
+            var sheen = Icon(faceImg.transform, "ui/fx_gold_sheen", size.y * 1.42f, new Vector2(-span, 0f), "sheen");
+            sheen.preserveAspect = false;
+            sheen.rectTransform.sizeDelta = new Vector2(200f, size.y * 1.42f);
+            sheen.color = new Color(1f, 0.99f, 0.90f, 0f);
+
+            var starTop = Icon(body, "ui/fx_gold_star", 72f, new Vector2(4f, size.y * 0.5f - 2f), "starTop");
+            var starRight = Icon(body, "ui/fx_gold_star", 46f, new Vector2(size.x * 0.5f - 24f, -3f), "starRight");
+            var starLeft = Icon(body, "ui/fx_gold_star", 36f, new Vector2(-size.x * 0.5f + 50f, size.y * 0.5f - 14f), "starLeft");
+
+            Tween.Run(holder, 9999f, _ =>
+            {
+                float t = Time.unscaledTime;
+                glow.color = Pal.Gold.A(0.15f + 0.07f * Mathf.Sin(t * 2.6f));
+
+                // 每 3.4 秒从容掠过一道温润金光（0..0.88s 扫过，留出充足静置时间，耐看不燥）
+                float cyc = t % 3.4f;
+                if (cyc < 0.88f)
+                {
+                    float u = cyc / 0.88f;
+                    float ease = u * u * (3f - 2f * u);
+                    sheen.rectTransform.anchoredPosition = new Vector2(Mathf.Lerp(-span, span, ease), 0f);
+                    sheen.color = new Color(1f, 0.99f, 0.92f, Mathf.Sin(u * Mathf.PI) * 0.68f);
+                }
+                else sheen.color = new Color(1f, 0.99f, 0.92f, 0f);
+
+                PulseStar(starTop, t, 3.4f, 0.44f, 0.28f, 1.02f);
+                PulseStar(starRight, t + 1.35f, 3.1f, 0.42f, 0.0f, 0.96f);
+                PulseStar(starLeft, t + 2.35f, 3.6f, 0.42f, 0.0f, 0.90f);
+            });
+
+            static void PulseStar(Image s, float t, float period, float center, float baseAlpha, float maxScale)
+            {
+                if (!s) return;
+                float u = (t % period) - center;
+                float w = Mathf.Exp(-u * u * 8.0f);
+                float a = Mathf.Clamp01(baseAlpha + (1f - baseAlpha) * w);
+                float sc = Mathf.Lerp(baseAlpha > 0f ? 0.68f : 0.15f, maxScale, w);
+                s.color = new Color(1f, 1f, 1f, a);
+                s.rectTransform.localScale = Vector3.one * sc;
+                s.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -12f + 22f * w);
+            }
         }
 
         public static void SetBtnText(RectTransform btn, string s)
@@ -610,7 +665,12 @@ namespace Liangshan
             return w;
         }
 
-        /// <summary>技能说明：屏幕居中。正文按整段排，顶到卡片内宽才换行；短句把卡片收窄，不留大块空白。</summary>
+        /// <summary>
+        /// 技能说明卡（像素级对标《永远的蔚蓝星球》深靛立体提示卡）：
+        /// 1. 头部：六边形技能徽章 + 技能名 + 类型胶囊 + 右上冷却 + 清晰底部分割细线；
+        /// 2. 正文：去除西文断词半角空格，让中文严丝合缝排满左右内边距，绝不右侧空半截或把「+20% / 2位」拆断；
+        /// 3. 底栏：柔和顶分割线 + 居中解锁状态提示。
+        /// </summary>
         public static void SkillCard(Transform anchor, string icon, int rarity, bool locked, string name, string tag, Color tagColor, string cd, string body, string foot)
         {
             var old = Root.Find("hint");
@@ -623,38 +683,43 @@ namespace Liangshan
             var keep = root;
             Tap(hit.GetComponent<Image>(), () => { if (keep) UnityEngine.Object.Destroy(keep.gameObject); }, null, false);
 
-            const float maxW = 760f;
-            const float minW = 420f;
-            const float padX = 36f;
-            const float iconSize = 108f;
-            const float headH = 118f;
-            const float padT = 22f, padB = 22f, gap = 14f, footH = 36f;
+            const float maxW = 792f;
+            const float minW = 540f;
+            const float padX = 38f;
+            const float iconSize = 114f;
+            const float headH = 122f;
+            const float padT = 26f, padB = 22f, ruleGapT = 16f, ruleGapB = 20f, footGap = 16f, footH = 38f;
             const int bodySize = 28;
-            string shown = TintNums((body ?? "").Replace("\r", ""));
+            string clean = FormatCjkBody(body);
+            string shown = TintNums(clean);
             bool hasCd = !string.IsNullOrEmpty(cd);
             bool footed = !string.IsNullOrEmpty(foot);
             bool hasIcon = !string.IsNullOrEmpty(icon);
             string cdPlain = hasCd ? "冷却：" + cd : "";
 
-            float nameRaw = TextWidth(root, name ?? "", 32, Fonts.Heavy);
-            float cdRaw = TextWidth(root, cdPlain, 22, Fonts.Heavy);
-            float bodyRaw = TextWidth(root, shown, bodySize, Fonts.Bold);
-            float headerNeed = padX + (hasIcon ? iconSize + 18f : 0f) + nameRaw + 24f + (hasCd ? cdRaw + 28f : 0f) + padX;
-            float cap = Mathf.Min(maxW, Mathf.Max(minW, ((RectTransform)Root).rect.width - 48f));
-            float tw = Mathf.Clamp(Mathf.Max(headerNeed, bodyRaw + padX * 2f + 16f), minW, cap);
+            float nameRaw = TextWidth(root, name ?? "", 34, Fonts.Heavy);
+            float cdRaw = TextWidth(root, cdPlain, 23, Fonts.Heavy);
+            float maxLineRaw = 0f;
+            foreach (var ln in shown.Split('\n'))
+                maxLineRaw = Mathf.Max(maxLineRaw, TextWidth(root, ln, bodySize, Fonts.Bold));
+
+            float headerNeed = padX + (hasIcon ? iconSize + 20f : 0f) + nameRaw + 24f + (hasCd ? cdRaw + 28f : 0f) + padX;
+            float cap = Mathf.Min(maxW, Mathf.Max(minW, ((RectTransform)Root).rect.width - 56f));
+            // 多句长说明直接撑满标准宽幅卡片（792px），短说明按实际宽度紧凑收束，保证每一行都饱满贴齐左右内框！
+            float tw = maxLineRaw > 560f ? cap : Mathf.Clamp(Mathf.Max(headerNeed, maxLineRaw + padX * 2f + 12f), minW, cap);
             float inner = tw - padX * 2f;
 
-            var probe = Label(root, shown, bodySize, Color.white, Vector2.zero, new Vector2(inner, 640f), TextAnchor.UpperLeft, Fonts.Bold, "probe");
-            probe.lineSpacing = 1.15f;
+            var probe = Label(root, shown, bodySize, Color.white, Vector2.zero, new Vector2(inner, 800f), TextAnchor.UpperLeft, Fonts.Bold, "probe");
+            probe.lineSpacing = 1.26f;
             Canvas.ForceUpdateCanvases();
-            float bodyH = Mathf.Max(44f, probe.preferredHeight);
+            float bodyH = Mathf.Max(42f, probe.preferredHeight);
             UnityEngine.Object.DestroyImmediate(probe.gameObject);
 
-            float th = padT + headH + gap + bodyH + (footed ? gap + footH : 0f) + padB;
+            float th = padT + headH + ruleGapT + 2f + ruleGapB + bodyH + (footed ? footGap + 2f + 10f + footH : 0f) + padB;
             var card = Rect(root, "card");
             card.sizeDelta = new Vector2(tw, th);
-            card.anchoredPosition = Vector2.zero;
-            Box(card, new Vector2(tw - 6f, th - 6f), new Vector2(0, -6f), new Color(0.02f, 0.04f, 0.08f, 0.35f), Art.Rounded, "shadow");
+            card.anchoredPosition = new Vector2(0, 42f);
+            Box(card, new Vector2(tw - 4f, th - 4f), new Vector2(0, -8f), new Color(0.02f, 0.04f, 0.08f, 0.42f), Art.Rounded, "shadow");
             Skin(card, "dark", new Vector2(tw, th), Vector2.zero, 1f, null, "face");
 
             float headerY = th * 0.5f - padT - headH * 0.5f;
@@ -662,34 +727,40 @@ namespace Liangshan
             if (hasIcon)
                 MetaFx.Hex(card, icon, iconSize, new Vector2(iconX, headerY), locked, rarity);
 
-            float textLeft = hasIcon ? iconX + iconSize * 0.5f + 16f : -tw * 0.5f + padX;
+            float textLeft = hasIcon ? iconX + iconSize * 0.5f + 20f : -tw * 0.5f + padX;
             float textRight = tw * 0.5f - padX - (hasCd ? cdRaw + 16f : 0f);
             float nameW = Mathf.Max(96f, textRight - textLeft);
-            Label(card, name ?? "", 32, Color.white, new Vector2(textLeft + nameW * 0.5f, headerY + 24f), new Vector2(nameW, 44),
-                TextAnchor.MiddleLeft, Fonts.Heavy, "name");
+            Outlined(card, name ?? "", 35, Color.white, new Vector2(textLeft + nameW * 0.5f, headerY + 23f), new Vector2(nameW, 46),
+                Pal.Hex("0C1622"), 2.0f, TextAnchor.MiddleLeft, "name");
             if (!string.IsNullOrEmpty(tag))
             {
-                float tagW = Mathf.Max(72f, 22f * tag.Length + 28f);
-                var pill = Box(card, new Vector2(tagW, 32f), new Vector2(textLeft + tagW * 0.5f, headerY - 22f), tagColor, Art.Pill, "tag");
+                float tagW = Mathf.Max(80f, 22f * tag.Length + 34f);
+                var pill = Box(card, new Vector2(tagW, 34f), new Vector2(textLeft + tagW * 0.5f, headerY - 23f), tagColor, Art.Pill, "tag");
                 pill.raycastTarget = false;
-                var tagText = Label(pill.transform, tag, 18, Color.white, Vector2.zero, new Vector2(tagW, 32f), TextAnchor.MiddleCenter, Fonts.Heavy, "tagText");
+                var tagText = Outlined(pill.transform, tag, 19, Color.white, new Vector2(0, 1f), new Vector2(tagW, 34f),
+                    Pal.Ink.A(0.65f), 1.4f, TextAnchor.MiddleCenter, "tagText");
                 tagText.raycastTarget = false;
             }
             if (hasCd)
             {
-                var cdText = Label(card, "冷却：<color=#FF9A2E>" + cd + "</color>", 22, Pal.Hex("C5D4E4"),
-                    new Vector2(tw * 0.5f - padX - cdRaw * 0.5f, headerY + 22f), new Vector2(cdRaw + 8f, 36f), TextAnchor.MiddleRight, Fonts.Heavy, "cd");
+                var cdText = Label(card, "冷却：<color=#FF9A2E>" + cd + "</color>", 23, Pal.Hex("C5D4E4"),
+                    new Vector2(tw * 0.5f - padX - cdRaw * 0.5f, headerY + 23f), new Vector2(cdRaw + 10f, 38f), TextAnchor.MiddleRight, Fonts.Heavy, "cd");
                 cdText.raycastTarget = false;
             }
 
-            float bodyTop = headerY - headH * 0.5f - gap;
-            var bodyText = Label(card, shown, bodySize, Pal.Hex("E7F1FA"), new Vector2(0, bodyTop - bodyH * 0.5f), new Vector2(inner, bodyH),
+            float headRuleY = headerY - headH * 0.5f - ruleGapT - 1f;
+            Box(card, new Vector2(inner, 2f), new Vector2(0, headRuleY), Pal.Hex("6D92B6").A(0.28f), Art.White, "headRule");
+
+            float bodyTop = headRuleY - 1f - ruleGapB;
+            var bodyText = Label(card, shown, bodySize, Pal.Hex("EDF4FC"), new Vector2(0, bodyTop - bodyH * 0.5f), new Vector2(inner, bodyH),
                 TextAnchor.UpperLeft, Fonts.Bold, "text");
-            bodyText.lineSpacing = 1.15f;
+            bodyText.lineSpacing = 1.26f;
             if (footed)
             {
-                float footY = bodyTop - bodyH - gap - footH * 0.5f;
-                Label(card, foot, 20, Pal.Hex("A9BDD0"), new Vector2(0, footY), new Vector2(inner, footH),
+                float footRuleY = bodyTop - bodyH - footGap - 1f;
+                Box(card, new Vector2(inner, 1.5f), new Vector2(0, footRuleY), Pal.Hex("6D92B6").A(0.16f), Art.White, "footRule");
+                float footY = footRuleY - 1f - 10f - footH * 0.5f;
+                Label(card, foot, 21, locked ? Pal.Hex("9BB0C4") : Pal.Hex("8CE8AC"), new Vector2(0, footY), new Vector2(inner, footH),
                     TextAnchor.MiddleCenter, Fonts.Heavy, "foot");
             }
 
@@ -699,8 +770,26 @@ namespace Liangshan
             Tween.Run(c, 0.16f, k => { if (c) c.localScale = Vector3.one * Mathf.Lerp(0.94f, 1f, Tween.OutBack(k)); });
         }
 
+        /// <summary>收紧中文句子里数字/符号两侧的半角空格，杜绝 Unity Text 按英文单词提前断行导致右侧留大片空白。</summary>
+        static string FormatCjkBody(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "";
+            s = s.Replace("\r", "");
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"[ \t]+", "");
+            return s.Trim();
+        }
+
         static string TintNums(string s) =>
-            System.Text.RegularExpressions.Regex.Replace(s ?? "", @"[+\-]?\d+(?:\.\d+)?%?", m => "<color=#FF9A2E>" + m.Value + "</color>");
+            System.Text.RegularExpressions.Regex.Replace(s ?? "", @"[+\-×]?\d+(?:\.\d+)?(?:%|s|秒)?", m => "<color=#FF9A2E>" + m.Value + "</color>");
+
+        /// <summary>可升级角标：好汉升级原来那枚翠绿单箭头，朝上，颜色画在图里。</summary>
+        public static Image UpgradeMark(Transform parent, float size, Vector2 pos, string name = "up")
+        {
+            var img = Box(parent, Vector2.one * size, pos, Color.white, Art.UpArrow, name);
+            img.type = Image.Type.Simple;
+            img.preserveAspect = true;
+            return img;
+        }
 
         /// <summary>可升级角标原地上下轻轻呼吸，所有升级箭头共用这一下。</summary>
         public static void Breathe(Graphic g, float amp = 5f)

@@ -48,17 +48,17 @@ namespace Liangshan
         /// </summary>
         public void HitPop(Vector2 pos, float scale, bool crit)
         {
-            float sz = (crit ? 1.45f : 1.05f) * scale;
+            float sz = (crit ? 0.95f : 0.68f) * scale;
             Color glowCol = crit ? Pal.Hex("FF8A24") : Pal.Hex("FFC24A");
-            var flash = Take(Art.SoftDot, pos, sz * 0.8f, 9543, glowCol.A(crit ? 0.5f : 0.32f), true);
-            Anim(flash.gameObject, 0.12f, k =>
+            var flash = Take(Art.SoftDot, pos, sz * 0.55f, 9543, glowCol.A(crit ? 0.35f : 0.22f), true);
+            Anim(flash.gameObject, 0.11f, k =>
             {
-                flash.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.6f, 1.1f, Tween.OutCubic(k));
-                flash.color = glowCol.A((crit ? 0.5f : 0.32f) * (1f - k) * (1f - k));
+                flash.transform.localScale = Vector3.one * sz * Mathf.Lerp(0.45f, 0.85f, Tween.OutCubic(k));
+                flash.color = glowCol.A((crit ? 0.35f : 0.22f) * (1f - k) * (1f - k));
             });
-            Glint(pos, sz * (crit ? 1.25f : 0.95f), crit ? Pal.Hex("FFF0B0") : Color.white, crit ? 0.2f : 0.15f, 9546);
-            SparkStreaks(pos, crit ? 7 : 4, crit ? 0.34f : 0.26f, crit ? 5.2f : 4.2f,
-                crit ? Pal.Hex("FFD45A") : Pal.Hex("FFF2C8"), 0.22f, 9548, 6f);
+            Glint(pos, sz * (crit ? 0.92f : 0.68f), crit ? Pal.Hex("FFF0B0") : Color.white, crit ? 0.17f : 0.13f, 9546);
+            SparkStreaks(pos, crit ? 5 : 3, crit ? 0.28f : 0.22f, crit ? 4.4f : 3.6f,
+                crit ? Pal.Hex("FFD45A") : Pal.Hex("FFF2C8"), 0.20f, 9548, 6f);
         }
 
         /// <summary>四芒星闪：瞬间弹到最大再收成一个点，略带转动。命中、出手、法球起飞都用它当“发力点”。</summary>
@@ -144,22 +144,27 @@ namespace Liangshan
             Rune(feet, sigilSpr, 1.9f * scale, c.A(0.95f), 0.95f, 50f, 158, 0.40f, true);
 
             var beamSpr = Art.Img("fx_light_beam");
-            void Beam(float w, float h, Color col, int order, bool add, float dur)
+            var scroll = new Vector4(0.35f, -2.4f, -0.45f, -1.7f);
+            var nScale = new Vector2(1.4f, 2.2f);
+            void Beam(float w, float h, Color col, Color coreCol, int order, bool add, float dur)
             {
-                var sr = Take(beamSpr, feet, h, order, col.A(0), add);
+                var sr = Take(beamSpr, feet, h, order, Color.white, add);
+                sr.sharedMaterial = UberMat(add);
                 Anim(sr.gameObject, dur, k =>
                 {
-                    float up = Tween.OutCubic(Mathf.Min(1f, k / 0.22f));
-                    float thin = k < 0.5f ? 1f : Mathf.Lerp(1f, 0.25f, (k - 0.5f) / 0.5f);
+                    float up = Tween.OutCubic(Mathf.Min(1f, k / 0.20f));
+                    float thin = k < 0.45f ? 1f : Mathf.Lerp(1f, 0.35f, (k - 0.45f) / 0.55f);
                     float hh = h * up;
                     sr.transform.localScale = new Vector3(w * thin / 0.25f, hh, 1f);
                     sr.transform.localPosition = feet + new Vector2(0, hh * 0.5f - 0.05f);
-                    sr.color = col.A(col.a * (k < 0.08f ? k / 0.08f : 1f - Tween.InCubic((k - 0.08f) / 0.92f)));
+                    float a = k < 0.08f ? k / 0.08f : 1f - Tween.InCubic((k - 0.08f) / 0.92f);
+                    float dis = Mathf.Pow(Mathf.Clamp01((k - 0.25f) / 0.75f), 1.2f) * 0.85f;
+                    SetUber(sr, col.A(col.a * a), coreCol, dis, 0.075f, 1f, 0f, scroll, nScale, 1.8f);
                 });
             }
-            Beam(0.95f * scale, 3.0f * scale, deep.A(0.35f), 9040, false, 0.8f);
-            Beam(0.95f * scale, 3.2f * scale, c.A(0.95f), 9050, true, 0.8f);
-            Beam(0.42f * scale, 2.6f * scale, Color.white.A(0.85f), 9051, true, 0.55f);
+            Beam(0.95f * scale, 3.0f * scale, deep.A(0.45f), c, 9040, false, 0.82f);
+            Beam(0.95f * scale, 3.2f * scale, c.A(0.95f), Color.white, 9050, true, 0.82f);
+            Beam(0.42f * scale, 2.6f * scale, Color.white.A(0.88f), Color.white, 9051, true, 0.56f);
 
             LightPool(feet + new Vector2(0, 0.05f), 2.3f * scale, c.A(0.8f), 0.7f, 159);
             Glint(feet + new Vector2(0, 0.85f * scale), 1.5f * scale, Color.Lerp(c, Color.white, 0.6f), 0.26f, 9560);
@@ -221,6 +226,30 @@ namespace Liangshan
             if (_cam) _cam.localPosition = _camBase;
         }
 
+        /// <summary>切换关卡/回主界面时清掉上一局挂在世界特效与 FloatLayer 上的全部残留节点。</summary>
+        public void ClearAll()
+        {
+            _add.Clear();
+            for (int i = _jobs.Count - 1; i >= 0; i--)
+            {
+                var go = _jobs[i].Go;
+                if (go != null) Release(go);
+            }
+            _jobs.Clear();
+            _numCells.Clear();
+            _shake = _shakeT = 0f;
+            if (_cam) _cam.localPosition = _camBase;
+            if (_textLayer != null)
+            {
+                for (int i = _textLayer.childCount - 1; i >= 0; i--)
+                {
+                    var ch = _textLayer.GetChild(i).gameObject;
+                    if (ch.TryGetComponent<Tag>(out _)) ch.SetActive(false);
+                    else Destroy(ch);
+                }
+            }
+        }
+
         // ---------- 基础件 ----------
 
         /// <summary>sprite 长边 = 1 单位，所以 size 就是长边的世界长度。</summary>
@@ -248,7 +277,218 @@ namespace Liangshan
 
         public static int Order(float y) => 5000 - Mathf.RoundToInt(y * 100f);
 
-        static Material _addMat, _defMat;
+        static Material _addMat, _defMat, _uberAddMat, _uberAlphaMat, _slashAddMat, _slashAlphaMat, _ropeMat;
+        static Texture2D _noiseTile, _slashLut, _beamLut;
+        static readonly Dictionary<string, Sprite[]> _sheets = new Dictionary<string, Sprite[]>();
+        static MaterialPropertyBlock _mpb;
+
+        public static Material ChainRopeMat
+        {
+            get
+            {
+                if (_ropeMat == null)
+                {
+                    _ropeMat = new Material(Shader.Find("Sprites/Default"));
+                    var tex = Resources.Load<Texture2D>("Art/fx_chain_rope");
+                    if (tex != null) tex.wrapMode = TextureWrapMode.Repeat;
+                    _ropeMat.mainTexture = tex;
+                }
+                return _ropeMat;
+            }
+        }
+
+        static Texture2D NoiseTile
+        {
+            get
+            {
+                if (_noiseTile == null)
+                {
+                    _noiseTile = Resources.Load<Texture2D>("Art/fx_noise_tile");
+                    if (_noiseTile != null) _noiseTile.wrapMode = TextureWrapMode.Repeat;
+                }
+                return _noiseTile;
+            }
+        }
+
+        public static Material UberMat(bool add)
+        {
+            ref Material m = ref (add ? ref _uberAddMat : ref _uberAlphaMat);
+            if (m == null)
+            {
+                var sh = Resources.Load<Shader>("Shaders/FxUber");
+                m = new Material(sh != null ? sh : Shader.Find("Sprites/Default"));
+                m.SetTexture("_NoiseTex", NoiseTile);
+                // Blend SrcAlpha One (add) vs SrcAlpha OneMinusSrcAlpha (alpha)
+                m.SetFloat("_SrcBlend", 5f);
+                m.SetFloat("_DstBlend", add ? 1f : 10f);
+            }
+            return m;
+        }
+
+        static Material SlashMeshMat(bool add)
+        {
+            ref Material m = ref (add ? ref _slashAddMat : ref _slashAlphaMat);
+            if (m == null)
+            {
+                var sh = Resources.Load<Shader>("Shaders/FxUber");
+                m = new Material(sh != null ? sh : Shader.Find("Sprites/Default"));
+                if (_slashLut == null) _slashLut = Resources.Load<Texture2D>("Art/fx_slash_lut");
+                m.SetTexture("_MainTex", _slashLut);
+                m.SetTexture("_NoiseTex", NoiseTile);
+                m.SetFloat("_SrcBlend", 5f);
+                m.SetFloat("_DstBlend", add ? 1f : 10f);
+            }
+            return m;
+        }
+
+        public static void SetUber(Renderer r, Color outer, Color core, float dissolve, float distort = 0.08f,
+            float reveal = 1f, float tail = 0f, Vector4? scroll = null, Vector2? noiseScale = null, float edgeBoost = 1.6f)
+        {
+            if (_mpb == null) _mpb = new MaterialPropertyBlock();
+            r.GetPropertyBlock(_mpb);
+            _mpb.SetColor("_Color", outer);
+            _mpb.SetColor("_CoreColor", core);
+            _mpb.SetFloat("_Dissolve", dissolve);
+            _mpb.SetFloat("_Distort", distort);
+            _mpb.SetFloat("_Reveal", reveal);
+            _mpb.SetFloat("_Tail", tail);
+            _mpb.SetFloat("_CorePower", 2.0f);
+            _mpb.SetFloat("_EdgeBoost", edgeBoost);
+            _mpb.SetVector("_Scroll", scroll ?? new Vector4(1.4f, 0.45f, -0.85f, 1.2f));
+            var ns = noiseScale ?? new Vector2(1.5f, 1.5f);
+            _mpb.SetVector("_NoiseScale", new Vector4(ns.x, ns.y, 0f, 0f));
+            r.SetPropertyBlock(_mpb);
+        }
+
+        public static void SetUberRaw(Renderer r, Color tint, float dissolve, float distort, Vector4 scroll, Vector2 noiseScale, float edgeBoost = 1.4f)
+        {
+            if (_mpb == null) _mpb = new MaterialPropertyBlock();
+            r.GetPropertyBlock(_mpb);
+            _mpb.SetColor("_Color", tint);
+            _mpb.SetFloat("_CorePower", -1.0f);
+            _mpb.SetFloat("_Dissolve", dissolve);
+            _mpb.SetFloat("_Distort", distort);
+            _mpb.SetFloat("_Reveal", 1f);
+            _mpb.SetFloat("_Tail", 0f);
+            _mpb.SetFloat("_EdgeBoost", edgeBoost);
+            _mpb.SetVector("_Scroll", scroll);
+            _mpb.SetVector("_NoiseScale", new Vector4(noiseScale.x, noiseScale.y, 0f, 0f));
+            r.SetPropertyBlock(_mpb);
+        }
+
+        /// <summary>切 4x4 序列帧图集并缓存（第 0 帧在左上，按行从上到下）。</summary>
+        public static Sprite[] Sheet(string art, int cols = 4, int rows = 4, Vector2? pivot = null)
+        {
+            if (_sheets.TryGetValue(art, out var frames)) return frames;
+            var s0 = Art.Img(art);
+            var tex = s0 != null ? s0.texture : Resources.Load<Texture2D>("Art/" + art);
+            if (tex == null) return Array.Empty<Sprite>();
+            int cw = tex.width / cols, ch = tex.height / rows;
+            float ppu = Mathf.Max(cw, ch);
+            var pv = pivot ?? new Vector2(0.5f, 0.5f);
+            frames = new Sprite[cols * rows];
+            int idx = 0;
+            for (int ry = 0; ry < rows; ry++)
+                for (int cx = 0; cx < cols; cx++)
+                    frames[idx++] = Sprite.Create(tex, new Rect(cx * cw, ry * ch, cw, ch), pv, ppu, 0, SpriteMeshType.FullRect);
+            _sheets[art] = frames;
+            return frames;
+        }
+
+        /// <summary>播放高精度体积序列帧动画（爆炸、落雷等）。</summary>
+        public void Flipbook(string art, Vector2 pos, float size, float dur, int order, Color? tint = null,
+            bool add = false, Vector2? pivot = null, bool flipX = false, Vector2? scaleXY = null)
+        {
+            var frames = Sheet(art, 4, 4, pivot);
+            if (frames.Length == 0) return;
+            var col = tint ?? Color.white;
+            var sr = Take(frames[0], pos, size, order, col, add);
+            sr.flipX = flipX;
+            var xy = scaleXY ?? Vector2.one;
+            sr.transform.localScale = new Vector3(size * xy.x, size * xy.y, 1f);
+            Anim(sr.gameObject, dur, k =>
+            {
+                int fi = Mathf.Clamp(Mathf.FloorToInt(k * frames.Length), 0, frames.Length - 1);
+                sr.sprite = frames[fi];
+                float fade = k < 0.82f ? 1f : 1f - (k - 0.82f) / 0.18f;
+                sr.color = col.A(col.a * fade);
+            });
+        }
+
+        /// <summary>
+        /// 商业级弧形刀光网格（Arc Slash Ribbon Mesh + FxUber 流光噪波溶解）：
+        /// 动态生成扇环弧面网格，下层深色半透明气刃压住浅色砂岩地面，上层叠加亮色锋刃+白芯，
+        /// 刀尖沿圆弧高速刷开（_Reveal），刀尾被滚动噪波啃噬碎散（_Tail + _Dissolve）。
+        /// </summary>
+        public void ArcSlash(Vector2 center, float radius, float width, float startDeg, float sweepDeg,
+            Color outer, Color core, float dur = 0.24f, int order = 9556, float tiltY = 0.78f)
+        {
+            const int segs = 28;
+            var mesh = new Mesh();
+            var verts = new Vector3[(segs + 1) * 2];
+            var uvs = new Vector2[(segs + 1) * 2];
+            var cols = new Color[(segs + 1) * 2];
+            var tris = new int[segs * 6];
+            float rIn = Mathf.Max(0.05f, radius - width);
+            for (int i = 0; i <= segs; i++)
+            {
+                float u = (float)i / segs; // 0 = 刀尾, 1 = 刀尖
+                float ang = (startDeg + sweepDeg * u) * Mathf.Deg2Rad;
+                float cs = Mathf.Cos(ang), sn = Mathf.Sin(ang);
+                // 两头收尖成柳叶弯月形，中前段最饱满
+                float taper = Mathf.Sin(Mathf.Pow(u, 0.72f) * Mathf.PI);
+                float curIn = Mathf.Lerp(radius * 0.94f, rIn, taper);
+                float curOut = Mathf.Lerp(radius * 0.98f, radius, taper);
+                verts[i * 2] = new Vector3(cs * curIn, sn * curIn * tiltY, 0f);
+                verts[i * 2 + 1] = new Vector3(cs * curOut, sn * curOut * tiltY, 0f);
+                uvs[i * 2] = new Vector2(u, 0f);
+                uvs[i * 2 + 1] = new Vector2(u, 1f);
+                cols[i * 2] = cols[i * 2 + 1] = Color.white;
+                if (i < segs)
+                {
+                    int b = i * 2, t = i * 6;
+                    tris[t] = b; tris[t + 1] = b + 1; tris[t + 2] = b + 3;
+                    tris[t + 3] = b; tris[t + 4] = b + 3; tris[t + 5] = b + 2;
+                }
+            }
+            mesh.vertices = verts;
+            mesh.uv = uvs;
+            mesh.colors = cols;
+            mesh.triangles = tris;
+
+            var root = new GameObject("arcSlash");
+            root.transform.SetParent(transform, false);
+            root.transform.localPosition = center;
+
+            MeshRenderer MakeLayer(string nm, bool add, int ord)
+            {
+                var g = new GameObject(nm);
+                g.transform.SetParent(root.transform, false);
+                g.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var mr = g.AddComponent<MeshRenderer>();
+                mr.sharedMaterial = SlashMeshMat(add);
+                mr.sortingOrder = ord;
+                return mr;
+            }
+
+            var under = MakeLayer("under", false, order - 1);
+            var over = MakeLayer("over", true, order);
+            var darkOuter = Color.Lerp(outer, new Color(0.03f, 0.06f, 0.14f, 1f), 0.65f);
+            var scroll = new Vector4(sweepDeg >= 0 ? -2.6f : 2.6f, 0.5f, sweepDeg >= 0 ? -1.4f : 1.4f, -0.9f);
+            var nScale = new Vector2(2.2f, 1.2f);
+
+            Anim(root, dur, k =>
+            {
+                float rev = Tween.OutCubic(Mathf.Clamp01(k / 0.34f));
+                float tail = Mathf.Pow(Mathf.Clamp01((k - 0.14f) / 0.86f), 1.35f) * 0.92f;
+                float dis = Mathf.Pow(Mathf.Clamp01((k - 0.22f) / 0.78f), 1.25f) * 0.88f;
+                float sc = Mathf.Lerp(0.90f, 1.08f, Tween.OutCubic(k));
+                root.transform.localScale = Vector3.one * sc;
+                SetUber(under, darkOuter.A(0.68f * (1f - k * 0.5f)), outer.A(0.85f), dis * 0.9f, 0.06f, rev, tail, scroll, nScale, 1.3f);
+                SetUber(over, outer.A(0.95f), core, dis, 0.085f, rev, tail, scroll, nScale, 2.2f);
+                if (k >= 1f) Destroy(mesh);
+            });
+        }
 
         /// <summary>叠加发光材质：亮的地方把底下的地面、人物一起照亮，不再像贴纸浮在上面。</summary>
         public static Material AddMat
@@ -286,6 +526,7 @@ namespace Liangshan
                 if (_defMat == null) _defMat = sr.sharedMaterial;
             }
             sr.sharedMaterial = add ? AddMat : _defMat;
+            sr.SetPropertyBlock(null);
             sr.sprite = s;
             sr.drawMode = SpriteDrawMode.Simple;
             sr.sortingOrder = order;
@@ -351,6 +592,28 @@ namespace Liangshan
         }
 
         // ---------- 预设 ----------
+
+        /// <summary>放大再噪波侵蚀消散的一次性彩色特效图（保留贴图自身丰富红橙黑烟色彩，边缘噪波碎散，绝不刷白！）。</summary>
+        public void DissolveBurst(Sprite s, Vector2 pos, float size, float dur, int order, Color? tint = null,
+            bool add = false, float from = 0.50f, float spin = 0f, float distort = 0.04f)
+        {
+            var col = tint ?? Color.white;
+            var sr = Take(s, pos, size * from, order, col, add);
+            sr.sharedMaterial = UberMat(add);
+            float rot0 = UnityEngine.Random.Range(0f, 360f);
+            var scroll = new Vector4(1.0f, 0.6f, -0.7f, 0.8f);
+            var nScale = new Vector2(1.6f, 1.6f);
+            Anim(sr.gameObject, dur, k =>
+            {
+                float sc = Mathf.Lerp(from, 1.04f, Tween.OutCubic(Mathf.Min(1f, k * 2.1f)));
+                sr.transform.localScale = Vector3.one * size * sc;
+                sr.transform.localRotation = Quaternion.Euler(0, 0, rot0 + spin * k);
+                float dis = Mathf.Pow(Mathf.Clamp01((k - 0.22f) / 0.78f), 1.25f) * 0.90f;
+                float a = k < 0.55f ? 1f : 1f - (k - 0.55f) / 0.45f;
+                // _Color = _CoreColor = Clear marker? No: pass negative _CorePower (-1) to tell FxUber to preserve mainSample.rgb!
+                SetUberRaw(sr, col.A(col.a * a), dis, distort, scroll, nScale);
+            });
+        }
 
         /// <summary>放大再淡出的一次性图。</summary>
         public void Burst(Sprite s, Vector2 pos, float size, float dur = 0.35f, int order = 9500, Color? c = null, float spin = 0, float from = 0.55f, bool add = false)
@@ -423,6 +686,120 @@ namespace Liangshan
                 sr.transform.localScale = new Vector3(span, width * (1f - k * 0.6f), 1f);
                 sr.color = c.A(c.a);
             });
+        }
+
+        /// <summary>
+        /// 商业级长枪贯阵流场枪罡（fx_spear_thrust_lut + FxUber 双层刷光与噪波碎散）：
+        /// 下层深色压住浅砂石面，上层高亮螺旋盘龙气带从枪尾疾刷向枪尖，再化作寒星/金焰消散。
+        /// </summary>
+        public void SpearThrust(Vector2 a, Vector2 b, Color outer, Color core, float width = 0.72f, float dur = 0.24f, int order = 9524)
+        {
+            var d = b - a;
+            float len = d.magnitude;
+            if (len < 0.05f) return;
+            var mid = (a + b) * 0.5f;
+            var rot = Quaternion.Euler(0, 0, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg);
+            var spr = Art.Img("fx_spear_thrust_lut");
+            var deep = Color.Lerp(outer, new Color(0.03f, 0.06f, 0.14f, 1f), 0.62f);
+            var scroll = new Vector4(-3.8f, 0.35f, -2.4f, -0.45f);
+            var nScale = new Vector2(Mathf.Max(1.4f, len * 0.65f), 1.35f);
+            // fx_spear_thrust_lut 高宽比 192/512 = 0.375
+            float sy = width / 0.375f;
+
+            void Pass(Color col, Color hi, int ord, bool add, float wMul, float boost)
+            {
+                var sr = Take(spr, mid, 1f, ord, Color.white, add);
+                sr.sharedMaterial = UberMat(add);
+                sr.transform.localRotation = rot;
+                Anim(sr.gameObject, dur, k =>
+                {
+                    float rev = Tween.OutCubic(Mathf.Clamp01(k / 0.28f));
+                    float tail = Mathf.Pow(Mathf.Clamp01((k - 0.12f) / 0.88f), 1.25f) * 0.90f;
+                    float dis = Mathf.Pow(Mathf.Clamp01((k - 0.20f) / 0.80f), 1.2f) * 0.88f;
+                    float thin = Mathf.Lerp(1.06f, 0.68f, Tween.InCubic(k));
+                    sr.transform.localScale = new Vector3(len, sy * wMul * thin, 1f);
+                    SetUber(sr, col.A(col.a * (1f - k * 0.35f)), hi, dis, 0.065f, rev, tail, scroll, nScale, boost);
+                });
+            }
+            Pass(deep.A(0.68f), outer, order - 1, false, 1.08f, 1.35f);
+            Pass(outer.A(0.96f), core, order, true, 0.94f, 2.25f);
+        }
+
+        /// <summary>魏定国猛火油海 / 秦明熔岩火潭：贴地铺开 FxUber 动态翻腾燃烧火池，边缘噪波侵蚀收干。</summary>
+        public void FirePool(Vector2 pos, float radius, Color outer, Color core, float dur = 2.1f, int order = 93)
+        {
+            if (_decals >= 36) return;
+            _decals += 2;
+            var spr = Art.Img("fx_fire_pool_lut");
+            var soot = new Color(0.16f, 0.05f, 0.03f, 0.72f);
+            var scroll = new Vector4(0.75f, -1.45f, -0.95f, -1.05f);
+            var nScale = new Vector2(1.8f, 1.8f);
+            float d = radius * 2.15f;
+            const float flat = 0.52f;
+
+            var under = Take(spr, pos, 1f, order, Color.white, false);
+            under.sharedMaterial = UberMat(false);
+            var over = Take(spr, pos, 1f, order + 1, Color.white, true);
+            over.sharedMaterial = UberMat(true);
+            float rot0 = UnityEngine.Random.Range(0f, 360f);
+            under.transform.localRotation = over.transform.localRotation = Quaternion.Euler(0, 0, rot0);
+
+            Anim(under.gameObject, dur, k =>
+            {
+                float open = Tween.OutCubic(Mathf.Clamp01(k * dur / 0.22f));
+                float sc = d * Mathf.Lerp(0.45f, 1.02f, open);
+                under.transform.localScale = new Vector3(sc * 1.06f, sc * flat * 1.06f, 1f);
+                float dis = Mathf.Pow(Mathf.Clamp01((k - 0.45f) / 0.55f), 1.3f) * 0.92f;
+                SetUber(under, soot.A(soot.a * (1f - k * 0.4f)), outer.A(0.85f), dis * 0.9f, 0.08f, 1f, 0f, scroll, nScale, 1.4f);
+                if (k >= 1f) _decals--;
+            });
+            Anim(over.gameObject, dur, k =>
+            {
+                float open = Tween.OutCubic(Mathf.Clamp01(k * dur / 0.20f));
+                float pulse = 0.96f + 0.05f * Mathf.Sin(k * dur * 18f);
+                float sc = d * Mathf.Lerp(0.42f, 1f, open) * pulse;
+                over.transform.localScale = new Vector3(sc, sc * flat, 1f);
+                float dis = Mathf.Pow(Mathf.Clamp01((k - 0.38f) / 0.62f), 1.25f) * 0.94f;
+                SetUber(over, outer.A(0.92f), core, dis, 0.10f, 1f, 0f, scroll, nScale, 2.35f);
+                if (k >= 1f) _decals--;
+            });
+        }
+
+        /// <summary>传说樊瑞立体螺旋龙卷风柱（对标《蔚蓝星球》暴风）：双层 FxUber 高速卷动风柱 + 环绕切割风刃弧。</summary>
+        public void Tornado(Vector2 pos, float radius, Color outer, Color core, float dur = 0.48f)
+        {
+            var spr = Art.Img("fx_tornado_lut");
+            var deep = Color.Lerp(outer, new Color(0.04f, 0.14f, 0.16f, 1f), 0.58f);
+            var scroll = new Vector4(4.2f, -1.5f, -3.2f, -1.1f);
+            var nScale = new Vector2(1.6f, 1.5f);
+            float h = Mathf.Clamp(radius * 1.65f, 1.55f, 2.45f);
+            float w = h * 0.92f;
+            int ord = Order(pos.y) + 25;
+
+            void Funnel(Color col, Color hi, int o, bool add, float wMul, float boost)
+            {
+                var sr = Take(spr, pos, 1f, o, Color.white, add);
+                sr.sharedMaterial = UberMat(add);
+                Anim(sr.gameObject, dur, k =>
+                {
+                    float pop = k < 0.18f ? Tween.OutCubic(k / 0.18f) : 1f;
+                    float sway = Mathf.Sin(Time.time * 14f) * 0.06f;
+                    float hh = h * Mathf.Lerp(0.65f, 1.04f, pop);
+                    // fx_tornado_lut 宽 320 / 高 448 = 0.714
+                    sr.transform.localScale = new Vector3((w * wMul / 0.714f) * Mathf.Lerp(0.75f, 1.05f, pop), hh, 1f);
+                    sr.transform.localPosition = pos + new Vector2(sway, hh * 0.46f - 0.06f);
+                    float dis = Mathf.Pow(Mathf.Clamp01((k - 0.42f) / 0.58f), 1.25f) * 0.88f;
+                    float fade = k < 0.12f ? k / 0.12f : 1f - Mathf.Pow(Mathf.Clamp01((k - 0.55f) / 0.45f), 1.4f);
+                    SetUber(sr, col.A(col.a * fade), hi, dis, 0.09f, 1f, 0f, scroll, nScale, boost);
+                });
+            }
+            Funnel(deep.A(0.62f), outer, ord - 1, false, 1.08f, 1.35f);
+            Funnel(outer.A(0.92f), core, ord, true, 0.96f, 2.15f);
+
+            float dir = UnityEngine.Random.value < 0.5f ? 1f : -1f;
+            float startAng = UnityEngine.Random.Range(0f, 360f);
+            ArcSlash(pos + new Vector2(0f, h * 0.36f), radius * 0.78f, radius * 0.22f,
+                startAng, dir * 210f, outer, core, dur * 0.65f, 9545, 0.46f);
         }
 
         /// <summary>地上的法阵：压扁贴地慢慢转，先张开再淡掉。</summary>
@@ -656,27 +1033,48 @@ namespace Liangshan
             });
         }
 
-        /// <summary>天雷：底端落在 pos。</summary>
-        public void Strike(Vector2 pos, float height, int order = 9600)
+        /// <summary>天雷：16帧狂暴分叉雷霆图集（fx_sheet_lightning）配地面电弧球与焦痕，底端锚在 pos。</summary>
+        public void Strike(Vector2 pos, float height, int order = 9600, bool legendary = false)
         {
-            var sr = Take(Art.Img("fx_lightning"), pos + new Vector2(0, height * 0.5f), height, order, Color.white, true);
-            sr.flipX = UnityEngine.Random.value < 0.5f;
-            Anim(sr.gameObject, 0.28f, k =>
+            float h = Mathf.Clamp(height, 1.35f, 2.55f);
+            bool flip = UnityEngine.Random.value < 0.5f;
+            var sheet = Sheet("fx_sheet_lightning", 4, 4, new Vector2(0.5f, 0.12f));
+            if (sheet.Length > 0)
             {
-                float a = k < 0.15f ? 1f : Mathf.Abs(Mathf.Sin(k * 26f)) * (1 - k);
-                sr.color = new Color(1, 1, 1, a);
-                sr.transform.localScale = new Vector3(0.9f + 0.2f * k, 1f, 1f) * height;
-            });
-            var zap = Take(Art.Img("fx_zap"), pos + new Vector2(0, height * 0.12f), height * 0.5f, order + 1, Color.white, true);
-            zap.flipX = UnityEngine.Random.value < 0.5f;
-            Anim(zap.gameObject, 0.3f, k =>
+                Color boltTint = legendary ? Pal.Hex("DCE6FF") : Color.white;
+                Flipbook("fx_sheet_lightning", pos, h * 1.12f, 0.28f, order, boltTint, true, new Vector2(0.5f, 0.12f), flip);
+            }
+            else
             {
-                zap.transform.localScale = new Vector3(1f, 0.75f, 1f) * height * Mathf.Lerp(0.35f, 0.6f, Tween.OutCubic(k));
-                zap.color = Color.white.A(k < 0.2f ? 1f : 1f - (k - 0.2f) / 0.8f);
+                var sr = Take(Art.Img("fx_lightning"), pos + new Vector2(0, h * 0.48f), h, order, Color.white, true);
+                sr.flipX = flip;
+                Anim(sr.gameObject, 0.24f, k =>
+                {
+                    float a = k < 0.18f ? 1f : (0.55f + 0.45f * Mathf.Abs(Mathf.Sin(k * 24f))) * (1f - k);
+                    sr.color = new Color(1f, 1f, 1f, a);
+                    sr.transform.localScale = new Vector3(0.58f + 0.10f * k, 1f, 1f) * h;
+                });
+            }
+            var zap = Take(Art.Img("fx_zap"), pos + new Vector2(0, h * 0.10f), h * 0.44f, order + 1, legendary ? Pal.Hex("FFE698") : Color.white, true);
+            zap.flipX = !flip;
+            Anim(zap.gameObject, 0.26f, k =>
+            {
+                zap.transform.localScale = new Vector3(0.88f, 0.68f, 1f) * h * Mathf.Lerp(0.28f, 0.52f, Tween.OutCubic(k));
+                zap.color = zap.color.A(k < 0.22f ? 1f : 1f - (k - 0.22f) / 0.78f);
             });
-            LightPool(pos, height * 1.1f, new Color(0.45f, 0.7f, 1f, 0.9f), 0.35f);
-            Flash(pos + new Vector2(0, 0.4f), height * 0.9f, new Color(0.5f, 0.75f, 1f, 0.5f), 0.18f);
-            Decal(Art.Img("fx_scorch"), pos, height * 0.32f, new Color(0.12f, 0.12f, 0.2f, 0.55f), 1.6f);
+            if (legendary)
+                Rune(pos, Art.Img("fx_sigil"), h * 0.78f, Pal.Hex("FFD86B").A(0.85f), 0.38f, 110f, 95, 0.48f, true);
+            LightPool(pos, h * 0.92f, legendary ? new Color(0.55f, 0.68f, 1f, 0.88f) : new Color(0.45f, 0.75f, 1f, 0.82f), 0.32f);
+            Flash(pos + new Vector2(0, 0.32f), h * 0.68f, new Color(0.62f, 0.82f, 1f, 0.48f), 0.15f);
+            Decal(Art.Img("fx_scorch"), pos, h * 0.32f, new Color(0.10f, 0.12f, 0.20f, 0.48f), 1.4f);
+        }
+
+        /// <summary>传说雷链双层折线电弧：外层紫蓝电晕 + 内芯炽白金跳电 + 首尾爆星。</summary>
+        public void ThunderChain(Vector2 a, Vector2 b, Color outer, Color core, float width = 0.22f, float dur = 0.24f, int order = 9555)
+        {
+            Arc(a, b, outer, width, dur, order);
+            Arc(a, b, core, width * 0.46f, dur * 0.88f, order + 1);
+            Glint(b, 0.85f, core, 0.15f, order + 2);
         }
 
         // ---------- 贴地：让特效“落”在地面上 ----------
@@ -700,15 +1098,19 @@ namespace Liangshan
             });
         }
 
-        /// <summary>贴地冲击波：压扁的不规则光环向外扩。</summary>
+        /// <summary>贴地冲击波：压扁的不规则光环向外扩 + FxUber 噪波侵蚀消散。</summary>
         public void GroundWave(Vector2 pos, float radius, Color c, float dur = 0.4f, int order = 94, float flat = 0.5f)
         {
-            var sr = Take(Art.Img("fx_wave"), pos, 0.1f, order, c, true);
+            var sr = Take(Art.Img("fx_wave"), pos, 0.1f, order, Color.white, true);
+            sr.sharedMaterial = UberMat(true);
+            var scroll = new Vector4(0.9f, 0.9f, -0.7f, 0.8f);
+            var nScale = new Vector2(1.8f, 1.8f);
             Anim(sr.gameObject, dur, k =>
             {
-                float r = radius * 2f * Mathf.Lerp(0.2f, 1f, Tween.OutCubic(k));
+                float r = radius * 2f * Mathf.Lerp(0.22f, 1.06f, Tween.OutCubic(k));
                 sr.transform.localScale = new Vector3(r, r * flat, 1f);
-                sr.color = c.A(c.a * (1 - k) * (1 - k));
+                float dis = Mathf.Pow(k, 1.15f) * 0.92f;
+                SetUber(sr, c.A(c.a * (1f - k * 0.65f)), Color.white, dis, 0.06f, 1f, 0f, scroll, nScale, 1.7f);
             });
         }
 
@@ -1353,24 +1755,27 @@ namespace Liangshan
             return t;
         }
 
-        /// <summary>英雄头顶的增益角标：深色胶囊 + 上升箭头 + 层数。调用方每帧 Place、自己管显隐。</summary>
-        public RectTransform Badge(Color c, out Text label)
+        /// <summary>好汉头顶精致小增益Buff条：斜切鎏金立体胶囊底 + 双翼疾风金徽 + 层数渐变字。切关由 ClearAll 统一清场。</summary>
+        public RectTransform BuffBar(out Text label)
         {
-            var rt = Ui.Rect(_textLayer, "badge");
+            var rt = Ui.Rect(_textLayer, "buffBar");
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(118, 50);
-            Ui.Box(rt, new Vector2(118, 50), Vector2.zero, new Color(0.10f, 0.06f, 0.03f, 0.8f), Art.Pill, "bg");
-            var ic = Ui.Box(rt, new Vector2(38, 38), new Vector2(-33, 1), Color.white, Art.UpArrow, "ic");
+            rt.sizeDelta = new Vector2(96, 36);
+            var bg = Ui.Box(rt, new Vector2(96, 36), Vector2.zero, Color.white, Art.Img("ui_buff_pill"), "bg");
+            bg.type = Image.Type.Simple;
+            bg.preserveAspect = true;
+            var ic = Ui.Box(rt, new Vector2(25, 25), new Vector2(-21, 1.5f), Color.white, Art.Img("ui_buff_wing"), "wing");
             ic.type = Image.Type.Simple;
             ic.preserveAspect = true;
-            label = Ui.Label(rt, "", 40, Color.white, new Vector2(16, 0), new Vector2(100, 60), TextAnchor.MiddleCenter, Fonts.Number, "n");
+            label = Ui.Label(rt, "", 24, Color.white, new Vector2(13, 1.5f), new Vector2(68, 36), TextAnchor.MiddleCenter, Fonts.Number, "n");
+            label.fontSize = 24; // 不走小字放大补偿，保持精致克制的小Buff条比例
             label.horizontalOverflow = HorizontalWrapMode.Overflow;
             var cs = label.gameObject.AddComponent<CrispStroke>();
             cs.UseGradient = true;
-            cs.TopColor = Color.Lerp(c, Color.white, 0.72f);
-            cs.BottomColor = c;
-            cs.Color = Pal.Hex("3A2200");
-            cs.Radius = 2.4f;
+            cs.TopColor = Pal.Hex("FFFBE2");
+            cs.BottomColor = Pal.Hex("FFC23A");
+            cs.Color = Pal.Hex("381A04");
+            cs.Radius = 2.0f;
             rt.SetAsFirstSibling();
             return rt;
         }

@@ -1,0 +1,26 @@
+主页下半区独立点将城台与四连位一体石台美术方案 v6（对标《永远的蔚蓝星球》主页舞台分层）
+================================================================================
+
+设计目标：
+1. 将主页下半区域独立为一张专门承载出战好汉、三宝箱与「开始挑战」主按钮的 2.5D 梁山青石点将城台前景图（home_deck.png），与上半屏背景石路（home_road.jpg）形成清晰的高低台面分层，彻底消除拥挤感。
+2. 将原本零散漂浮的四个小圆盘合并为一座厚重、规整的 2.5D 四连位一体式青石点将台（h_podium4.png），顶部四个凹槽站位承托四位好汉，正面一体式厚石壁承托「战力 + 羁绊」信息条。
+
+Prompt 1: home_deck_v6 (4:3, isolated foreground fortress stone terrace on pure white #FFFFFF)
+----------------------------------------------------------------------------------------------
+Use the first reference image ONLY for the 2.5D elevated stone bridge/terrace composition, side parapet walls with two square top corner stone piers, and wide uncluttered central stone floor layout; use the second reference image ONLY for the clean Song-dynasty celadon & cool blue-grey bluestone color palette and crisp Q-version cel-shaded cartoon style. Do NOT copy any characters, piggy bank, chests, buttons, icons, or text from the references.
+
+A wide 2.5D top-down oblique foreground stone fortress command terrace / bridge deck asset for the bottom half of a vertical mobile strategy game home screen, isolated against a uniform solid pure white #FFFFFF background above the terrace top edge and outside the side walls:
+- Top edge (at roughly 18% from the top of the canvas, with pure solid #FFFFFF white above it): a crisp horizontal chiseled cool blue-grey bluestone terrace curb / threshold step, flanked at its left and right ends by two sturdy carved square bluestone corner watchtower bollards / stone piers with subtle Song-style beveled stone caps and small bronze corner brackets.
+- Left and right sides: thick chiseled slate-grey stone parapet battlement walls angling slightly outward in clean one-point perspective from the two upper square corner piers down to the bottom-left and bottom-right corners of the frame (narrow triangular margins outside the walls are pure solid #FFFFFF white).
+- Central terrace floor (filling the entire wide space between the left and right parapet walls all the way to the bottom edge): a spacious, calm, flat, uncluttered cool slate-blue and pale grey-celadon paved large bluestone slab terrace floor. Large neat rectangular stone slabs with subtle hand-painted bevel highlights, faint stone joints, and tiny touches of moss or weathered cracks ONLY near the inner edges of the side parapet walls — keeping the middle 80% of the stone floor smooth, calm, and clean as an open stage for UI and heroes.
+- Cool daylight lighting matching a sunny Song-dynasty mountain fortress, crisp clean dark-slate cel-shaded outlines, completely empty terrace floor: NO characters, NO pedestals, NO chests, NO buttons, NO UI, NO TEXT, no labels, no writing anywhere in the image.
+
+Prompt 2: h_podium4_v6 (16:9, isolated 4-slot unified hero platform on pure white #FFFFFF)
+------------------------------------------------------------------------------------------
+Use the reference image ONLY for the 2.5D top-down oblique unified 4-bay rectangular stone hero platform structure, recessed slot pads, and thick vertical stone front plinth proportions. Do NOT copy any characters, numbers, sword icons, or text.
+
+Single isolated wide horizontal 2.5D top-down oblique unified 4-slot hero standing platform prop centered on a uniform solid pure white #FFFFFF background with generous white margin all around:
+- One continuous, sturdy rectangular carved bluestone-and-bronze command dais divided evenly into 4 connected side-by-side square bays of identical width in clean symmetrical one-point perspective.
+- Top surface of each of the 4 bays: thick beveled pale cool-grey chiseled stone rim, a small warm champagne-bronze clasp centered on the front rim of each bay, and a recessed smooth deep-celadon / slate-azure (#3B6E96) square-rounded inner pad with a subtle glowing ice-cyan jade ring inlay where a hero will stand. Completely empty on top (NO characters).
+- Front vertical face (spanning continuously beneath all 4 bays): a thick, heavy, unified dark slate-navy (#23364A) chiseled stone plinth fascia wall with clean beveled stone pillars between bays and a subtle champagne-gold metallic base trim along the bottom edge — clean, dark, and unadorned across the center front face so game UI numbers can sit clearly over it.
+- Crisp Q-version casual strategy mobile game cel-shaded art style, bold clean dark-charcoal outer outline, tactile 3D stone volume, NO characters, NO icons, NO numbers, NO TEXT, no labels, no writing anywhere in the image.

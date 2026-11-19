@@ -892,12 +892,15 @@ namespace Liangshan
                 : $"冷却：<color=#FFB648>{sk.Cd:0.0#}s</color>";
             Ui.Label(_info, cd, 26, Pal.Hex("D7E6F5"), blk + new Vector2(196, 58), new Vector2(320, 42), TextAnchor.MiddleRight, Fonts.Heavy);
             Ui.Box(_info, new Vector2(712, 2), blk + new Vector2(0, 34), Pal.Hex("6D92B6").A(0.24f), Art.White);
-            var descTxt = Ui.Label(_info, sk.Desc, tab == 4 ? 23 : 26, Pal.Hex("DCE8F4"), blk + new Vector2(0, -24), new Vector2(710, 106), TextAnchor.UpperLeft);
+            string descClean = tab == 4 ? sk.Desc : System.Text.RegularExpressions.Regex.Replace(sk.Desc ?? "", @"(?<!<color)[ \t]+", "");
+            var descTxt = Ui.Label(_info, descClean, tab == 4 ? 23 : 26, Pal.Hex("DCE8F4"), blk + new Vector2(0, -24), new Vector2(710, 106), TextAnchor.UpperLeft);
+            descTxt.lineSpacing = 1.18f;
             MetaUi.Fit(descTxt, 20);
 
-            // 第三层（独立底部六边形切换栏，含中文短签，零遮挡）
-            string[] icons = { d.AtkIcon, d.UltIcon ?? "ic_lock", "ic_star", "ic_scroll", "fx_star" };
-            string[] tabNames = { "普攻", "大招", "被动", "词条", "升星" };
+            // 第三层（独立底部六边形切换栏：普攻 / 特性 / 绝技 / 大招或奥义 / 成长，全员满编无空槽！）
+            var kit = HeroKits.Of(d.Id);
+            string[] icons = { d.AtkIcon, kit.TraitIcon, kit.SigIcon, kit.FinisherIcon, "ic_scroll" };
+            string[] tabNames = { "普攻", "特性", "绝技", d.HasUlt ? "大招" : "奥义", "成长" };
             for (int i = 0; i < icons.Length; i++)
             {
                 var info = Skill(u, i, atk);
@@ -1214,6 +1217,7 @@ namespace Liangshan
         {
             var d = u.Def;
             var h = d.Id;
+            var kit = HeroKits.Of(h);
             var t = new SkillText();
             float spd = B.HeroSpeedMul(h);
             if (tab == 0)
@@ -1227,59 +1231,67 @@ namespace Liangshan
             }
             else if (tab == 1)
             {
-                t.Locked = !B.HasUlt(h);
-                t.Lv = t.Locked ? 0 : 1;
-                if (!d.HasUlt)
+                t.Name = kit.TraitName;
+                t.Locked = false;
+                t.Desc = HeroText.Trait(d) + "\n<color=#7DE35A>天生常驻生效</color>";
+            }
+            else if (tab == 2)
+            {
+                int pNeed = Meta.PassiveUnlock(h);
+                t.Name = kit.SigName;
+                t.Locked = !B.HasSig(h);
+                string live = B.SigLiveNote(h);
+                t.Desc = kit.SigDesc + (t.Locked
+                    ? $"\n<color=#8E9BAC>好汉升到 {pNeed} 级自动拥有（无需抽卡）</color>"
+                    : !string.IsNullOrEmpty(live) ? $"\n<color=#7DE35A>{live}</color>" : "");
+            }
+            else if (tab == 3)
+            {
+                if (d.HasUlt)
                 {
-                    t.Name = "大招";
-                    t.Desc = "<color=#8E9BAC>仅传说好汉拥有大招</color>";
-                }
-                else
-                {
+                    t.Locked = !B.HasUlt(h);
+                    t.Lv = t.Locked ? 0 : 1;
                     t.Name = d.UltName;
                     t.Cd = d.UltCd;
                     t.Cut = d.UltCd - B.UltCd(h) / (spd * (1f + B.ChargeAura));
                     t.Desc = HeroText.Ult(d, 1f + B.Stat(h, Eff.UltPow))
                         + (B.Lo.Lv[(int)h] < Meta.UltLv ? $"\n<color=#FFB648>好汉升至 {Meta.UltLv} 级后大招进入强化池</color>"
-                        : t.Locked ? "\n<color=#8E9BAC>强化三选一抽到「大招」卡后解锁</color>" : "");
+                        : t.Locked ? "\n<color=#8E9BAC>强化三选一抽到大招卡后当场释放</color>" : "");
                 }
-            }
-            else if (tab == 2)
-            {
-                int pNeed = Meta.PassiveUnlock(h);
-                t.Name = d.PassiveName;
-                t.Locked = B.Lo.Lv[(int)h] < pNeed && !B.Lo.Passive[(int)h];
-                t.Desc = HeroText.Passive(d) + (t.Locked ? $"\n<color=#8E9BAC>好汉升到 {pNeed} 级解锁</color>" : "");
-            }
-            else if (tab == 4)
-            {
-                t.Name = "升星质变";
-                t.Lv = u.Star - 1;
-                t.Locked = u.Star < 2;
-                var sb = new System.Text.StringBuilder();
-                foreach (var tr in StarTraits.Of(d))
+                else
                 {
-                    if (sb.Length > 0) sb.Append('\n');
-                    bool on = u.Star >= tr.Star;
-                    if (on) sb.Append($"<color=#FFD24A>{tr.Star}星「{tr.Name}」</color>{tr.Desc}");
-                    else sb.Append($"<color=#8E9BAC>{tr.Star}星「{tr.Name}」{tr.Desc}</color>");
+                    t.Locked = !B.IsAwakened(h);
+                    t.Lv = t.Locked ? 0 : 1;
+                    t.Name = kit.FinisherName;
+                    t.Desc = kit.FinisherDesc
+                        + (B.Lo.Lv[(int)h] < Meta.UltLv ? $"\n<color=#FFB648>好汉升至 {Meta.UltLv} 级解锁奥义卡（集齐3词条亦可觉醒）</color>"
+                        : t.Locked ? "\n<color=#8E9BAC>强化抽到「奥义」卡或集齐3张专属词条后当场觉醒</color>"
+                        : "\n<color=#FFE066>本命奥义已觉醒生效！</color>");
                 }
-                t.Desc = sb.ToString();
             }
             else
             {
-                t.Name = "专属强化";
+                t.Name = "本局成长";
                 var sb = new System.Text.StringBuilder();
+                foreach (var tr in StarTraits.Of(d))
+                {
+                    if (u.Star < tr.Star) continue;
+                    if (sb.Length > 0) sb.Append("  ");
+                    sb.Append($"<color=#FFD24A>{tr.Star}★{tr.Name}</color>");
+                }
+                if (sb.Length > 0) sb.Append('\n');
+                int pCnt = 0;
                 foreach (var p in Defs.Perks)
                 {
                     int lv = B.Level(p.Id);
                     if (lv <= 0 || p.Hero != h) continue;
-                    if (sb.Length > 0) sb.Append("  ");
+                    if (pCnt > 0) sb.Append("  ");
                     sb.Append(p.Star ? "<color=#FFD24A>★</color>" : "").Append(p.Name).Append(O(" Lv" + lv));
                     t.Lv += lv;
+                    pCnt++;
                 }
-                t.Locked = t.Lv == 0;
-                t.Desc = t.Locked ? "<color=#8E9BAC>强化三选一中选到他的专属强化后，在这里查看；合成满星可额外选一个满星技能</color>" : sb.ToString();
+                t.Locked = t.Lv == 0 && u.Star < 2;
+                t.Desc = t.Locked ? "<color=#8E9BAC>合成升星解锁 2/3/4 星攻击质变；选到的专属词条在此汇总</color>" : sb.ToString();
             }
             return t;
         }
@@ -1456,14 +1468,14 @@ namespace Liangshan
                 Ui.Box(card, new Vector2(cw - 6, 20), new Vector2(0, ch * 0.5f - headH + 6), head, Art.White);
                 Ui.Box(card, new Vector2(cw - 20, ch - headH - 22), new Vector2(0, -headH * 0.5f + 2), Pal.Hex("DFD9C8"), Art.RoundedSmall);
                 Ui.Box(card, new Vector2(cw - 24, ch - headH - 26), new Vector2(0, -headH * 0.5f + 2), Pal.Hex("F6F4EC"), Art.RoundedSmall);
-                bool stamp = p.Ult || p.Star;
+                bool stamp = p.Ult || p.Finisher || p.Star;
                 Ui.Outlined(card, p.Name, nameSize, Color.white, new Vector2(stamp ? -26 : 0, ch * 0.5f - headH * 0.5f - 2), new Vector2(cw - (stamp ? 106 : 28), headH), head.Mul(0.4f), 2f);
                 Ui.Box(card, new Vector2(icon * 0.85f, icon * 0.24f), new Vector2(0, ch * 0.04f - icon * 0.34f), new Color(0.05f, 0.1f, 0.16f, 0.14f), Art.GroundShadow);
                 Ui.Icon(card, d.Art, icon, new Vector2(0, ch * 0.08f));
                 if (stamp)
                 {
-                    var tag = Ui.Box(card, new Vector2(76, 34), new Vector2(cw * 0.5f - 50, ch * 0.5f - headH * 0.5f - 2), p.Ult ? Pal.Hex("B83E18") : Pal.Hex("A87A14"), Art.Pill);
-                    Ui.Outlined(tag.transform, p.Ult ? "大招" : "满星", 21, Color.white, Vector2.zero, new Vector2(76, 34), Pal.Ink, 1.4f);
+                    var tag = Ui.Box(card, new Vector2(76, 34), new Vector2(cw * 0.5f - 50, ch * 0.5f - headH * 0.5f - 2), p.Ult ? Pal.Hex("B83E18") : p.Finisher ? Pal.Hex("B87E14") : Pal.Hex("A87A14"), Art.Pill);
+                    Ui.Outlined(tag.transform, p.Ult ? "大招" : p.Finisher ? "奥义" : "满星", 21, Color.white, Vector2.zero, new Vector2(76, 34), Pal.Ink, 1.4f);
                 }
                 int lv = B.Level(p.Id);
                 float descY = -ch * 0.29f;
@@ -1532,6 +1544,7 @@ namespace Liangshan
                 if (p.Kind == PerkKind.Morph) s += 1.2f;
                 if (p.Kind == PerkKind.Adv) s += 2f;
                 if (p.Ult) s += 6f;
+                if (p.Finisher) s += 5f;
                 if (s > bs) { bs = s; best = i; }
             }
             return best;
@@ -1657,9 +1670,17 @@ namespace Liangshan
                 var botDia = Ui.Box(card, new Vector2(12, 12), new Vector2(0, -top + 13), Pal.Hex("D6CEBC"), Art.RoundedSmall);
                 botDia.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
 
-                // 好汉清晰全身立绘 + 接地阴影（无贴纸遮挡脚部）
+                // 好汉清晰全身立绘 + 接地阴影（无贴纸遮挡脚部）；大招/奥义右上角挂精致技能徽记与丝带标
                 Ui.Box(card, new Vector2(154, 34), new Vector2(0, 22), new Color(0.05f, 0.1f, 0.16f, 0.14f), Art.GroundShadow);
                 Ui.Icon(card, PerkIcon(p), 184, new Vector2(0, 96));
+                if (p.Ult || p.Finisher)
+                {
+                    var kit = HeroKits.Of(p.Hero);
+                    string skIc = p.Ult ? (hd.UltIcon ?? hd.AtkIcon) : kit.FinisherIcon;
+                    MetaFx.Hex(card, skIc, 58, new Vector2(cw * 0.5f - 52f, 162f), false, hd.Rarity);
+                    var pill = Ui.Box(card, new Vector2(82, 30), new Vector2(-cw * 0.5f + 62f, 166f), p.Ult ? Pal.Hex("D84A1E") : Pal.Hex("C48A14"), Art.Pill);
+                    Ui.Outlined(pill.transform, p.Ult ? "天罡大招" : "本命奥义", 18, Color.white, Vector2.zero, new Vector2(82, 30), Pal.Ink, 1.4f);
+                }
 
                 Ui.Label(card, $"{hd.Name} · {hd.Role}", 24, Pal.Hex("5E7082"), new Vector2(0, -16), new Vector2(cw - 48, 34), TextAnchor.MiddleCenter, Fonts.Heavy);
 
@@ -1711,7 +1732,7 @@ namespace Liangshan
             {
                 CloseModal();
                 B.Pick(i);
-                Ui.Toast((p.Ult ? "解锁大招：" : p.Star ? "满星技能：" : "获得：") + p.Name, -200);
+                Ui.Toast((p.Ult ? "解锁大招：" : p.Finisher ? "觉醒奥义：" : p.Star ? "满星技能：" : "获得：") + p.Name, -200);
             });
         }
 
@@ -1757,15 +1778,13 @@ namespace Liangshan
             var bgTap = Ui.Fill(c, Color.clear, true, "tapBlank");
             Ui.Tap(bgTap.GetComponent<Graphic>(), collect, null, false);
 
-            // 上半区：停轮后弹出的横向白底金头奖励详情卡容器 + 特效层
-            var fxLayer = Ui.Rect(c, "reelFx");
-            fxLayer.sizeDelta = new Vector2(1080, 1920);
-            var cardsLayer = Ui.Rect(c, "reelCards");
-            cardsLayer.sizeDelta = new Vector2(1080, 1920);
+            // 背景柔光层在摇奖机后，前景徽标与彩带层压在摇奖机前（防止「超爽!!!」被摇奖机上木梁遮挡）
+            var backFxLayer = Ui.Rect(c, "reelBackFx");
+            backFxLayer.sizeDelta = new Vector2(1080, 1920);
 
             // 中下区：古风木架赤金摇奖机箱体（不再用大白板盖住滚轮，也不让大字糊标题）
             var machine = Ui.Rect(c, "reelMachine");
-            machine.anchoredPosition = new Vector2(0, -136);
+            machine.anchoredPosition = new Vector2(0, -196);
             float mw = gold5 ? 984f : 908f;
             const float mh = 316f;
             machine.sizeDelta = new Vector2(mw, mh + 96f);
@@ -1827,26 +1846,33 @@ namespace Liangshan
                 windows[i] = w;
             }
 
-            var closeHint = Ui.Outlined(c, "点击空白处关闭", 30, Pal.Hex("E8EEF5"), new Vector2(0, -390), new Vector2(520, 46), Pal.Hex("0E1824"), 2.2f);
+            // 前景层：停轮后弹出的横向奖励详情卡 + 顶层「超爽!!!」大字与彩带
+            var cardsLayer = Ui.Rect(c, "reelCards");
+            cardsLayer.sizeDelta = new Vector2(1080, 1920);
+            var fxLayer = Ui.Rect(c, "reelFx");
+            fxLayer.sizeDelta = new Vector2(1080, 1920);
+
+            var closeHint = Ui.Outlined(c, "点击空白处关闭", 30, Pal.Hex("E8EEF5"), new Vector2(0, -442), new Vector2(520, 46), Pal.Hex("0E1824"), 2.2f);
             closeHint.gameObject.SetActive(false);
 
             RectTransform takeBtn = null, luckyBtn = null;
             Action showAfterSpin = () =>
             {
                 canClose = true;
+                foreach (Transform ch in backFxLayer) Destroy(ch.gameObject);
                 foreach (Transform ch in fxLayer) Destroy(ch.gameObject);
                 foreach (Transform ch in cardsLayer) Destroy(ch.gameObject);
 
                 bool all = Battle.IsAllSame(r);
                 bool big = Battle.IsBigReelWin(r);
-                if (big) Jackpot(fxLayer);
-                BuildReelRewardCards(cardsLayer, r);
+                if (big) Jackpot(backFxLayer, fxLayer);
+                BuildReelRewardCards(cardsLayer, r, big);
 
                 closeHint.gameObject.SetActive(true);
                 bool canLucky = !all && !usedLucky && _v.Auto == null;
                 if (takeBtn)
                 {
-                    takeBtn.anchoredPosition = new Vector2(canLucky ? -188 : 0, -492);
+                    takeBtn.anchoredPosition = new Vector2(canLucky ? -188 : 0, -536);
                     takeBtn.gameObject.SetActive(canLucky);
                     if (canLucky) Tween.Pop(takeBtn, 0.22f);
                 }
@@ -1858,9 +1884,9 @@ namespace Liangshan
                 if (_v.Auto != null) Tween.Run(c, 1.2f, k => { }, collect);
             };
 
-            takeBtn = Ui.Btn(c, "收下", new Vector2(310, 104), new Vector2(-188, -492), Pal.Orange, collect, 42);
+            takeBtn = Ui.Btn(c, "收下", new Vector2(310, 104), new Vector2(-188, -536), Pal.Orange, collect, 42);
             takeBtn.gameObject.SetActive(false);
-            luckyBtn = Ui.Btn(c, "鸿运重转", new Vector2(340, 104), new Vector2(188, -492), Pal.Gold, () =>
+            luckyBtn = Ui.Btn(c, "鸿运重转", new Vector2(340, 104), new Vector2(188, -536), Pal.Gold, () =>
             {
                 if (usedLucky) return;
                 FakeAd("reel_jackpot", () =>
@@ -1870,6 +1896,7 @@ namespace Liangshan
                     closeHint.gameObject.SetActive(false);
                     takeBtn.gameObject.SetActive(false);
                     luckyBtn.gameObject.SetActive(false);
+                    foreach (Transform ch in backFxLayer) Destroy(ch.gameObject);
                     foreach (Transform ch in fxLayer) Destroy(ch.gameObject);
                     foreach (Transform ch in cardsLayer) Destroy(ch.gameObject);
                     r = B.SpinReels(true);
@@ -1889,7 +1916,7 @@ namespace Liangshan
         }
 
         /// <summary>在摇奖机正上方依次弹出横向白底金头奖励卡：左图标 + 右标题与完整词条/银两说明。</summary>
-        void BuildReelRewardCards(RectTransform parent, Reel[] r)
+        void BuildReelRewardCards(RectTransform parent, Reel[] r, bool big)
         {
             var rows = new List<(string icon, float iconSz, string title, string desc)>();
             foreach (var p in B.ReelPerks)
@@ -1909,10 +1936,10 @@ namespace Liangshan
             if (rows.Count == 0) return;
 
             const float cw = 868f;
-            float ch = rows.Count >= 3 ? 126f : 140f;
-            const float gap = 16f;
-            // 从下往上排在摇奖机顶梁与「超爽!!!」上方（底边起于 y = +168，绝不与下方重叠）
-            float baseBottomY = 172f;
+            float ch = rows.Count >= 3 ? 122f : 136f;
+            const float gap = 14f;
+            // 摇奖机上木梁顶边在 y = +13；触发「超爽!!!」时预留 y = 14..186 共 172px 宽敞净空带，上下各留 30px+ 呼吸间距，绝不贴边互遮！
+            float baseBottomY = big ? 188f : 48f;
             for (int i = 0; i < rows.Count; i++)
             {
                 var item = rows[rows.Count - 1 - i];
@@ -2005,15 +2032,16 @@ namespace Liangshan
             }, done);
         }
 
-        void Jackpot(RectTransform c)
+        void Jackpot(RectTransform backLayer, RectTransform frontLayer)
         {
             Sfx.Play(Snd.Jackpot);
-            var rays = Ui.Box(c, new Vector2(860, 620), new Vector2(0, -80), Pal.Gold.A(0.42f), Art.SoftDot);
+            var rays = Ui.Box(backLayer, new Vector2(880, 620), new Vector2(0, -140), Pal.Gold.A(0.42f), Art.SoftDot);
             rays.transform.SetAsFirstSibling();
-            var t = Ui.Outlined(c, "超爽!!!", 96, Pal.Hex("FFE15A"), new Vector2(0, 74), new Vector2(720, 128), Pal.Hex("982C0C"), 5f);
+            var t = Ui.GradOutlined(frontLayer, "超爽!!!", 84, Pal.Hex("FFF9A6"), Pal.Hex("FFA824"),
+                new Vector2(0, 98), new Vector2(720, 118), Pal.Hex("5E1804"), 4.4f);
             t.rectTransform.localRotation = Quaternion.Euler(0, 0, 4);
             Tween.Pop(t.transform, 0.32f);
-            Confetti(c, 36);
+            Confetti(frontLayer, 36);
         }
 
         void Confetti(RectTransform parent, int n)

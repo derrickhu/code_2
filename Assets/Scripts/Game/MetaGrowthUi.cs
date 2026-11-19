@@ -121,9 +121,13 @@ namespace Liangshan
             switch (st)
             {
                 case RowState.Taken:
-                    var chk = Ui.Icon(r, "ic_check", 42f, bpos + new Vector2(-46f, 0f));
-                    chk.color = new Color(1f, 1f, 1f, 0.85f);
-                    Ui.Label(r, "已领取", 28, Pal.Hex("8A8276"), bpos + new Vector2(20f, 0f), new Vector2(120, 48), TextAnchor.MiddleLeft, Fonts.Heavy);
+                    // 勾与「已领取」合成一组，居中落在「前往」同一列。勾右缘到字左缘留 16，避免绿圈压住「已」。
+                    const float mark = 40f, gap = 16f, wordW = 112f;
+                    float left = btnCenterX - (mark + gap + wordW) * 0.5f;
+                    Ui.Icon(r, "ic_check", mark, new Vector2(left + mark * 0.5f, 1f));
+                    var done = Ui.Label(r, "已领取", 26, Pal.Hex("8A8276"),
+                        new Vector2(left + mark + gap + wordW * 0.5f, 1f), new Vector2(wordW, 44f), TextAnchor.MiddleLeft, Fonts.Heavy);
+                    done.horizontalOverflow = HorizontalWrapMode.Overflow;
                     break;
                 case RowState.Claim:
                     var cb = Ui.Btn(r, "领取", new Vector2(btnW, 80f), bpos, Claim, claim, 32);
@@ -428,10 +432,19 @@ namespace Liangshan
             stage.sizeDelta = new Vector2(896, 148);
             Ui.Skin(stage, "dark", new Vector2(896, 148), Vector2.zero, 1f);
             Ui.Icon(stage, "tab_sprint", 122, new Vector2(-364, 2));
-            Ui.GradOutlined(stage, $"本轮已招募 {Meta.SprintPulls(S)} 次", 36, Color.white, Pal.Hex("FFE692"),
-                new Vector2(-28, 22), new Vector2(460, 48), Pal.Ink, 2.4f, TextAnchor.MiddleLeft);
-            Ui.Label(stage, $"每轮 {Meta.SprintDays} 天 · 剩余 <color=#FFE074>{Meta.SprintDaysLeft(S, today)}</color> 天 · 招募越多返利越丰厚", 23, Pal.Hex("D2E6F8"),
-                new Vector2(-28, -24), new Vector2(470, 36), TextAnchor.MiddleLeft, Fonts.Heavy);
+            // 图标右缘 -303，按钮左缘 230：三行各占一条，避免副标题折行后压到标题上。
+            const float textLeft = -286f, textRight = 214f;
+            float textW = textRight - textLeft;
+            float textX = (textLeft + textRight) * 0.5f;
+            var title = Ui.GradOutlined(stage, $"本轮已招募 {Meta.SprintPulls(S)} 次", 34, Color.white, Pal.Hex("FFE692"),
+                new Vector2(textX, 36), new Vector2(textW, 36), Pal.Ink, 2.2f, TextAnchor.MiddleLeft);
+            title.horizontalOverflow = HorizontalWrapMode.Overflow;
+            var days = Ui.Label(stage, $"每轮 {Meta.SprintDays} 天 · 剩余 <color=#FFE074>{Meta.SprintDaysLeft(S, today)}</color> 天", 24, Pal.Hex("D2E6F8"),
+                new Vector2(textX, -4), new Vector2(textW, 28), TextAnchor.MiddleLeft, Fonts.Heavy);
+            days.horizontalOverflow = HorizontalWrapMode.Overflow;
+            var tip = Ui.Label(stage, "招募越多返利越丰厚", 22, Pal.Hex("9EC4E4"),
+                new Vector2(textX, -38), new Vector2(textW, 26), TextAnchor.MiddleLeft, Fonts.Heavy);
+            tip.horizontalOverflow = HorizontalWrapMode.Overflow;
             Ui.Btn(stage, "去招募", new Vector2(196, 82), new Vector2(328, 0), Pal.Gold, () => { Close(m); Game.I.Home?.Goto(Act.Recruit); }, 32);
 
             // 双段式胶囊切换栏（冲刺目标 / 冲刺任务）

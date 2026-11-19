@@ -363,14 +363,16 @@ namespace Liangshan
                 }
                 else
                 {
-                    skillCard.sizeDelta = new Vector2(820, 118);
-                    Ui.Skin(skillCard, r == 3 ? "gacha_dock_purple" : "gacha_tray", new Vector2(820, 118), Vector2.zero, 0.68f);
-                    var aSlot = Slot(skillCard, RaritySlot(r), 86, new Vector2(-336, 0));
-                    if (!string.IsNullOrEmpty(d.AtkIcon)) Ui.Icon(aSlot.transform, d.AtkIcon, 62, Vector2.zero);
-                    Ui.Outlined(skillCard, $"招牌绝技 · 【{d.AtkName}】", 26, Pal.Hex("FFE89E"),
-                        new Vector2(36, 18), new Vector2(620, 36), Pal.Ink, 1.8f, TextAnchor.MiddleLeft);
-                    Ui.Outlined(skillCard, d.Desc, 22, Pal.Hex("DCEEFF"),
-                        new Vector2(36, -20), new Vector2(620, 34), Pal.Ink, 1.5f, TextAnchor.MiddleLeft);
+                    var kit = HeroKits.Of(d.Id);
+                    skillCard.sizeDelta = new Vector2(840, 144);
+                    Ui.Skin(skillCard, r == 3 ? "gacha_dock_purple" : "gacha_tray", new Vector2(840, 144), Vector2.zero, 0.70f);
+                    var aSlot = Slot(skillCard, RaritySlot(r), 96, new Vector2(-340, 0));
+                    Ui.Icon(aSlot.transform, kit.FinisherIcon, 74, Vector2.zero);
+                    Badge(skillCard, "本命奥义", Pal.Hex("C48A14"), new Vector2(108, 30), new Vector2(-340, 50), 17);
+                    Ui.Outlined(skillCard, $"【{kit.FinisherName}】 <size=21><color=#FFE6A0>绝技：{kit.SigName}</color></size>",
+                        27, Pal.Hex("FFE89E"), new Vector2(40, 22), new Vector2(630, 40), Pal.Ink, 1.9f, TextAnchor.MiddleLeft);
+                    Ui.Outlined(skillCard, kit.TraitDesc, 22, Pal.Hex("DCEEFF"),
+                        new Vector2(40, -22), new Vector2(630, 36), Pal.Ink, 1.5f, TextAnchor.MiddleLeft);
                 }
                 Tween.Pop(skillCard, 0.24f, 0.06f);
 
@@ -2003,8 +2005,7 @@ namespace Liangshan
 
             if (can)
             {
-                var up = Ui.Box(c, new Vector2(34, 34), new Vector2(barX + barW * 0.5f + 16f, rowY + 2f), Color.white, Art.UpArrow, "up");
-                Ui.Breathe(up, 4f);
+                Ui.Breathe(Ui.UpgradeMark(c, 34, new Vector2(barX + barW * 0.5f + 16f, rowY + 2f)), 4f);
             }
 
             Ui.Outlined(c, d.Name, 28, tier >= 3 ? Pal.Hex("FFF1B4") : Color.white,

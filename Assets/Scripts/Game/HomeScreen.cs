@@ -195,11 +195,14 @@ namespace Liangshan
             int lv = Meta.LordLevel(S, out float xp);
             Ui.Icon(av, "ui/h_round", 46, new Vector2(-42, -42), "lvBadge");
             Ui.Outlined(av, lv.ToString(), 22, Paper, new Vector2(-42, -41), new Vector2(44, 36), Ink, 1.4f);
-            if (ForgeBadge()) MetaUi.Dot(av, new Vector2(48, 48));
-            Ui.Tap(frame, () => SetTab(TabForge), av);
+            Ui.Tap(frame, () => MetaUi.Settings(Layer), av);
             // 名字顶、经验条底和头像框里的人像上下沿对齐，上下留白一致。
+            string nick = RankService.MyName;
             var id = Ui.Top(_page, -278, y, new Vector2(220, 116), "identity");
-            Ui.Outlined(id, "宋江", 32, Paper, new Vector2(0, 32), new Vector2(220, 44), Ink, 1.6f, TextAnchor.MiddleLeft);
+            int nickSz = nick.Length > 7 ? 24 : nick.Length > 5 ? 28 : 32;
+            var nickText = Ui.Outlined(id, nick, nickSz, Paper, new Vector2(0, 32), new Vector2(236, 44), Ink, 1.6f, TextAnchor.MiddleLeft);
+            nickText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            nickText.verticalOverflow = VerticalWrapMode.Overflow;
             MetaUi.Bar(id, new Vector2(-6, -27), new Vector2(208, 28), xp, Pal.Hex("3DDC6A"));
 
             CurPill(-50, y - 14, "ic_ingot", Ui.Num(S.Ingots), () => SetTab(TabShop));
@@ -322,30 +325,46 @@ namespace Liangshan
         // ---------------- 出征 ----------------
 
         /// <summary>
-        /// 主页为青绿水泊梁山寨门：门楼挂书法标题，城门前站本关首领，脚下霁蓝关卡绶带；
-        /// 青石御道站出战四好汉（脚踏青玉石台），下方承托式宝箱进度卡，底部唯一鎏金主行动按钮「开始挑战」。
-        /// 左右两列功能入口收纳进半透明深靛毛玻璃侧坞（左：补给挂机；右：目标图鉴），视觉分区井然有序。
+        /// 主页上下双舞台分层（对标《永远的蔚蓝星球》）：
+        /// 上半屏为远景梁山寨门与御道，门楼悬书法标题，城门前立本关统领与紧凑关卡绶带；
+        /// 下半屏为独立前景青石点将城台（home_deck），四位出战好汉并立于四连位一体石台（h_podium4）之上，
+        /// 石台正面直书「战力 + 羁绊（点开查看加成）」；其下铺低矮描金宝箱垫盘，底部居中六边斜切鎏金「开始挑战」主按钮（配金芒流光，左右两侧直接切关）。
         /// </summary>
         void BuildBattle(bool anim)
         {
             var st = Defs.Level(S.Selected);
             Cover("home_road", new Vector2(1080, 1920), Color.white, 0.5f);
-            Shade(0.24f, 0.22f);
+            Shade(0.24f, 0.12f);
             float sp = Ui.Spare;
             int day = Profile.Today;
+            float baseY = TabH;
 
-            var gear = Top(-474, 158, new Vector2(76, 76), "settings");
-            var gearBg = Ui.Icon(gear, "ui/h_round", 68, Vector2.zero, "bg");
-            Ui.Icon(gear, "ic_gear", 46, new Vector2(0, 1));
-            Ui.Tap(gearBg, () => MetaUi.Settings(Layer), gear);
+            // 下半区独立前景点将城台（与远景石路分层）：顶沿双石柱恰好卡在四连位好汉石台两侧，底边探入底栏之下适配任意高屏
+            float podiumY = baseY + 564f + sp * 0.30f;
+            float deckH = 758f + sp * 0.24f;
+            float deckCenterY = podiumY + 122f - deckH * 0.5f;
+            Ui.Box(Bottom(0, podiumY + 96f, new Vector2(880, 62), "deckStepShade"),
+                new Vector2(880, 62), Vector2.zero, new Color(0.03f, 0.08f, 0.15f, 0.30f), Art.SoftDot, "shadow");
+            var deck = Bottom(0, deckCenterY, new Vector2(1080, deckH), "homeDeck");
+            var deckImg = Ui.Box(deck, new Vector2(1080, deckH), Vector2.zero, Color.white, Art.Img("home_deck"), "art");
+            deckImg.type = Image.Type.Simple;
 
-            // 出征主页极简降噪（对标蔚蓝星球）：巡山、图鉴、演武、生辰纲统一收进「山寨」领地页签，主页左右仅保留各 3 枚福利/目标圆章
-            float colY = 268 + sp * 0.04f;
-            float colStep = 136 + sp * 0.025f;
-            SideDock(-468, colY, colStep, 3);
+            // 出征主页极简降噪：左侧领奖补给坞（含章节星级宝箱，与右侧 4 枚目标排行圆章完全对称，让出下方城台双望柱与石灯笼）
+            int stars = Meta.ChapterStars(S, st.Chapter);
+            int chap = st.Chapter;
+            bool chapDot = ChestBadge(chap);
+            float colY = 258 + sp * 0.04f;
+            float colStep = 132 + sp * 0.025f;
+            SideDock(-468, colY, colStep, 4);
             SideBtn(-468, colY, "tab_welfare", "福利", Meta.CanWelfare(S, day), () => MetaUi.Welfare(Layer));
             SideBtn(-468, colY + colStep, "tab_gift", "签到", Meta.CanSign(S, day), () => MetaUi.SignIn(Layer));
             SideBtn(-468, colY + colStep * 2, "ic_feast", "聚义宴", MealBadge(), () => MetaUi.Meals(Layer));
+            var starBtn = SideBtn(-468, colY + colStep * 3, "ic_chest_gold", $"★{stars}/30", chapDot, () => MetaUi.ChapterChests(Layer, chap));
+            if (chapDot)
+            {
+                var chestIc = starBtn.GetChild(2);
+                Tween.Run(chestIc, 999f, kk => chestIc.localRotation = Quaternion.Euler(0f, 0f, 6f * Mathf.Sin(kk * 999f * 7f)));
+            }
 
             int rightCount = Meta.SevenFinished(S) ? 3 : 4;
             SideDock(468, colY, colStep, rightCount);
@@ -355,28 +374,28 @@ namespace Liangshan
             SideBtn(468, colY + colStep * side++, "tab_sprint", "冲刺", SprintBadge(), () => MetaUi.Sprint(Layer));
             SideBtn(468, colY + colStep * side, "ic_rank_stage", "排行榜", RankBadge(), () => RankUi.Open(Layer, -1, () => Rebuild(false)));
 
-            // 背景台阶下沿在图高 34%：本关主统领（首领关为大首领，普通关为领军精英统领）站在城门口，脚踩台阶下沿。
+            // 远景城门口：本关主统领（首领关为大首领，普通关为领军精英统领）脚踩城门台阶下沿。
             var bd = Defs.Enemy(st.LeaderKind);
-            const float bodyPx = 286f;
-            const float bsz = 348f;
+            const float bodyPx = 276f;
+            const float bsz = 336f;
             float bodyFrac = 0.86f, bossFoot = 0.012f;
             bool bossFramed = Art.Animated(bd.Art);
             if (bossFramed && AnimMeta.Info.TryGetValue(bd.Art, out var bm)) { bodyFrac = bm.Body; bossFoot = bm.Foot; }
             float bossDraw = bossFramed ? bodyPx / Mathf.Max(0.55f, bodyFrac) : bodyPx;
-            float stair = 0.342f * Ui.Height;
-            float feet = stair - Ui.SafeTop + 40f;
+            float stair = 0.332f * Ui.Height;
+            float feet = stair - Ui.SafeTop + 34f;
 
             // 标题压在门楼上，背后衬一层柔和云白光晕，与晴空青瓦清晰分离。
-            float logoTop = 148f, logoBottom = feet - bsz * 0.86f;
-            float logoH = Mathf.Clamp(logoBottom - logoTop, 118f, 166f), logoW = logoH * 900f / 268f;
+            float logoTop = 144f, logoBottom = feet - bsz * 0.86f;
+            float logoH = Mathf.Clamp(logoBottom - logoTop, 114f, 162f), logoW = logoH * 900f / 268f;
             var logo = Top(0, logoTop + logoH * 0.5f, new Vector2(logoW, logoH), "logo");
             Ui.Box(logo, new Vector2(logoW * 1.1f, logoH * 1.35f), Vector2.zero, Color.white.A(0.32f), Art.SoftDot, "glow");
             Ui.Icon(logo, "logo", logoW, Vector2.zero, "art");
             if (anim) Tween.Pop(logo, 0.35f);
 
             var boss = Top(0, feet - bsz * 0.5f, new Vector2(bsz, bsz), "boss");
-            Ui.Box(boss, new Vector2(bsz * 0.78f, 64), new Vector2(0, -bsz * 0.47f), new Color(0.04f, 0.1f, 0.18f, 0.42f), Art.SoftDot);
-            Ui.Box(boss, new Vector2(bsz * 0.92f, 92), new Vector2(0, -bsz * 0.46f), (st.IsChapterBoss ? Pal.Purple : Pal.Hex("38A8D8")).A(0.36f), Art.SoftDot);
+            Ui.Box(boss, new Vector2(bsz * 0.78f, 62), new Vector2(0, -bsz * 0.47f), new Color(0.04f, 0.1f, 0.18f, 0.42f), Art.SoftDot);
+            Ui.Box(boss, new Vector2(bsz * 0.92f, 88), new Vector2(0, -bsz * 0.46f), (st.IsChapterBoss ? Pal.Purple : Pal.Hex("38A8D8")).A(0.36f), Art.SoftDot);
             float bossStand = bossFramed ? -bsz * 0.5f + bossDraw * (0.5f - bossFoot) : 0f;
             var icon = Ui.Icon(boss, bd.Art, bossDraw, new Vector2(0, bossStand));
             if (bossFramed)
@@ -393,65 +412,67 @@ namespace Liangshan
             Tween.Run(icon, 999f, k => icon.rectTransform.anchoredPosition = new Vector2(0, bossStand + 5 * Mathf.Sin(k * 999f * 2f)));
             if (anim) Tween.Pop(boss, 0.35f);
 
-            // 关卡绶带下面一行：首领：名字，有增益再跟上兵种；右侧蓝钮打开敌情。
-            float tagY = feet + 44f;
-            var tag = Top(0, tagY, new Vector2(540, 100), "levelTag");
-            var ribbon = Ui.Skin(tag, "h_ribbon", new Vector2(540, 100), Vector2.zero, -1f, null, "ribbon");
-            Ui.Outlined(tag, $"第{st.No}关 · {st.Name}", 39, Paper, new Vector2(0, 5), new Vector2(390, 60), AzureDeep, 2.5f);
+            // 关卡绶带（点击打开章节目录；左右切关已移至底部「开始挑战」两侧，顶区清爽不拥挤）
+            float tagY = feet + 36f;
+            var tag = Top(0, tagY, new Vector2(496, 88), "levelTag");
+            var ribbon = Ui.Skin(tag, "h_ribbon", new Vector2(496, 88), Vector2.zero, -1f, null, "ribbon");
+            Ui.Outlined(tag, $"第{st.No}关 · {st.Name}", 36, Paper, new Vector2(0, 4), new Vector2(376, 56), AzureDeep, 2.4f);
             Ui.Tap(ribbon, () => MetaUi.LevelList(Layer), tag);
-            if (S.Selected > 1) ArrowBtn(tag, -304, -1);
-            if (S.Selected <= S.Cleared && S.Selected < Defs.LevelCount) ArrowBtn(tag, 304, 1);
+
             string leadLabel = bd.IsBoss ? "首领" : "统领";
             string buffPlain = st.BuffRole.HasValue ? $" · {Defs.RoleName(st.BuffRole.Value)} +{(int)(st.BuffPct * 100 + 0.5f)}%" : "";
             string info = $"{leadLabel}：{bd.Name}" + (st.BuffRole.HasValue
                 ? $" · <color=#78F0A8>{Defs.RoleName(st.BuffRole.Value)} +{(int)(st.BuffPct * 100 + 0.5f)}%</color>"
                 : "");
-            const float maxW = 560f, btnReserve = 108f;
-            float capW = Mathf.Clamp((3 + bd.Name.Length + buffPlain.Length) * 22f + btnReserve + 28f, 320f, maxW);
-            float capH = 48f;
-            float InfoY(float h) => tagY + 50f + 8f + h * 0.5f;
+            const float maxW = 540f, btnReserve = 104f;
+            float capW = Mathf.Clamp((3 + bd.Name.Length + buffPlain.Length) * 21f + btnReserve + 26f, 310f, maxW);
+            float capH = 44f;
+            float InfoY(float h) => tagY + 44f + 6f + h * 0.5f;
             var infoBox = Top(0, InfoY(capH), new Vector2(capW, capH), "levelInfo");
             var infoBg = Ui.Skin(infoBox, "h_capsule", new Vector2(capW, capH), Vector2.zero, -1f);
-            var infoText = Ui.Label(infoBox, info, 22, Pal.Hex("DCEAF7"), new Vector2(-42, 0), new Vector2(capW - btnReserve, 40f), TextAnchor.MiddleCenter, Fonts.Heavy);
+            var infoText = Ui.Label(infoBox, info, 21, Pal.Hex("DCEAF7"), new Vector2(-40, 0), new Vector2(capW - btnReserve, 38f), TextAnchor.MiddleCenter, Fonts.Heavy);
             Canvas.ForceUpdateCanvases();
             if (infoText.preferredWidth > capW - btnReserve + 2f)
             {
                 capW = maxW;
-                capH = 88f;
+                capH = 80f;
                 infoBox.sizeDelta = new Vector2(capW, capH);
                 infoBox.anchoredPosition = new Vector2(0, -(InfoY(capH) + Ui.SafeTop));
                 infoBg.rectTransform.sizeDelta = new Vector2(capW, capH);
-                var tr = infoText.rectTransform;
-                tr.sizeDelta = new Vector2(capW - btnReserve, 72f);
+                infoText.rectTransform.sizeDelta = new Vector2(capW - btnReserve, 68f);
                 infoText.verticalOverflow = VerticalWrapMode.Truncate;
                 infoText.lineSpacing = 0.9f;
             }
-            var spyBtn = Ui.Box(infoBox, new Vector2(88, 34), new Vector2(capW * 0.5f - 52f, 0), Pal.Hex("2472A4"), Art.Pill, "enemyPreview");
-            Ui.Outlined(spyBtn.transform, "敌情", 21, Color.white, new Vector2(0, 1), new Vector2(86, 34), Ink, 1.4f);
+            var spyBtn = Ui.Box(infoBox, new Vector2(84, 32), new Vector2(capW * 0.5f - 49f, 0), Pal.Hex("2472A4"), Art.Pill, "enemyPreview");
+            Ui.Outlined(spyBtn.transform, "敌情", 20, Color.white, new Vector2(0, 1), new Vector2(82, 32), Ink, 1.4f);
             Ui.Tap(infoBg, () => MetaUi.StageEnemies(Layer, st), infoBox);
             Ui.Tap(spyBtn, () => MetaUi.StageEnemies(Layer, st), spyBtn.transform);
 
-            // 出战好汉：站在青瓷白玉石台上；上阵好汉不再挂刺眼红点，改用柔和翠绿小升级标（好汉页签已有汇总提醒）
-            float baseY = TabH;
-            float wallY = baseY + 505 + sp * 0.27f;
-            var podium = Bottom(0, wallY, new Vector2(1200, 277), "podium");
+            // 出战好汉：并立于四连位一体式青石点将台（ui/h_podium4），石台正面横壁一体展示「战力 + 羁绊」
+            const float podW = 684f, podH = 216f;
+            var podium = Bottom(0, podiumY, new Vector2(podW, podH), "podium");
+            var podStage = Ui.Box(podium, new Vector2(podW, podH), Vector2.zero, Color.white, Art.Img("ui/h_podium4"), "stage");
+            podStage.type = Image.Type.Simple;
+
+            float ringY = 0.2075f * podH;
+            float[] slotFrac = { -0.3492f, -0.1131f, 0.1134f, 0.3483f };
             var lu = Meta.Lineup(S);
             var arts = new Image[lu.Length];
             for (int i = 0; i < lu.Length; i++)
             {
                 var d = Defs.Hero(lu[i]);
+                float sx = slotFrac[Mathf.Clamp(i, 0, 3)] * podW;
                 var g = Ui.Rect(podium, "hero" + i);
-                g.anchoredPosition = new Vector2((i - 1.5f) * 134, 96);
-                g.sizeDelta = new Vector2(130, 200);
-                Ui.Box(g, new Vector2(146, 56), new Vector2(0, -72), new Color(0.04f, 0.1f, 0.18f, 0.28f), Art.SoftDot, "aura");
-                Ui.Icon(g, "ui/h_pedestal", 126, new Vector2(0, -76), "pedestal");
+                g.anchoredPosition = new Vector2(sx, ringY + 75f);
+                g.sizeDelta = new Vector2(142, 200);
+                Ui.Box(g, new Vector2(108, 34), new Vector2(0, -73), new Color(0.03f, 0.09f, 0.16f, 0.34f), Art.SoftDot, "shadow");
                 bool framed = Art.Animated(d.Art);
                 float draw = 160f, standY = 5f;
                 if (framed)
                 {
                     float bodyH = 0.85f, foot = 0.01f;
                     if (AnimMeta.Info.TryGetValue(d.Art, out var meta)) { bodyH = meta.Body; foot = meta.Foot; }
-                    draw = 150f / Mathf.Max(0.6f, bodyH);
+                    draw = 152f / Mathf.Max(0.6f, bodyH);
                     standY = -75f - draw * (foot - 0.5f);
                 }
                 var art = Ui.Icon(g, d.Art, draw, new Vector2(0, standY), "art");
@@ -467,55 +488,125 @@ namespace Liangshan
                     });
                 }
                 arts[i] = art;
-                // 有攻击帧的好汉脚踩在石台上，呼吸和出手跟战场用同一套帧，不再整个人上下飘。
                 if (!framed)
                     Tween.Run(art, 999f, k => art.rectTransform.anchoredPosition = new Vector2(0, standY + 3 * Mathf.Sin(k * 999f * 2.2f + i * 0.8f)));
-                Ui.Tap(art, () => SetTab(TabHero), g);
+                var heroHit = Ui.Box(g, new Vector2(140, 186), new Vector2(0, -2), new Color(0, 0, 0, 0), Art.White, "hit");
+                Ui.Tap(heroHit, () => SetTab(TabHero), art.transform);
                 if (Meta.CanLevel(S, lu[i]))
                 {
-                    var up = Ui.Icon(g, "ic_fast", 30, new Vector2(44, -52), "upHint");
-                    up.transform.localRotation = Quaternion.Euler(0, 0, 90);
-                    up.color = Pal.Hex("68F098");
-                    Ui.Breathe(up, 4f);
+                    Ui.Breathe(Ui.UpgradeMark(g, 30, new Vector2(46, -50), "upHint"), 4f);
                 }
                 if (anim) Tween.Pop(g, 0.3f, 0.1f + i * 0.05f);
             }
-            var pw = Ui.Rect(podium, "power");
-            pw.anchoredPosition = new Vector2(0, -42);
-            pw.sizeDelta = new Vector2(226, 50);
-            Ui.Skin(pw, "h_capsule", new Vector2(226, 50), Vector2.zero, -1f);
-            Ui.Icon(pw, "ic_sword", 40, new Vector2(-70, 1));
-            Ui.Outlined(pw, Ui.Num(Meta.TeamPower(S)), 32, Gold, new Vector2(16, 1), new Vector2(156, 46), Ink, 2f);
 
+            // 石台前壁原石浅凹阴刻横槽（y = -51）：与石台同色同质，克制内敛不抢角色与主按钮焦点；右侧青瓷玉签可点开看聚义羁绊
+            const float plinthY = -51f;
             int roleCnt = Defs.DistinctRoles(lu, out _);
             float roleSyn = Defs.RoleSynergyBonus(lu);
             var bonds = Defs.ActiveBonds(lu);
-            if (roleSyn > 0 || bonds.Count > 0)
-            {
-                string synTxt = roleSyn > 0 ? $"{roleCnt}职同心 +{(int)(roleSyn * 100)}%" : "";
-                if (bonds.Count > 0) synTxt += (synTxt.Length > 0 ? " · " : "") + $"<color=#FFE066>{bonds[0].Name}</color>";
-                var syn = Ui.Rect(podium, "synergy");
-                syn.anchoredPosition = new Vector2(0, -86);
-                syn.sizeDelta = new Vector2(420, 34);
-                var synBg = Ui.Box(syn, new Vector2(Mathf.Clamp(synTxt.Length * 18f + 44f, 220f, 440f), 32), Vector2.zero, TopPill, Art.Pill);
-                Ui.Label(syn, synTxt, 20, Pal.Hex("B8F0D2"), new Vector2(0, 1), new Vector2(430, 30), TextAnchor.MiddleCenter, Fonts.Heavy);
-                Ui.Tap(synBg, () => MetaUi.BondTip(Layer, lu), syn);
-            }
+            string bondStr;
+            if (roleSyn > 0 && bonds.Count > 0)
+                bondStr = $"{roleCnt}职+{(int)(roleSyn * 100)}% · <color=#F7E29C>{bonds[0].Name}</color>";
+            else if (roleSyn > 0)
+                bondStr = $"{roleCnt}职同心 <color=#B5F2D6>+{(int)(roleSyn * 100)}%</color>";
+            else if (bonds.Count > 0)
+                bondStr = $"<color=#F7E29C>{bonds[0].Name}</color>";
+            else
+                bondStr = "聚义羁绊";
 
-            // 关卡三宝箱：承托在半透明深靛玉盘底座上，层次分明
-            float chestY = baseY + 334 + sp * 0.18f;
-            var row = Bottom(0, chestY, new Vector2(440, 136), "chests");
-            Ui.Box(row, new Vector2(436, 118), new Vector2(0, -6), DockEdge, Art.Rounded, "trayRim");
-            Ui.Box(row, new Vector2(430, 112), new Vector2(0, -6), Glass, Art.Rounded, "tray");
+            var crest = Ui.Rect(podium, "podiumCrest");
+            crest.anchoredPosition = new Vector2(0f, plinthY);
+
+            string pwNum = Ui.Num(Meta.TeamPower(S));
+            var pwText = Ui.Outlined(crest, pwNum, 30, Pal.Hex("FCE9B0"), Vector2.zero, new Vector2(200f, 44f),
+                Pal.Hex("232D37"), 1.9f, TextAnchor.MiddleLeft, "pwNum");
+            var bondProbe = Ui.Outlined(crest, bondStr, 21, Color.white, Vector2.zero, new Vector2(340f, 36f), Pal.Hex("162634"), 1.6f, TextAnchor.MiddleCenter, "probe");
+            Canvas.ForceUpdateCanvases();
+
+            float pwNumW = Mathf.Clamp(pwText.preferredWidth + 6f, 54f, 168f);
+            float bondTxtW = Mathf.Clamp(bondProbe.preferredWidth + 6f, 102f, 276f);
+            DestroyImmediate(bondProbe.gameObject);
+
+            const float swordSz = 36f, swordGap = 5f, midGap = 22f;
+            float leftZoneW = swordSz + swordGap + pwNumW;
+            float pillW = Mathf.Clamp(32f + bondTxtW + 28f, 186f, 342f);
+            const float pillH = 40f;
+            float innerW = leftZoneW + midGap + pillW;
+            float crestW = Mathf.Clamp(innerW + 58f, 430f, 592f);
+            const float crestH = 58f;
+            crest.sizeDelta = new Vector2(crestW, crestH);
+
+            var crestBg = Ui.Skin(crest, "h_podium_crest", new Vector2(crestW, crestH), Vector2.zero, -1f, null, "crestBg");
+            crestBg.transform.SetAsFirstSibling();
+
+            float startLeft = -innerW * 0.5f;
+            Ui.Icon(crest, "ic_sword", swordSz, new Vector2(startLeft + swordSz * 0.5f, 1f), "sword");
+            pwText.transform.SetAsLastSibling();
+            pwText.rectTransform.sizeDelta = new Vector2(pwNumW + 14f, 44f);
+            pwText.rectTransform.anchoredPosition = new Vector2(startLeft + swordSz + swordGap + (pwNumW + 14f) * 0.5f, 1f);
+
+            float sepX = startLeft + leftZoneW + midGap * 0.5f;
+            Ui.Box(crest, new Vector2(1.6f, 24f), new Vector2(sepX, 0f), new Color(0.84f, 0.89f, 0.93f, 0.28f), Art.White, "sepLine");
+
+            float pillX = startLeft + leftZoneW + midGap + pillW * 0.5f;
+            var bondHolder = Ui.Rect(crest, "bondBtn");
+            bondHolder.sizeDelta = new Vector2(pillW, pillH);
+            bondHolder.anchoredPosition = new Vector2(pillX, 0.5f);
+            Ui.Skin(bondHolder, "h_bond_pill_lip", new Vector2(pillW + 4f, pillH + 4f), new Vector2(0f, -1.5f), -1f, null, "lip");
+
+            var bondBody = Ui.Rect(bondHolder, "body");
+            bondBody.sizeDelta = new Vector2(pillW, pillH);
+            Ui.Skin(bondBody, "h_bond_pill", new Vector2(pillW, pillH), Vector2.zero, -1f, null, "face");
+            Ui.Icon(bondBody, "ui/ic_bond_knot", 30f, new Vector2(-pillW * 0.5f + 20f, 0f), "knot");
+            Ui.Outlined(bondBody, bondStr, 21, Pal.Hex("EAF4F8"), new Vector2(3f, 0.5f), new Vector2(pillW - 58f, 36f),
+                Pal.Hex("152432"), 1.6f, TextAnchor.MiddleCenter, "txt");
+            Ui.Icon(bondBody, "ui/ic_bond_go", 20f, new Vector2(pillW * 0.5f - 16f, 0f), "go");
+
+            var bondHit = Ui.Box(bondHolder, new Vector2(pillW + 14f, pillH + 16f), Vector2.zero, new Color(0, 0, 0, 0), Art.White, "bondHit");
+            Ui.Tap(bondHit, () => MetaUi.BondTip(Layer, lu), bondBody, true, 2f);
+
+            // 关卡三宝箱：落在低矮朱漆描金承托垫盘上；若回看已通关关卡或本关失利，扫荡/援军安静落在宝箱垫盘右侧青石台面内（绝不遮挡两侧城台石柱与灯笼）
+            float chestY = baseY + 332f + sp * 0.19f;
+            bool aid = S.Selected > S.Cleared && S.LostStage == S.Selected && S.AdStart2Star < AidPerDay;
+            if (Meta.CanSweep(S, st.No))
+            {
+                var sw = Bottom(348, chestY + 2f, new Vector2(124, 124), "sweep");
+                var swVis = Ui.Rect(sw, "vis");
+                swVis.sizeDelta = new Vector2(124, 124);
+                Ui.Icon(swVis, "ui/h_round", 94, new Vector2(0, 14), "bg");
+                Ui.Icon(swVis, "ic_sweep", 62, new Vector2(0, 16));
+                Ui.Outlined(swVis, "扫荡", 24, Paper, new Vector2(0, -34), new Vector2(120, 30), Ink, 1.8f);
+                Ui.Outlined(swVis, $"体力 -{Meta.BattleStamina}", 18, Pal.Hex("B8DCFA"), new Vector2(0, -58), new Vector2(140, 24), Ink, 1.4f);
+                var swHit = Ui.Box(sw, new Vector2(128, 128), Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
+                Ui.Tap(swHit, () => Sweep(st), swVis);
+            }
+            else if (aid)
+            {
+                var aidNode = Bottom(348, chestY + 2f, new Vector2(130, 124), "aid");
+                var aidVis = Ui.Rect(aidNode, "vis");
+                aidVis.sizeDelta = new Vector2(130, 124);
+                Ui.Icon(aidVis, "ui/h_round", 94, new Vector2(0, 14), "bg");
+                Ui.Icon(aidVis, "ic_ad", 56, new Vector2(0, 16));
+                Ui.Outlined(aidVis, "援军", 24, Pal.Hex("A8FFBE"), new Vector2(0, -34), new Vector2(128, 30), Ink, 1.8f);
+                Ui.Outlined(aidVis, "2星+80银", 18, Gold, new Vector2(0, -58), new Vector2(144, 24), Ink, 1.4f);
+                var aidHit = Ui.Box(aidNode, new Vector2(130, 128), Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
+                Ui.Tap(aidHit, OfferAid, aidVis);
+            }
+            var row = Bottom(0, chestY, new Vector2(456, 128), "chests");
+            var matImg = Ui.Box(row, new Vector2(456, 48), new Vector2(0, -28), Color.white, Art.Img("ui/h_chest_mat"), "mat");
+            matImg.type = Image.Type.Simple;
             for (int k = 0; k < 3; k++)
             {
                 bool got = Meta.LevelChestGot(S, st.No, k);
                 bool ready = Meta.CanOpenLevelChest(S, st.No, k);
-                float x = (k - 1) * 132;
-                Ui.Box(row, new Vector2(106, 32), new Vector2(x, -38), new Color(0, 0, 0, 0.28f), Art.SoftDot, "plate" + k);
-                var c = Ui.Icon(row, got ? "ic_chest_open" : MetaUi.ChestArt(k), 92, new Vector2(x, 0), "chest" + k);
-                if (!got && !ready) c.color = new Color(0.86f, 0.92f, 0.98f, 0.62f);
-                if (got) MetaUi.Check(row, new Vector2(x + 32, -26), 30);
+                float x = (k - 1) * 136;
+                Ui.Box(row, new Vector2(102, 26), new Vector2(x, -26), new Color(0, 0, 0, 0.24f), Art.SoftDot, "plate" + k);
+                var cSlot = Ui.Rect(row, "chestSlot" + k);
+                cSlot.anchoredPosition = new Vector2(x, 4);
+                cSlot.sizeDelta = new Vector2(112, 112);
+                var c = Ui.Icon(cSlot, got ? "ic_chest_open" : MetaUi.ChestArt(k), 96, Vector2.zero, "chest" + k);
+                if (!got && !ready) c.color = new Color(0.90f, 0.94f, 0.99f, 0.72f);
+                if (got) MetaUi.Check(cSlot, new Vector2(32, -28), 30);
                 if (ready)
                 {
                     MetaUi.Dot(c.transform, new Vector2(34, 34));
@@ -524,7 +615,8 @@ namespace Liangshan
                     Tween.Run(ic, 999f, kk => ic.rectTransform.localRotation = Quaternion.Euler(0, 0, 6f * Mathf.Sin(kk * 999f * 6f + phase)));
                 }
                 int ck = k, lvl = st.No;
-                Ui.Tap(c, () =>
+                var cHit = Ui.Box(cSlot, new Vector2(116, 116), Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
+                Ui.Tap(cHit, () =>
                 {
                     if (!Meta.CanOpenLevelChest(S, lvl, ck))
                     {
@@ -534,59 +626,19 @@ namespace Liangshan
                     var gotR = Meta.OpenLevelChest(S, lvl, ck, new Rng(Environment.TickCount));
                     Profile.Save();
                     MetaUi.ShowRewards(Layer, "关卡宝箱", gotR);
-                });
-                if (anim) Tween.Pop(c.transform, 0.28f, 0.15f + k * 0.05f);
+                }, c.transform);
+                if (anim) Tween.Pop(cSlot, 0.28f, 0.15f + k * 0.05f);
             }
 
-            // 左：章节星级宝箱（深靛青瓷方牌）；右：扫荡
-            int stars = Meta.ChapterStars(S, st.Chapter);
-            float sideY = wallY + 12;
-            var cs = Bottom(-410, sideY, new Vector2(164, 118), "chapterStars");
-            var csBg = Ui.Skin(cs, "h_tile", new Vector2(156, 114), Vector2.zero, 1f);
-            Ui.Icon(cs, "ic_chest_gold", 68, new Vector2(-32, 10));
-            Ui.Icon(cs, "ic_star", 34, new Vector2(36, 20));
-            Ui.Outlined(cs, $"{stars}/30", 23, Paper, new Vector2(28, -26), new Vector2(106, 30), Ink, 1.5f);
-            if (ChestBadge(st.Chapter)) MetaUi.Dot(cs, new Vector2(66, 44));
-            int chap = st.Chapter;
-            Ui.Tap(csBg, () => MetaUi.ChapterChests(Layer, chap), cs);
-            if (Meta.CanSweep(S, st.No))
-            {
-                var sw = Bottom(410, sideY, new Vector2(144, 144), "sweep");
-                var swBg = Ui.Icon(sw, "ui/h_round", 108, new Vector2(0, 14), "bg");
-                Ui.Icon(sw, "ic_sweep", 74, new Vector2(0, 16));
-                Ui.Outlined(sw, "扫荡", 26, Paper, new Vector2(0, -42), new Vector2(140, 34), Ink, 1.8f);
-                Ui.Outlined(sw, $"体力 -{Meta.BattleStamina}", 19, Pal.Hex("B8DCFA"), new Vector2(0, -68), new Vector2(160, 26), Ink, 1.4f);
-                Ui.Tap(swBg, () => Sweep(st), sw);
-            }
+            // 底部核心行动区：全场唯一温润鎏金焦点「开始挑战」主按钮 + 左右两侧青白石切关三角箭头
+            float startY = baseY + 126f + sp * 0.08f;
+            var start = Ui.SubBtn(_page, "开始挑战", "ic_wine", Meta.BattleStamina.ToString(), new Vector2(468f, 142f), Vector2.zero,
+                Pal.Gold, () => Game.I.StartLevel(S.Selected), 50, 26, true);
+            start.anchorMin = start.anchorMax = new Vector2(0.5f, 0f);
+            start.anchoredPosition = new Vector2(0f, startY);
 
-            // 开始挑战：鎏金主按钮。这一关打输过才在右侧并一颗同高的绿色援军按钮，两颗作为一组落在石路中央。
-            float startY = baseY + 148 + sp * 0.1f;
-            const float bh = 144f;
-            bool aid = S.Selected > S.Cleared && S.LostStage == S.Selected && S.AdStart2Star < AidPerDay;
-            float bw = aid ? 400f : 496f;
-            const float aw = 208f, gap = 16f;
-            float startX = aid ? -(aw + gap) * 0.5f : 0f;
-            var start = Ui.SubBtn(_page, "开始挑战", "ic_wine", Meta.BattleStamina.ToString(), new Vector2(bw, bh), new Vector2(0, startY),
-                Pal.Gold, () => Game.I.StartLevel(S.Selected), 54, 28, true);
-            start.anchorMin = start.anchorMax = new Vector2(0.5f, 0);
-            start.anchoredPosition = new Vector2(startX, startY);
-            var glow = Ui.Box(start, new Vector2(bw + (aid ? 28f : 88f), bh + (aid ? 40f : 56f)), Vector2.zero, Pal.Gold.A(0.24f), Art.SoftDot, "glow");
-            glow.transform.SetAsFirstSibling();
-            Tween.Run(start, 9999f, k =>
-            {
-                float t = k * 9999f;
-                start.localScale = Vector3.one * (1f + 0.016f * Mathf.Sin(t * 3.6f));
-                glow.color = Pal.Gold.A(0.16f + 0.09f * Mathf.Sin(t * 3.6f));
-            });
-
-            if (aid)
-            {
-                float aidX = startX + bw * 0.5f + gap + aw * 0.5f;
-                var aidBtn = Ui.SubBtn(_page, "援军", "ic_ad", "2星+80", new Vector2(aw, bh), Vector2.zero,
-                    Pal.Green, OfferAid, 40, 22);
-                aidBtn.anchorMin = aidBtn.anchorMax = new Vector2(0.5f, 0);
-                aidBtn.anchoredPosition = new Vector2(aidX, startY);
-            }
+            if (S.Selected > 1) StageArrow(startY, -292f, -1);
+            if (S.Selected <= S.Cleared && S.Selected < Defs.LevelCount) StageArrow(startY, 292f, 1);
 
             var raid = Ui.Rect(_page, "raid");
             raid.anchorMin = Vector2.zero;
@@ -636,16 +688,20 @@ namespace Liangshan
             MetaUi.ShowRewards(Layer, $"扫荡 第{st.No}关", r);
         }
 
-        /// <summary>关卡绶带两侧的朱红圆箭头。原图朝左，向右的翻过来。</summary>
-        void ArrowBtn(RectTransform tag, float x, int dir)
+        /// <summary>「开始挑战」两侧的青白石 3D 三角切关按钮。原图朝左，向右放在不缩放容器内翻转，避免按压回弹丢符号。</summary>
+        void StageArrow(float y, float x, int dir)
         {
-            var b = Ui.Icon(tag, "ui/h_arrow", 80, new Vector2(x, 4), "arrow");
-            if (dir > 0) b.rectTransform.localScale = new Vector3(-1, 1, 1);
-            Ui.Tap(b, () =>
+            var holder = Bottom(x, y, new Vector2(86, 96), dir < 0 ? "prevStage" : "nextStage");
+            var body = Ui.Rect(holder, "body");
+            body.sizeDelta = new Vector2(74, 84);
+            var ic = Ui.Icon(body, "ui/h_stage_arrow", 82, Vector2.zero, "arrow");
+            if (dir > 0) ic.rectTransform.localScale = new Vector3(-1f, 1f, 1f);
+            var hit = Ui.Box(holder, new Vector2(104, 114), Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
+            Ui.Tap(hit, () =>
             {
                 S.Selected = Mathf.Clamp(S.Selected + dir, 1, Mathf.Min(Defs.LevelCount, S.Cleared + 1));
                 Profile.Save();
-            });
+            }, body);
         }
 
         /// <summary>左右功能侧坞：半透明深靛毛玻璃竖舱，把零散入口收纳成清爽模块。</summary>
@@ -660,7 +716,7 @@ namespace Liangshan
         }
 
         /// <summary>入口圆章：深靛银边圆底托住图标，冷瓷白字清楚利落。</summary>
-        void SideBtn(float x, float y, string icon, string name, bool dot, Action act, bool locked = false)
+        RectTransform SideBtn(float x, float y, string icon, string name, bool dot, Action act, bool locked = false)
         {
             var b = Top(x, y, new Vector2(112, 128), "side_" + name);
             var hit = Ui.Box(b, new Vector2(112, 128), Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
@@ -674,6 +730,7 @@ namespace Liangshan
             Ui.Outlined(b, name, 24, Paper, new Vector2(0, -44), new Vector2(130, 32), Ink, 1.9f);
             if (dot) MetaUi.Dot(b, new Vector2(34, 48)).rectTransform.localScale = Vector3.one * 0.72f;
             Ui.Tap(hit, act, b);
+            return b;
         }
 
         // ---------------- 好汉 ----------------
@@ -1162,6 +1219,8 @@ namespace Liangshan
             var c = Ui.Rect(parent, "card_" + h);
             c.anchoredPosition = pos;
             c.sizeDelta = new Vector2(238, 306);
+            // 按下只缩小画面。热区留在 c 上，否则框一缩，手指就掉到框外，进出反复闪。
+            var body = Ui.Rect(c, "body");
 
             // 传说好汉卡外圈呼吸鎏金气场（拉开顶阶尊贵度）
             if (owned && tier >= 3)
@@ -1170,7 +1229,10 @@ namespace Liangshan
                 Tween.Run(aura, 999f, k => aura.color = Pal.Hex("FFC842").A(0.20f + 0.10f * Mathf.Sin(k * 999f * 2.6f)));
             }
 
-            var face = MetaUi.Card(c, owned ? MetaUi.RarityCard(d.Rarity) : "card_lock", new Vector2(234, 258), new Vector2(0, 20));
+            // 长按换将只认这块卡框。框外（名字、卡与卡的空隙）不进长按。
+            var frameSize = new Vector2(234, 258);
+            var framePos = new Vector2(0, 20);
+            var face = MetaUi.Card(c, owned ? MetaUi.RarityCard(d.Rarity) : "card_lock", frameSize, framePos);
 
             // 卡内舞台背光与立绘裁切窗（全彩满铺卡底 + 贴地脚影）
             var artMask = Ui.Rect(c, "artMask");
@@ -1196,6 +1258,8 @@ namespace Liangshan
             // 卡框正下方清晰名牌（传说好汉暖香槟金字，其余纯白描边字）
             Color nameCol = !owned ? Pal.Hex("9EB2C6") : tier >= 3 ? Pal.Hex("FFF1B4") : Color.white;
             Ui.Outlined(c, d.Name, 29, nameCol, new Vector2(0, -130), new Vector2(234, 40), Pal.Ink, 2f);
+            var nameHit = Ui.Box(c, new Vector2(234, 40), new Vector2(0, -130), new Color(1f, 1f, 1f, 0.001f), Art.White, "nameHit");
+            nameHit.raycastTarget = true;
 
             if (owned)
             {
@@ -1225,8 +1289,7 @@ namespace Liangshan
 
                 if (can)
                 {
-                    var up = Ui.Box(c, new Vector2(34, 34), new Vector2(barX + barW * 0.5f + 16f, rowY + 2f), Color.white, Art.UpArrow, "up");
-                    Ui.Breathe(up, 4f);
+                    Ui.Breathe(Ui.UpgradeMark(c, 34, new Vector2(barX + barW * 0.5f + 16f, rowY + 2f)), 4f);
                 }
             }
             else
@@ -1236,7 +1299,7 @@ namespace Liangshan
                 Ui.Box(c, new Vector2(188, 28), new Vector2(0, -74), new Color(0.07f, 0.11f, 0.16f, 0.72f), Art.Pill, "lockBar");
                 Ui.Outlined(c, src, 20, Pal.Hex("CFE2F2"), new Vector2(0, -73), new Vector2(184, 30), Pal.Hex("0E1720"), 1.2f);
             }
-            var hit = Ui.Box(c, new Vector2(238, 306), Vector2.zero, new Color(1f, 1f, 1f, 0.001f), Art.White, "hit");
+            var hit = Ui.Box(c, frameSize, framePos, new Color(1f, 1f, 1f, 0.001f), Art.White, "hit");
             hit.raycastTarget = true;
             LineupDrag drag = null;
             // 已经站在点将台上的，长按不抬起来，也不进换位。
@@ -1245,22 +1308,33 @@ namespace Liangshan
                 drag = hit.gameObject.AddComponent<LineupDrag>();
                 drag.Init(this, h, c.GetComponentInParent<ScrollRect>());
             }
-            Ui.Tap(hit, () =>
+            System.Action open = () =>
             {
                 if (drag != null && drag.Ate) return;
                 MetaUi.HeroDetail(Layer, h);
-            }, c);
+            };
+            Ui.Tap(hit, open, body);
+            Ui.Tap(nameHit, open, body);
+            var visuals = new List<Transform>();
+            for (int i = 0; i < c.childCount; i++)
+            {
+                var ch = c.GetChild(i);
+                if (ch == body || ch == hit.transform || ch == nameHit.transform) continue;
+                visuals.Add(ch);
+            }
+            foreach (var ch in visuals) ch.SetParent(body, false);
             return c;
         }
 
-        /// <summary>按住已拥有的好汉一小会儿就抬起可拖。手指先滑出一段，才交给名单滚动。</summary>
-        sealed class LineupDrag : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IInitializePotentialDragHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+        /// <summary>按住卡框内一小会儿就抬起可拖。手指离开卡框就取消长按；先滑出一段，才交给名单滚动。</summary>
+        sealed class LineupDrag : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler, IInitializePotentialDragHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
         {
             HomeScreen _home;
             HeroId _hero;
             ScrollRect _scroll;
             bool _down, _drag, _passed;
             float _t;
+            int _pointer = -1;
             Vector2 _origin, _pos;
             const float Hold = 0.16f;
 
@@ -1282,20 +1356,48 @@ namespace Liangshan
             public void OnPointerDown(PointerEventData e)
             {
                 Ate = false;
-                _down = true;
+                _down = Inside(e.position);
                 _drag = false;
                 _passed = false;
                 _t = Time.unscaledTime;
+                _pointer = e.pointerId;
                 _origin = _pos = e.position;
+                if (!_down) return;
                 var scroll = Scroll();
                 if (scroll) scroll.StopMovement();
+            }
+
+            public void OnPointerExit(PointerEventData e)
+            {
+                if (_drag || _passed) return;
+                _down = false;
             }
 
             void Update()
             {
                 if (!_down || _drag || _passed || _home == null || _home.Swapping) return;
+                if (Live(out var p)) _pos = p;
+                if (!Inside(_pos)) { _down = false; return; }
                 if (Time.unscaledTime - _t < Hold) return;
                 StartDrag(_pos);
+            }
+
+            /// <summary>屏幕点是否落在这块卡框矩形内。遮罩画布用空相机。</summary>
+            bool Inside(Vector2 screen) =>
+                RectTransformUtility.RectangleContainsScreenPoint((RectTransform)transform, screen, null);
+
+            bool Live(out Vector2 p)
+            {
+                if (Input.touchCount > 0)
+                {
+                    for (int i = 0; i < Input.touchCount; i++)
+                    {
+                        var t = Input.GetTouch(i);
+                        if (t.fingerId == _pointer) { p = t.position; return true; }
+                    }
+                }
+                p = Input.mousePosition;
+                return true;
             }
 
             public void OnInitializePotentialDrag(PointerEventData e)
@@ -1308,6 +1410,12 @@ namespace Liangshan
             {
                 _pos = e.position;
                 if (_drag || _passed || _home == null) return;
+                if (!Inside(e.position))
+                {
+                    _down = false;
+                    if (Slid(e.position)) HandToScroll(e);
+                    return;
+                }
                 if (Time.unscaledTime - _t >= Hold && !_home.Swapping)
                 {
                     StartDrag(e.position);
@@ -1328,6 +1436,12 @@ namespace Liangshan
                 {
                     var scroll = Scroll();
                     if (scroll) scroll.OnDrag(e);
+                    return;
+                }
+                if (!Inside(e.position))
+                {
+                    _down = false;
+                    if (Slid(e.position)) HandToScroll(e);
                     return;
                 }
                 if (Slid(e.position)) HandToScroll(e);
@@ -1419,14 +1533,13 @@ namespace Liangshan
             float sp = Ui.Spare;
             Action re = () => Rebuild(false);
 
-            // 1. 左侧竖排 5 枚养成系统圆章（武器天赋 / 披风战氅 / 玄女天书 / 杏黄战旗 / 图鉴藏品）
+            // 1. 左侧竖排 4 枚养成圆章。敌军图鉴在山寨页，这里不再放一个重复的「藏品」。
             float leftStart = 212f + sp * 0.04f;
             float leftStep = 122f + sp * 0.02f;
             LordLeftBadge(-462, leftStart + leftStep * 0, "eq_weapon", "武器", Meta.CanTalent(S), false, () => MetaUi.TalentTree(Layer, re));
             LordLeftBadge(-462, leftStart + leftStep * 1, "eq_cloak", "披风", Meta.CanCloakUp(S), false, () => MetaUi.Cloak(Layer, re));
             LordLeftBadge(-462, leftStart + leftStep * 2, "ic_tome", "兵书", Meta.CanPage(S) || Meta.CanTome(S), false, () => MetaUi.Tome(Layer, re));
             LordLeftBadge(-462, leftStart + leftStep * 3, "ic_flag", "战旗", Meta.CanFlagUp(S), false, () => MetaUi.Flag(Layer, re));
-            LordLeftBadge(-462, leftStart + leftStep * 4, "tab_codex", "藏品", false, Meta.CodexBadge(S) > 0, () => MetaUi.Codex(Layer));
 
             // 2. 中央统帅立绘：与 Loading 页形象完全一致的全身宋江，实打实踩在演武石坪上（去掉悬浮蓝光圆盘）
             float stageY = 536f + sp * 0.16f;
@@ -1576,7 +1689,7 @@ namespace Liangshan
             Ui.Icon(b, icon, 56, new Vector2(0, 11));
             Ui.Outlined(b, title, 23, Paper, new Vector2(0, -37), new Vector2(112, 30), Ink, 1.6f);
             if (upArrow)
-                Ui.Breathe(Ui.Box(b, new Vector2(36, 36), new Vector2(31, 37), Color.white, Art.UpArrow, "up"));
+                Ui.Breathe(Ui.UpgradeMark(b, 36, new Vector2(31, 37)));
             else if (redDot)
                 MetaUi.Dot(b, new Vector2(32, 38)).rectTransform.localScale = Vector3.one * 0.82f;
             Ui.Tap(hit, onTap, b);
@@ -1636,7 +1749,7 @@ namespace Liangshan
             }
 
             if (Meta.CanForge(S, slot))
-                Ui.Breathe(Ui.Box(c, new Vector2(34, 34), new Vector2(cw * 0.5f - 18, ch * 0.5f - 16), Color.white, Art.UpArrow, "up"));
+                Ui.Breathe(Ui.UpgradeMark(c, 34, new Vector2(cw * 0.5f - 18, ch * 0.5f - 16)));
 
             int si = slot;
             Ui.Tap(face, () => MetaUi.EquipSheet(Layer, si, () => Rebuild(false)), c);

@@ -50,7 +50,7 @@ namespace Liangshan
 
         public void ShowGm()
         {
-            const float H = 1520f;
+            const float H = 1640f;
             MetaUi.Modal(Layer, "gm", "GM", new Vector2(860, H), out var card, Pal.Slate);
             float y = H * 0.5f - 118f;
             _gmStatus = Ui.Label(card, GmFrontier(), 36, Pal.Ink, new Vector2(0, y), new Vector2(740, 56), TextAnchor.MiddleCenter, Fonts.Heavy);
@@ -65,6 +65,7 @@ namespace Liangshan
             Big("跳过本关", Pal.Azure, () => GmSkip(1));
             Big("连跳五关", Pal.Teal, () => GmSkip(5));
             Big("关卡全开", Pal.Green, () => GmSkip(Defs.LevelCount));
+            Big("解锁全部好汉", Pal.Gold, GmUnlockAll);
             Big("清档", Pal.Red, () => MetaUi.Confirm(Layer, "本地和云端都换成新档\n铜钱、进度、好汉都没了，不能恢复", WipeAll));
             y -= 6f;
             Ui.Label(card, "发物资，直接写进存档", 26, Pal.SubInk, new Vector2(0, y), new Vector2(740, 40));
@@ -117,6 +118,26 @@ namespace Liangshan
             Profile.Save();
             if (_gmStatus) _gmStatus.text = "已发一套：元宝 铜钱 精铁 招募令等";
             Ui.Toast("已发一套常用物资", 880);
+        }
+
+        void GmUnlockAll()
+        {
+            int n = 0;
+            for (int i = 0; i < Defs.HeroCount; i++)
+            {
+                if (S.HeroLv[i] > 0) continue;
+                S.HeroLv[i] = 1;
+                n++;
+            }
+            if (n == 0)
+            {
+                Ui.Toast("好汉都已入伙", 880);
+                return;
+            }
+            Profile.Save();
+            if (_gmStatus) _gmStatus.text = $"新入伙 {n} 位，都是 1 级";
+            Ui.Toast($"解锁 {n} 位好汉", 880);
+            Rebuild(false);
         }
 
         void WipeAll()

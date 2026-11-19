@@ -190,6 +190,7 @@ namespace Liangshan
             _battle = null;
             if (_home) Destroy(_home.gameObject);
             _home = null;
+            if (WorldFx.I != null) WorldFx.I.ClearAll();
             Time.timeScale = 1f;
         }
 
@@ -974,14 +975,83 @@ namespace Liangshan
                 Sfx.Music = false;
                 var s = Profile.S;
                 s.Cleared = 7;
-                s.Selected = 7;
+                s.Selected = 8;
+                if (s.Stars != null) for (int k = 0; k < 4 && k < s.Stars.Length; k++) s.Stars[k] = 2;
                 if (s.LevelChest == null || s.LevelChest.Length < Defs.LevelCount)
                     s.LevelChest = new int[Defs.LevelCount];
                 s.LevelChest[6] = 7;
                 ShowHome();
-                yield return WaitReal(1.2f);
-                Shot("ui_home_chests");
+                yield return WaitReal(0.9f);
+                s.Cleared = 7;
+                s.Selected = 8;
+                if (s.Stars != null) for (int k = 0; k < 4 && k < s.Stars.Length; k++) s.Stars[k] = 2;
+                Profile.Save();
+                yield return null;
+                while (true)
+                {
+                    float c = Time.unscaledTime % 3.4f;
+                    if (c >= 0.36f && c <= 0.52f) break;
+                    yield return null;
+                }
+                Shot("ui_home_frontier");
+                s.Selected = 7;
+                Profile.Save();
+                yield return WaitReal(0.5f);
+                Shot("ui_home_shimmer");
+                MetaUi.BondTip(_home.Layer, Meta.Lineup(s));
+                yield return WaitReal(0.55f);
+                Shot("ui_home_bonds");
+                yield return WaitReal(0.25f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-sprintshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                ShowHome();
+                yield return WaitReal(0.8f);
+                var s = Profile.S;
+                s.SprintRound = Meta.SprintRoundOf(s, Profile.Today) + 1;
+                s.SprintAct[(int)Act.Recruit] = 40;
+                s.SprintTier = 1 | 2;
+                MetaUi.Sprint(_home.Layer);
+                yield return WaitReal(0.7f);
+                Shot("ui_sprint_claimed");
                 yield return WaitReal(0.35f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-upshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                var s = Profile.S;
+                var h = Meta.Starters[0];
+                s.HeroLv[(int)h] = Mathf.Max(1, s.HeroLv[(int)h]);
+                s.Shards[(int)h] = 99;
+                s.Copper = 50000;
+                ShowHome(HomeScreen.TabHero);
+                yield return WaitReal(1.0f);
+                Shot("ui_up_heroes");
+                MetaUi.HeroDetail(_home.Layer, h);
+                yield return WaitReal(0.7f);
+                Shot("ui_up_detail");
+                yield return WaitReal(0.3f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-setshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                ShowHome();
+                yield return WaitReal(0.8f);
+                Shot("ui_home_avatar");
+                MetaUi.Settings(_home.Layer);
+                yield return WaitReal(0.7f);
+                Shot("ui_settings");
+                yield return WaitReal(0.3f);
                 Application.Quit(0);
                 yield break;
             }
@@ -1091,7 +1161,11 @@ namespace Liangshan
                 Shot("ui_wuyong_landed");
                 yield return WaitReal(0.7f);
                 Shot("ui_wuyong_badge");
-                yield return WaitReal(0.25f);
+                // 验证切换新关卡后绝无残留 UI / 环绕特效！
+                Play(Defs.Level(5));
+                yield return WaitReal(0.45f);
+                Shot("ui_wuyong_reenter_clean");
+                yield return WaitReal(0.20f);
                 Application.Quit(0);
                 yield break;
             }
@@ -1153,6 +1227,95 @@ namespace Liangshan
                 Application.Quit(0);
                 yield break;
             }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-ubershot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                var s = Meta.NewSave(20261117);
+                s.TutorialDone = 1;
+                s.HeroLv[(int)HeroId.LiKui] = 5;
+                s.HeroLv[(int)HeroId.LingZhen] = 5;
+                s.HeroLv[(int)HeroId.GongSun] = 5;
+                s.HeroLv[(int)HeroId.QiaoDaoqing] = 5;
+                s.HeroLv[(int)HeroId.WuYong] = 5;
+                s.Lineup = new[] { (int)HeroId.LiKui, (int)HeroId.LingZhen, (int)HeroId.GongSun, (int)HeroId.QiaoDaoqing };
+                Profile.Use(s);
+                Play(Defs.Level(1));
+                while (_battle == null) yield return null;
+                var b = _battle.B;
+                var soldier = Defs.Enemy(EnemyKind.Soldier);
+                // 真实战斗比例验证：左=李逵刀斧斩，中左=凌振炸弹爆炸，中右=公孙胜落雷，右=乔道清细束火焰射线 + 头顶美化小Buff条
+                b.Enemies.Add(new Enemy { Id = 951, Def = soldier, Hp = 99999, MaxHp = 99999, Pos = new V2(-2.6f, -0.4f) });
+                b.Enemies.Add(new Enemy { Id = 952, Def = soldier, Hp = 99999, MaxHp = 99999, Pos = new V2(-0.8f, 0.8f) });
+                b.Enemies.Add(new Enemy { Id = 953, Def = soldier, Hp = 99999, MaxHp = 99999, Pos = new V2(1.1f, 1.4f) });
+                b.Enemies.Add(new Enemy { Id = 954, Def = soldier, Hp = 99999, MaxHp = 99999, Pos = new V2(2.7f, 0.8f) });
+                b.Slots[1].Unit = new Unit { Id = 851, Hero = HeroId.LiKui, Star = 1, Cd = 0.05f, BlessN = 3, BlessMul = 2f, BlessWait = 0f };
+                b.Slots[2].Unit = new Unit { Id = 852, Hero = HeroId.LingZhen, Star = 2, Cd = 0.05f };
+                b.Slots[4].Unit = new Unit { Id = 853, Hero = HeroId.GongSun, Star = 1, Cd = 0.28f };
+                b.Slots[5].Unit = new Unit { Id = 854, Hero = HeroId.QiaoDaoqing, Star = 2, Cd = 0.05f, BlessN = 4, BlessMul = 2f, BlessWait = 0f };
+                for (int i = 0; i < 12; i++)
+                {
+                    yield return WaitReal(0.08f);
+                    Shot("ui_uber_prop_" + i);
+                }
+                // 切关验证美化小Buff条绝不残留
+                Play(Defs.Level(5));
+                yield return WaitReal(0.35f);
+                Shot("ui_uber_clean");
+                yield return WaitReal(0.2f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-pierceshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                var s = Meta.NewSave(20261117);
+                s.TutorialDone = 1;
+                s.HeroLv[(int)HeroId.HuaRong] = 5;
+                s.HeroLv[(int)HeroId.XieBao] = 5;
+                s.HeroLv[(int)HeroId.ShiXiu] = 5;
+                s.HeroLv[(int)HeroId.KongLiang] = 5;
+                s.Lineup = new[] { (int)HeroId.HuaRong, (int)HeroId.XieBao, (int)HeroId.ShiXiu, (int)HeroId.KongLiang };
+                Profile.Use(s);
+                Play(Defs.Level(5));
+                while (_battle == null) yield return null;
+                var b = _battle.B;
+                var soldier = Defs.Enemy(EnemyKind.Soldier);
+
+                // 1) 左列花荣穿云箭（穿透+2，串联3名敌人），右列解宝倒钩毒叉（穿透+2，串联3名敌人），逐帧连拍验证沿途逐个受击染红爆火花！
+                b.Perks["huarong_3"] = 1;
+                b.Perks["xiebao_2"] = 1;
+                b.Choices = new[] { Defs.Perk("huarong_0") };
+                b.Phase = Phase.Choosing;
+                b.Pick(0);
+
+                float lx = b.Slots[2].Pos.X, rx = b.Slots[4].Pos.X;
+                b.Enemies.Add(new Enemy { Id = 971, Def = soldier, Hp = 99999, MaxHp = 99999, Pos = new V2(lx, -1.6f) });
+                b.Enemies.Add(new Enemy { Id = 972, Def = soldier, Hp = 99999, MaxHp = 99999, Pos = new V2(lx + 0.05f, 0.2f) });
+                b.Enemies.Add(new Enemy { Id = 973, Def = soldier, Hp = 99999, MaxHp = 99999, Pos = new V2(lx - 0.04f, 2.0f) });
+                b.Enemies.Add(new Enemy { Id = 974, Def = soldier, Hp = 99999, MaxHp = 99999, Pos = new V2(rx, -1.2f) });
+                b.Enemies.Add(new Enemy { Id = 975, Def = soldier, Hp = 99999, MaxHp = 99999, Pos = new V2(rx - 0.05f, 0.6f) });
+                b.Enemies.Add(new Enemy { Id = 976, Def = soldier, Hp = 99999, MaxHp = 99999, Pos = new V2(rx + 0.04f, 2.4f) });
+                b.Slots[2].Unit = new Unit { Id = 871, Hero = HeroId.HuaRong, Star = 2, Cd = 0.04f };
+                b.Slots[4].Unit = new Unit { Id = 872, Hero = HeroId.XieBao, Star = 2, Cd = 0.04f };
+
+                for (int i = 0; i < 8; i++)
+                {
+                    yield return WaitReal(0.065f);
+                    Shot("ui_pierce_" + i);
+                }
+
+                // 2) 验证 5 格首领关摇奖机触发「超爽!!!」时净空完全不遮挡！
+                b.Wave = 7;
+                b.PendingReels = 1;
+                b.JackpotReels = 1;
+                yield return WaitReal(2.5f);
+                Shot("ui_reel_jackpot_clean");
+                yield return WaitReal(0.2f);
+                Application.Quit(0);
+                yield break;
+            }
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-weaponshot") >= 0)
             {
                 Sfx.On = false;
@@ -1211,6 +1374,8 @@ namespace Liangshan
                 Meta.ToggleInlayTotem(s, b.Id);
                 ShowHome(HomeScreen.TabForge);
                 yield return WaitReal(0.8f);
+                Shot("ui_lord");
+                yield return WaitReal(0.2f);
                 MetaUi.EquipSheet(_home.Layer, 0);
                 yield return WaitReal(0.7f);
                 Shot("ui_equip_sheet");

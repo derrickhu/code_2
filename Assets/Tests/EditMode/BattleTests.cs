@@ -164,6 +164,21 @@ namespace Liangshan.Tests
             float still = (shot.To.X - from.X) * dir.X + (shot.To.Y - from.Y) * dir.Y;
             Assert.Greater(still, dist + 0.8f, "飞过第一个人之后，箭还要往直线上的第二个人飞");
             Assert.AreEqual(first.MaxHp, first.Hp, "还在飞，不该提前结算");
+
+            // 继续飞到擦过第一目标、但尚未抵达第二目标的中间时刻：第一目标必须当场受击并触发 Ev.Hit，第二目标尚未掉血！
+            float midFrac = ((dist + 0.4f) / along);
+            b.Events.Clear();
+            b.Update(shot.Dur * midFrac - 0.05f);
+            Assert.Less(first.Hp, first.MaxHp, "箭尖擦过第一目标时当场结算受击掉血");
+            Assert.IsTrue(b.Events.Any(ev => ev.Type == Ev.Hit && ev.EnemyId == first.Id && ev.Shot == ShotKind.Arrow), "第一目标当场发出受击特效事件");
+            Assert.AreEqual(behind.MaxHp, behind.Hp, "此时箭尚未飞抵身后第二目标");
+            Assert.IsNotEmpty(b.Shots, "穿透箭仍在继续往前飞");
+
+            // 飞完全程：第二目标也被贯穿并触发独立受击事件
+            b.Events.Clear();
+            b.Update(shot.Dur);
+            Assert.Less(behind.Hp, behind.MaxHp, "箭飞抵第二目标时完成贯穿");
+            Assert.IsTrue(b.Events.Any(ev => ev.Type == Ev.Hit && ev.EnemyId == behind.Id && ev.Shot == ShotKind.Arrow), "第二目标也发出独立受击特效事件");
         }
 
         [Test]
@@ -1254,6 +1269,64 @@ namespace Liangshan.Tests
             }
             Assert.AreEqual(100, new Battle(1, Lineup).Coins);
             Assert.AreEqual(100, Defs.EnhanceCost(0));
+        }
+
+        [Test]
+        public void FourSkillSystemSignaturesAndAoyiFinishersWork()
+        {
+            // 1. 吴用 10 级绝技「锦囊妙计」：合成时献计爆银 + 立即向输出位抛出祝福法球；20 级祝福在合成后继承
+            var lu = new[] { HeroId.WuYong, HeroId.HuaRong, HeroId.LuZhiShen, HeroId.QinMing };
+            var lo = Loadout.Plain(lu);
+            for (int i = 0; i < lo.Lv.Length; i++) { lo.Lv[i] = 20; lo.Passive[i] = true; }
+            var b = new Battle(12, lu, Defs.Level(1), lo);
+            Put(b, 0, HeroId.WuYong, 1);
+            Put(b, 1, HeroId.WuYong, 1);
+            Put(b, 2, HeroId.HuaRong, 1);
+            Dummy(b, 0f, 1.5f);
+            int coins0 = b.Coins;
+            Assert.IsTrue(b.Drop(0, 1));
+            Assert.GreaterOrEqual(b.Coins, coins0 + 28 + 20, "吴用10级绝技参与合成额外献计+20银两");
+            Assert.IsTrue(b.Events.Any(e => e.Type == Ev.Sig && e.Hero == HeroId.WuYong), "触发绝技事件与紫金阵印演出");
+            Assert.IsTrue(b.Slots.Any(s => s.Unit != null && s.Unit.Def.Carry && s.Unit.BlessN >= 4), "吴用绝技立刻祝福场上输出好汉");
+
+            // 20 级继承祝福：花荣带祝福层数与另一位花荣合成，新好汉保留祝福
+            Put(b, 3, HeroId.HuaRong, 1);
+            b.Slots[2].Unit.BlessN = 3;
+            b.Slots[2].Unit.BlessMul = 2f;
+            Assert.IsTrue(b.Drop(2, 3));
+            if (b.Slots[3].Unit.Def.Carry)
+                Assert.AreEqual(3, b.Slots[3].Unit.BlessN, "吴用20级改写：被祝福好汉合成后祝福层数无损继承");
+
+            // 2. 鲁智深 10 级绝技「大闹五台山」：寨墙每掉 10% 生命立刻腾空砸地反击
+            var b2 = new Battle(15, lu, Defs.Level(1), lo);
+            Put(b2, 0, HeroId.LuZhiShen, 2);
+            b2.Slots[0].Unit.Cd = 99f;
+            var near = new Enemy { Id = 501, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 5000f, MaxHp = 5000f, Pos = new V2(0f, Layout.StopY), Attacking = true, AtkCd = 0.01f };
+            near.Tough = (b2.WallMax * 0.12f) / near.Def.WallDps;
+            b2.Enemies.Add(near);
+            b2.Update(0.05f);
+            Assert.IsTrue(b2.Events.Any(e => e.Type == Ev.Sig && e.Hero == HeroId.LuZhiShen), "城墙掉血10%触发鲁智深绝技反击");
+            Assert.IsTrue(b2.Shots.Any(s => s.Hero == HeroId.LuZhiShen), "鲁智深无视当前冷却当场砸出禅杖");
+
+            // 3. 秦明 10 级绝技「霹雳火」：登场瞬间向敌群轰落 3 颗霹雳火陨
+            var b3 = new Battle(18, new[] { HeroId.QinMing, HeroId.QinMing, HeroId.QinMing, HeroId.QinMing }, Defs.Level(1), lo) { Coins = 5000 };
+            Dummy(b3, 0f, 2f);
+            b3.Summon();
+            Assert.AreEqual(3, b3.Shots.Count(s => s.Hero == HeroId.QinMing && s.Kind == ShotKind.Fireball), "秦明登场当场轰落3颗火陨");
+
+            // 4. 非传说好汉 5 级起可在三选一直接抽到「本命奥义」终结技卡并当场觉醒轰出见面礼弹幕！
+            var b4 = new Battle(22, lu, Defs.Level(1), lo);
+            Put(b4, 0, HeroId.HuaRong, 2);
+            Dummy(b4, 0f, 2.5f);
+            var aoyiCard = Defs.FinisherPerk(HeroId.HuaRong);
+            Assert.IsNotNull(aoyiCard);
+            Assert.IsTrue(aoyiCard.Finisher);
+            b4.Choices = new[] { aoyiCard };
+            b4.Phase = Phase.Choosing;
+            b4.Pick(0);
+            Assert.IsTrue(b4.IsAwakened(HeroId.HuaRong), "抽到奥义卡当场觉醒");
+            Assert.IsTrue(b4.Events.Any(e => e.Type == Ev.Awaken && e.Hero == HeroId.HuaRong));
+            Assert.GreaterOrEqual(b4.Shots.Count(s => s.Hero == HeroId.HuaRong), 3, "奥义觉醒瞬间当场齐射贯阵箭雨");
         }
     }
 }

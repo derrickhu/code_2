@@ -135,8 +135,18 @@ namespace Liangshan
             if (chapter > 1) ArrowIn(p, new Vector2(-396, top - 66), -1, () => LevelList(layer, chapter - 1));
             if (chapter < maxCh) ArrowIn(p, new Vector2(396, top - 66), 1, () => LevelList(layer, chapter + 1));
             int stars = Meta.ChapterStars(S, chapter);
-            Ui.Icon(p, "ic_star", 44, new Vector2(-248, top - 66));
-            Bar(p, new Vector2(18, top - 66), new Vector2(460, 26), stars / 30f, Pal.Gold, $"本章星数 {stars}/30");
+            Ui.Icon(p, "ic_star", 44, new Vector2(-284, top - 66));
+            Bar(p, new Vector2(-28, top - 66), new Vector2(436, 26), stars / 30f, Pal.Gold, $"本章星数 {stars}/30");
+            var chBoxBtn = Ui.Rect(p, "chapStarChest");
+            chBoxBtn.anchoredPosition = new Vector2(252, top - 66);
+            chBoxBtn.sizeDelta = new Vector2(78, 78);
+            var chBoxIc = Ui.Icon(chBoxBtn, "ic_chest_gold", 66, Vector2.zero);
+            bool chCan = false;
+            for (int k = 0; k < 3; k++) if (Meta.CanOpenChest(S, chapter, k)) chCan = true;
+            if (chCan) Dot(chBoxBtn, new Vector2(26, 26));
+            int chNo = chapter;
+            var chBoxHit = Ui.Box(chBoxBtn, new Vector2(88, 84), Vector2.zero, new Color(0, 0, 0, 0), Art.White, "hit");
+            Ui.Tap(chBoxHit, () => ChapterChests(layer, chNo), chBoxIc.transform);
 
             float wellTop = top - 116f;
             float wellBot = -top + 48f;
@@ -268,8 +278,8 @@ namespace Liangshan
                 Ui.Label(r, $"体力 +{Meta.MealStamina}", 28, Pal.GreenDeep, new Vector2(126, 0), new Vector2(190, 44), TextAnchor.MiddleCenter, Fonts.Heavy);
                 if (taken)
                 {
-                    Check(r, new Vector2(272, 0), 34);
-                    Ui.Label(r, "已享用", 26, WarmSub, new Vector2(334, 0), new Vector2(120, 40), TextAnchor.MiddleLeft, Fonts.Heavy);
+                    Check(r, new Vector2(248, 0), 34);
+                    Ui.Label(r, "已享用", 26, WarmSub, new Vector2(352, 0), new Vector2(108, 40), TextAnchor.MiddleLeft, Fonts.Heavy);
                 }
                 else if (ready)
                     Badge(r, "可开席", Pal.Gold, new Vector2(138, 54), new Vector2(308, 0), 25);

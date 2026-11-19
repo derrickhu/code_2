@@ -564,6 +564,11 @@ namespace Liangshan
                 case "flame_bar": return new Vector4(60, 60, 230, 130);
                 case "h_start": return new Vector4(54, 54, 54, 54);
                 case "h_start_lip": return new Vector4(62, 62, 62, 62);
+                case "h_start_hex": return new Vector4(62, 0, 62, 0);
+                case "h_start_hex_lip": return new Vector4(70, 0, 70, 0);
+                case "h_podium_crest": return new Vector4(48, 0, 48, 0);
+                case "h_bond_pill": return new Vector4(22, 0, 22, 0);
+                case "h_bond_pill_lip": return new Vector4(24, 0, 24, 0);
                 case "forge_sel": return new Vector4(48, 48, 48, 48);
                 case "forge_card": return new Vector4(44, 44, 44, 44);
                 case "gacha_dock_gold": return new Vector4(52, 52, 52, 52);
