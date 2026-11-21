@@ -1,0 +1,12 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, rosy cheeks, ZERO armor scales, ZERO tiny details/buckles/rivets).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous pure-white gap between frames so weapons/mounts NEVER touch adjacent frames) on a pure solid white background (#FFFFFF):
+- Character: Boss Han Tao Battering-Ram General (韩滔 · 铁头撞车首领). A SINGLE big chubby general in shiny silver-blue & gold armor with a tall red plume (NO other tiny soldiers), pushing a chunky vermilion-and-gold 4-wheel siege cart fitted with a HUGE smooth shiny silver ram-head battering log pointing left.
+  1. Frame 1: Single general behind/beside the silver-headed red battering ram cart facing left.
+  2. Frame 2: Pushing the battering ram cart rolling forward-left.
+  3. Frame 3: Pulling back/bracing the heavy silver ram head to charge.
+  4. Frame 4: Lunging the silver ram cart forward-left in a heavy ramming thrust.
+- CRITICAL RULES:
+  * Every single one of the 4 frames MUST face 3/4 front-down-LEFT (facing toward the LEFT side of the image), same character scale and same ground baseline!
+  * Keep all weapons, shields, mounts, and props intact in ALL 4 frames (never omit the weapon in frame 2, and NO detached flying projectiles, smoke clouds, or slash lines).
+  * NO grid lines, NO ground drop shadows, NO TEXT, no numbers, no labels anywhere in the image.

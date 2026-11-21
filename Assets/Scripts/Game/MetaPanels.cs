@@ -662,7 +662,7 @@ namespace Liangshan
             float roleB = Defs.RoleSynergyBonus(lineup);
             Ui.Skin(p, "dark", new Vector2(810, 130), new Vector2(0, 300), 1f);
             Ui.Outlined(p, $"异职同心（当前上阵 {roleN} 种职业）", 30, Pal.Champagne, new Vector2(0, 324), new Vector2(760, 42), Pal.Ink, 1.8f);
-            Ui.Label(p, $"2职 +3% · 3职 +7% · 4职 +12%   当前生效：<color=#7CF29A>+{(int)(roleB * 100)}%</color>",
+            Ui.Label(p, $"2职 +3% · 3职 +7% · 4职 +12%   当前生效：<color=#7CF29A>+{Mathf.RoundToInt(roleB * 100f)}%</color>",
                 24, Pal.Cream, new Vector2(0, 276), new Vector2(760, 38), TextAnchor.MiddleCenter, Fonts.Heavy);
 
             Ui.Skin(p, "modal_well", new Vector2(828, 680), new Vector2(0, -124), 1f);

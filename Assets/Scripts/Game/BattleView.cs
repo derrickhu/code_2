@@ -570,14 +570,22 @@ namespace Liangshan
                         OnBossSkill(e, p);
                         break;
                     case Ev.Explode when e.Value == 1:
-                        // 爆裂箭：清脆轻盈的箭镝火药小爆花（严贴 0.95 格半径，绝不混用重炮巨型蘑菇火云与满地黑焦坑）
+                        // 爆裂箭：清脆轻盈的箭镝火药小爆花（严贴 0.95 格半径，配专属黑火药箭镝脆爆声，绝不混用重炮巨响）
                         ArrowBlast(p, e.Radius, Defs.Hero(e.Hero));
-                        if (_hitSfxGap <= 0) { Sfx.Play(Snd.Bomb, 0.25f, 1.35f); _hitSfxGap = 0.08f; }
+                        if (_hitSfxGap <= 0) { Sfx.Play(Snd.ArrowBlast, 0.46f); _hitSfxGap = 0.08f; }
                         break;
                     case Ev.Explode when e.Value == 2:
-                        // 火系觉醒灼烧阵亡连环爆燃：纯粹的油火蹿燃冲击环与飞溅火星（不抛岩石）
+                        // 火系觉醒灼烧阵亡连环爆燃：纯粹的油火蹿燃冲击环与飞溅火星（配烈焰蹿起声，无炸弹碎石声）
                         FlamePop(p, e.Radius);
-                        if (_hitSfxGap <= 0) { Sfx.Play(Snd.Bomb, 0.32f, 1.18f); _hitSfxGap = 0.08f; }
+                        if (_hitSfxGap <= 0) { Sfx.Play(Snd.FireBeam, 0.42f, 1.06f); _hitSfxGap = 0.08f; }
+                        break;
+                    case Ev.Explode when e.Value == 3:
+                        // 投石车巨石砸墙：纯岩石崩裂与扬尘，不画火药蘑菇云，不播火药炸弹声
+                        fx.Dust(p, e.Radius * 1.55f, DustCol.A(0.65f), 0.52f);
+                        fx.Debris(p, 5, 0.22f, 2.4f);
+                        fx.Decal(Art.Img("fx_crack"), p, e.Radius * 1.2f, new Color(0.12f, 0.09f, 0.07f, 0.5f), 1.4f, 0.5f, 91);
+                        fx.Shake(0.09f, 0.16f);
+                        Sfx.Play(Snd.WallHit, 0.72f, 0.86f);
                         break;
                     case Ev.Explode:
                         Explosion(p, e.Radius, 1.3f);
@@ -587,7 +595,7 @@ namespace Liangshan
                     case Ev.UnitStun:
                         fx.Say(p + new Vector2(0, 1.0f), "晕眩", WorldFx.Tx.Status, Pal.Hex("B8C8FF"));
                         fx.Sparks(Art.Img("fx_star"), p + new Vector2(0, 0.5f), 5, 0.22f, 2f, Color.white, 0.5f, 9450, 3f, true);
-                        Sfx.Play(Snd.WallHit, 0.35f, 1.5f);
+                        Sfx.Play(Snd.Stun, 0.55f);
                         break;
                     case Ev.Coin:
                         if (e.Slot >= 0 && e.Slot < _slots.Count && e.Hero == HeroId.JiangJing)
@@ -620,8 +628,8 @@ namespace Liangshan
                     case Ev.Guard:
                         fx.Say(p + new Vector2(0, 1.3f), e.Value > 0 ? "格挡" : "藤牌碎", WorldFx.Tx.Status, Pal.Hex("E8D8A0"));
                         if (e.Value == 0) fx.Debris(p + new Vector2(0, 0.4f), 5, 0.2f, 2f);
-                        if (e.Value == 0) Sfx.Play(Snd.WallHit, 0.5f, 1.2f);
-                        else Sfx.Play(Snd.Hammer, 0.3f, 1.4f);
+                        if (e.Value == 0) Sfx.Play(Snd.Chop, 0.52f, 1.12f);
+                        else Sfx.Play(Snd.ShieldBlock, 0.46f);
                         break;
                     case Ev.Blink:
                         fx.Smoke(p + new Vector2(0, 0.4f), 3, 0.5f, new Color(0.45f, 0.45f, 0.5f, 0.6f), 0.4f, 0.1f, 0.3f, 9150);
@@ -686,7 +694,8 @@ namespace Liangshan
                         fx.Ring(new Vector2(0, -4.5f), 6f, Pal.Gold, 0.7f);
                         fx.Shake(0.15f, 0.3f);
                         _wallColor = WallTint;
-                        Sfx.Play(Snd.UltBomb, 0.8f);
+                        Sfx.Play(Snd.Drum, 0.85f);
+                        Sfx.Play(Snd.Awaken, 0.82f);
                         break;
                     case Ev.Defeat:
                         _wallColor = new Color(0.55f, 0.5f, 0.5f);
@@ -1137,13 +1146,18 @@ namespace Liangshan
                     Jolt(p, 0.3f, 0.6f, Vector2.down);
                     HitSfx(e, 0.06f);
                     break;
+                case ShotKind.Bolt:
+                    // 敌方弩手箭矢钉入寨墙木石垛口
+                    fx.SparkStreaks(p + new Vector2(0, 0.22f), 3, 0.18f, 2.8f, Pal.Hex("FFE4B8"), 0.16f, 9505, 5f, Vector2.up, 90f);
+                    if (_hitSfxGap <= 0) { Sfx.Play(Snd.ArrowHit, 0.38f, 0.92f); _hitSfxGap = 0.06f; }
+                    break;
                 case ShotKind.Hammer:
                     fx.Burst(Art.Img("fx_hit"), p + new Vector2(0, 0.4f), 1.4f, 0.25f, 9510, Pal.Hex("FFD0A0"), 0, 0.4f, true);
                     fx.Debris(p, 4, 0.2f, 2.4f);
                     fx.Glint(p + new Vector2(0, 0.4f), 2.0f, Pal.Hex("FFF0D8"), 0.2f, 9512);
                     fx.SparkStreaks(p + new Vector2(0, 0.3f), 8, 0.45f, 6f, Pal.Hex("FFD27A"), 0.3f, 9511, 10f, Vector2.up, 140f);
                     fx.Shake(0.12f, 0.2f);
-                    Sfx.Play(Snd.WallHit, 0.7f, 0.8f);
+                    Sfx.Play(Snd.Hammer, 0.68f, 0.96f);
                     break;
             }
         }
@@ -1214,7 +1228,7 @@ namespace Liangshan
                     fx.Dust(p, 3.2f, DustCol.A(0.8f), 0.8f, 95);
                     fx.GroundWave(p, 2.4f, Pal.Hex("FFC8A0").A(0.7f), 0.4f);
                     fx.Shake(0.12f, 0.2f);
-                    Sfx.Play(Snd.UltFist, 0.6f, 1.1f);
+                    Sfx.Play(Snd.Hammer, 0.72f, 0.82f);
                     break;
                 case BossSkill.Ram:
                     fx.Say(top, "撞车破门", WorldFx.Tx.Skill, Pal.Hex("FF8A6A"), 1.04f);
@@ -1224,12 +1238,13 @@ namespace Liangshan
                     break;
                 case BossSkill.Volley:
                     fx.Say(top, "楼车齐射", WorldFx.Tx.Skill, Pal.Hex("FFB070"), 0.96f);
-                    Sfx.Play(Snd.Bow, 0.6f, 0.8f);
+                    Sfx.Play(Snd.Bow, 0.65f, 0.92f);
                     Sfx.Play(Snd.Warn, 0.3f);
                     break;
                 case BossSkill.Ball:
                     fx.Say(top, "蹴鞠火球", WorldFx.Tx.Skill, Pal.Hex("FFB070"), 0.96f);
-                    Sfx.Play(Snd.Bomb, 0.4f, 1.3f);
+                    Sfx.Play(Snd.Fist, 0.55f, 1.08f);
+                    Sfx.Play(Snd.FireBeam, 0.45f, 1.08f);
                     break;
                 case BossSkill.Shield:
                     bool coin = B.Enemies.Find(x => x.Id == e.EnemyId)?.Def.Kind == EnemyKind.ZhuChaofeng;
@@ -1237,7 +1252,8 @@ namespace Liangshan
                     if (coin) fx.Sparks(Art.Coin, p + new Vector2(0, 1.4f), 10, 0.3f, 3f, Color.white, 0.8f, 9450, 5f, true);
                     fx.Ring(p + new Vector2(0, 1.2f), 2.4f, Pal.Gold, 0.6f);
                     fx.Flash(p + new Vector2(0, 1.2f), 4f, Pal.Gold.A(0.5f), 0.3f);
-                    Sfx.Play(Snd.Jackpot, 0.4f);
+                    if (coin) Sfx.Play(Snd.Coin, 0.65f, 0.96f);
+                    Sfx.Play(Snd.ArraySeal, 0.58f, coin ? 1.15f : 1.05f);
                     break;
             }
         }
@@ -1494,7 +1510,7 @@ namespace Liangshan
                         if (targetSlot >= 0 && targetSlot < _slots.Count) _slots[targetSlot].Glow(Pal.Hex("FFC83A"));
                         fx.Blessing(tp + new Vector2(0, -0.4f), Pal.Hex("FFC83A"), 1.1f);
                         fx.Say(tp + new Vector2(0, 1.20f), $"攻速提升 ×{count}次", WorldFx.Tx.Buff, Pal.Hex("FFC83A"), 1.1f);
-                        Sfx.Play(Snd.Merge, 0.42f, 1.32f);
+                        Sfx.Play(Snd.Magic, 0.48f, 1.22f);
                     }, 0f, true);
                 }
                 else

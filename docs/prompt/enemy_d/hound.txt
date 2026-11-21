@@ -1,0 +1,12 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, rosy cheeks, ZERO armor scales, ZERO tiny details/buckles/rivets).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous pure-white gap between frames so weapons/mounts NEVER touch adjacent frames) on a pure solid white background (#FFFFFF):
+- Character: Fierce-Cute Guard Hound (恶犬). Plump, super round, chubby cartoon guard dog (caramel-orange & cream coat, smooth rounded ears, grumpy-cute eyebrows, wearing a thick sunny-gold collar with smooth white round studs).
+  1. Frame 1: Standing alert facing left on all fours.
+  2. Frame 2: Bouncy trotting gallop facing left, front paws lifted.
+  3. Frame 3: Crouching back coiling to pounce left, mouth open showing cute little fangs.
+  4. Frame 4: Forward lunge bite pose facing left.
+- CRITICAL RULES:
+  * Every single one of the 4 frames MUST face 3/4 front-down-LEFT (facing toward the LEFT side of the image), same character scale and same ground baseline!
+  * Keep all weapons, shields, mounts, and props intact in ALL 4 frames (never omit the weapon in frame 2, and NO detached flying projectiles, smoke clouds, or slash lines).
+  * NO grid lines, NO ground drop shadows, NO TEXT, no numbers, no labels anywhere in the image.

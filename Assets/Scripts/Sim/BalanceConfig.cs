@@ -223,6 +223,15 @@ namespace Liangshan.Sim
         public float UltStun;
         public int UltN;
         public float PassiveV;
+        /// <summary>旧 JSON 没有这列时为 false，导入时保留代码里的四技能出厂数值，避免被 0 清掉。</summary>
+        public bool HasKit;
+        public float TraitV;
+        public int TraitN;
+        public int SigN;
+        public float SigV;
+        public float SigV2;
+        public float Opt15V;
+        public float Opt15V2;
     }
 
     /// <summary>单种敌人/首领的可调战斗数值行。</summary>
@@ -426,6 +435,7 @@ namespace Liangshan.Sim
             for (int i = 0; i < Defs.Heroes.Length; i++)
             {
                 var d = Defs.Heroes[i];
+                var kit = HeroKits.Of(d.Id);
                 rows[i] = new HeroBalanceRow
                 {
                     Id = d.Id.ToString(),
@@ -453,6 +463,14 @@ namespace Liangshan.Sim
                     UltStun = d.UltStun,
                     UltN = d.UltN,
                     PassiveV = d.PassiveV,
+                    HasKit = true,
+                    TraitV = kit.TraitV,
+                    TraitN = kit.TraitN,
+                    SigN = kit.SigN,
+                    SigV = kit.SigV,
+                    SigV2 = kit.SigV2,
+                    Opt15V = kit.Opt15V,
+                    Opt15V2 = kit.Opt15V2,
                 };
             }
             return rows;
@@ -489,6 +507,15 @@ namespace Liangshan.Sim
                 d.UltStun = Math.Max(0f, r.UltStun);
                 if (r.UltN >= 1) d.UltN = r.UltN;
                 d.PassiveV = r.PassiveV;
+                if (!r.HasKit) continue;
+                var kit = HeroKits.Of(d.Id);
+                kit.TraitV = r.TraitV;
+                kit.TraitN = r.TraitN;
+                kit.SigN = Math.Max(0, r.SigN);
+                kit.SigV = r.SigV;
+                kit.SigV2 = r.SigV2;
+                kit.Opt15V = r.Opt15V;
+                kit.Opt15V2 = r.Opt15V2;
             }
         }
 
@@ -673,6 +700,9 @@ namespace Liangshan.Sim
                         Dot = h.Dot, Chan = h.Chan, Tick = h.Tick, BuffV = h.BuffV, AuraV = h.AuraV,
                         UltCoef = h.UltCoef, UltCd = h.UltCd, UltRadius = h.UltRadius, UltStun = h.UltStun,
                         UltN = h.UltN, PassiveV = h.PassiveV,
+                        HasKit = h.HasKit, TraitV = h.TraitV, TraitN = h.TraitN,
+                        SigN = h.SigN, SigV = h.SigV, SigV2 = h.SigV2,
+                        Opt15V = h.Opt15V, Opt15V2 = h.Opt15V2,
                     };
                 }
             }

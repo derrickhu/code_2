@@ -1,0 +1,10 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, zero armor scales, zero tiny details).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous white gap between frames so lances/tails NEVER touch adjacent frames) of the SAME Song Dynasty Chubby Cavalry Soldier (骑兵) on a pure solid white background (#FFFFFF):
+- Character appearance: A tiny chubby soldier in a smooth bright tangerine-orange & sunny-gold rounded helmet with a fluffy red crest, dressed in a simple periwinkle-blue tunic, riding a super plump, round, adorable white pony horse with a smooth tan mane, tan tail, and dot eyes; holding a chunky stubby wooden lance with a clean white tip. ZERO saddle straps/buckles, ZERO armor scales.
+- All 4 frames face 3/4 front-down-left, same character size and same ground baseline:
+  1. Frame 1 (leftmost): Standing/trotting ready on the plump white pony.
+  2. Frame 2: Pony bouncy trot frame with hooves lifted slightly.
+  3. Frame 3: Rider pulling the stubby lance back while pony rears slightly.
+  4. Frame 4 (rightmost): Forward lance poke pose (compact, keep lance short so it stays inside its own frame).
+NO grid lines, NO ground shadows, NO TEXT, no numbers, no labels anywhere in the image.

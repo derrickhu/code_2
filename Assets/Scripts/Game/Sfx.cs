@@ -17,6 +17,7 @@ namespace Liangshan
         Crossbow, ArrowPierce, CannonFire, CannonBoom, OilJar, MeteorHit,
         FireBeam, IceShatter, NetCast, ArraySeal, GlaiveCleave, JadePing,
         LordSlash, SigTrigger, Awaken,
+        ArrowBlast, ShieldBlock, FuseThrow, MaceCast, ThunderCast, Stun,
     }
 
     public enum Bgm { None, Menu, Battle, Boss, Victory, Defeat }
@@ -107,7 +108,7 @@ namespace Liangshan
             Load(Snd.Fist, "fist", Snd.Kill);
             Load(Snd.WallHit, "stone", Snd.Kill);
             Load(Snd.Wave, "ult_drum", Snd.Warn);
-            Load(Snd.UltArrow, "ult_fire", Snd.Warn);
+            Load(Snd.UltArrow, "ult_arrow", Snd.Warn);
             Load(Snd.UltBomb, "ult_cannon", Snd.Warn);
             Load(Snd.UltThunder, "ult_thunder", Snd.Warn);
             Load(Snd.UltFist, "ult_smash", Snd.Warn);
@@ -152,6 +153,12 @@ namespace Liangshan
             Load(Snd.LordSlash, "lord_slash", Snd.UltFist);
             Load(Snd.SigTrigger, "sig_trigger", Snd.SlotAdd);
             Load(Snd.Awaken, "awaken", Snd.Reveal);
+            Load(Snd.ArrowBlast, "arrow_blast", Snd.Bomb);
+            Load(Snd.ShieldBlock, "shield_block", Snd.WallHit);
+            Load(Snd.FuseThrow, "fuse_throw", Snd.Dart);
+            Load(Snd.MaceCast, "mace_cast", Snd.Staff);
+            Load(Snd.ThunderCast, "thunder_cast", Snd.Spell);
+            Load(Snd.Stun, "stun_bonk", Snd.WallHit);
 
             // 局外与局内界面交互音效
             Load(Snd.Tap, "ui_tap", Snd.Tap);
@@ -251,9 +258,13 @@ namespace Liangshan
                 case Snd.Magic:
                 case Snd.ArraySeal:
                 case Snd.Warn:
+                case Snd.Coin:
+                case Snd.Open:
+                case Snd.Close:
+                case Snd.Deny:
                     return 0f;
                 default:
-                    return IsUi(s) ? 0.012f : 0.032f;
+                    return IsUi(s) ? 0.008f : 0.032f;
             }
         }
 
@@ -305,6 +316,9 @@ namespace Liangshan
                 case Snd.GlaiveCleave:
                 case Snd.Chop:
                 case Snd.Hammer:
+                case Snd.ArrowBlast:
+                case Snd.ShieldBlock:
+                case Snd.Stun:
                     return 0.065f;
                 default:
                     return 0.052f;
@@ -327,6 +341,9 @@ namespace Liangshan
             {
                 src = _i._uiSrc[_i._nextUi];
                 _i._nextUi = (_i._nextUi + 1) % _i._uiSrc.Length;
+                if (s == Snd.Tap) gain *= 0.76f;
+                else if (s == Snd.Tab) gain *= 0.78f;
+                else if (s == Snd.Tick) gain *= 0.72f;
                 if (s == Snd.Jackpot || s == Snd.LevelUp || s == Snd.Awaken)
                     _i._bgmDuck = Mathf.Max(_i._bgmDuck, 0.50f);
             }

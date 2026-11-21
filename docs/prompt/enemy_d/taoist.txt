@@ -1,0 +1,12 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, rosy cheeks, ZERO armor scales, ZERO tiny details/buckles/rivets).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous pure-white gap between frames so weapons/mounts NEVER touch adjacent frames) on a pure solid white background (#FFFFFF):
+- Character: Quirky Taoist Healer (妖道). Cute 2-heads-tall chubby Taoist priest wearing a tall smooth lavender-purple crown with a gold circle emblem, clean pastel-violet & cream wide-sleeved robe, funny cute mustache, holding a fluffy pearl-white horsetail whisk (拂尘) with a gold handle.
+  1. Frame 1: Standing facing left holding the fluffy white whisk gracefully.
+  2. Frame 2: Cute little shuffle step facing left.
+  3. Frame 3: Raising the white whisk high with a glowing-happy chanting face.
+  4. Frame 4: Waving the white whisk forward-left to cast a spell.
+- CRITICAL RULES:
+  * Every single one of the 4 frames MUST face 3/4 front-down-LEFT (facing toward the LEFT side of the image), same character scale and same ground baseline!
+  * Keep all weapons, shields, mounts, and props intact in ALL 4 frames (never omit the weapon in frame 2, and NO detached flying projectiles, smoke clouds, or slash lines).
+  * NO grid lines, NO ground drop shadows, NO TEXT, no numbers, no labels anywhere in the image.

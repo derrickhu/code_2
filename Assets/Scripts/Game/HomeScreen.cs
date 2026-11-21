@@ -333,8 +333,8 @@ namespace Liangshan
         void BuildBattle(bool anim)
         {
             var st = Defs.Level(S.Selected);
-            Cover("home_road", new Vector2(1080, 1920), Color.white, 0.5f);
-            Shade(0.24f, 0.12f);
+            var roadSize = Cover("home_road", new Vector2(1080, 1920), Color.white, 0.5f);
+            Shade(0.18f, 0.12f);
             float sp = Ui.Spare;
             int day = Profile.Today;
             float baseY = TabH;
@@ -374,47 +374,49 @@ namespace Liangshan
             SideBtn(468, colY + colStep * side++, "tab_sprint", "冲刺", SprintBadge(), () => MetaUi.Sprint(Layer));
             SideBtn(468, colY + colStep * side, "ic_rank_stage", "排行榜", RankBadge(), () => RankUi.Open(Layer, -1, () => Rebuild(false)));
 
-            // 远景城门口：本关主统领（首领关为大首领，普通关为领军精英统领）脚踩城门台阶下沿。
-            var bd = Defs.Enemy(st.LeaderKind);
-            const float bodyPx = 276f;
-            const float bsz = 336f;
-            float bodyFrac = 0.86f, bossFoot = 0.012f;
-            bool bossFramed = Art.Animated(bd.Art);
-            if (bossFramed && AnimMeta.Info.TryGetValue(bd.Art, out var bm)) { bodyFrac = bm.Body; bossFoot = bm.Foot; }
-            float bossDraw = bossFramed ? bodyPx / Mathf.Max(0.55f, bodyFrac) : bodyPx;
-            float stair = 0.332f * Ui.Height;
-            float feet = stair - Ui.SafeTop + 34f;
-
-            // 标题压在门楼上，背后衬一层柔和云白光晕，与晴空青瓦清晰分离。
-            float logoTop = 144f, logoBottom = feet - bsz * 0.86f;
-            float logoH = Mathf.Clamp(logoBottom - logoTop, 114f, 162f), logoW = logoH * 900f / 268f;
-            var logo = Top(0, logoTop + logoH * 0.5f, new Vector2(logoW, logoH), "logo");
-            Ui.Box(logo, new Vector2(logoW * 1.1f, logoH * 1.35f), Vector2.zero, Color.white.A(0.32f), Art.SoftDot, "glow");
+            // 远景古道尽头（对标《永远的蔚蓝星球》路尽头立怪透视）：晴空悬主标题，本关主统领双脚稳踩收窄古道的最终平坝。
+            float roadEndScreenY = Ui.Height * 0.5f + (0.418f - 0.5f) * roadSize.y;
+            float logoTop = Ui.SafeTop + 128f + sp * 0.04f;
+            float logoH = Mathf.Clamp((roadEndScreenY - logoTop) * 0.24f, 122f, 158f);
+            float logoW = logoH * 900f / 268f;
+            var logo = Ui.Top(_page, 0f, logoTop + logoH * 0.5f, new Vector2(logoW, logoH), "logo");
+            Ui.Box(logo, new Vector2(logoW * 1.08f, logoH * 1.30f), Vector2.zero, Color.white.A(0.30f), Art.SoftDot, "glow");
             Ui.Icon(logo, "logo", logoW, Vector2.zero, "art");
             if (anim) Tween.Pop(logo, 0.35f);
 
-            var boss = Top(0, feet - bsz * 0.5f, new Vector2(bsz, bsz), "boss");
-            Ui.Box(boss, new Vector2(bsz * 0.78f, 62), new Vector2(0, -bsz * 0.47f), new Color(0.04f, 0.1f, 0.18f, 0.42f), Art.SoftDot);
-            Ui.Box(boss, new Vector2(bsz * 0.92f, 88), new Vector2(0, -bsz * 0.46f), (st.IsChapterBoss ? Pal.Purple : Pal.Hex("38A8D8")).A(0.36f), Art.SoftDot);
-            float bossStand = bossFramed ? -bsz * 0.5f + bossDraw * (0.5f - bossFoot) : 0f;
-            var icon = Ui.Icon(boss, bd.Art, bossDraw, new Vector2(0, bossStand));
-            if (bossFramed)
-            {
-                icon.color = Color.white.A(0f);
-                string key = bd.Art;
-                Art.Late(icon, key, () =>
-                {
-                    var fr = Art.Frames(key);
-                    if (fr.Length > 0) icon.sprite = fr[0];
-                    icon.color = Color.white;
-                });
-            }
-            Tween.Run(icon, 999f, k => icon.rectTransform.anchoredPosition = new Vector2(0, bossStand + 5 * Mathf.Sin(k * 999f * 2f)));
+            var bd = Defs.Enemy(st.LeaderKind);
+            var bossSpr = Art.Img(bd.Art);
+            float aspect = bossSpr != null && bossSpr.rect.height > 1f ? bossSpr.rect.width / bossSpr.rect.height : 0.85f;
+            float logoBottom = logoTop + logoH;
+            float maxBossH = Mathf.Max(268f, roadEndScreenY - (logoBottom + 22f));
+            float bossH = Mathf.Min(st.IsChapterBoss ? 384f : 356f, maxBossH);
+            float bossW = Mathf.Clamp(bossH * aspect, 196f, 410f);
+            bossH = bossW / Mathf.Max(0.25f, aspect);
+
+            // boss 零尺寸原点精准钉在古道尽头地面落脚线（子节点的 (0,0) 即双靴贴地线，Pop 动画亦从脚底向上生长）
+            var boss = Ui.Top(_page, 0f, roadEndScreenY, Vector2.zero, "boss");
+
+            // 山口薄雾轻拢脚踝后方 + 双层透视贴地石影（漫射投射影 + 靴底紧实接触暗影），彻底消除“贴纸感”
+            var mistImg = Ui.Box(boss, new Vector2(bossW * 1.62f, 118f), new Vector2(0f, 42f),
+                Pal.Hex("D8F2F8").A(0.28f), Art.SoftDot, "valleyMist");
+            if (st.IsChapterBoss)
+                Ui.Box(boss, new Vector2(bossW * 0.90f, 44f), new Vector2(0f, -2f), Pal.Hex("FF5E3A").A(0.18f), Art.SoftDot, "bossAura");
+            var castSh = Ui.Box(boss, new Vector2(bossW * 0.96f, 52f), new Vector2(6f, -4f),
+                new Color(0.10f, 0.16f, 0.23f, 0.34f), Art.SoftDot, "castShadow");
+            var contactSh = Ui.Box(boss, new Vector2(bossW * 0.62f, 24f), new Vector2(0f, -2f),
+                new Color(0.05f, 0.09f, 0.15f, 0.62f), Art.GroundShadow, "contactShadow");
+
+            var icon = Ui.Box(boss, new Vector2(bossW, bossH), new Vector2(0f, bd.Flying ? 32f : 0f), Color.white, bossSpr, "icon");
+            icon.type = Image.Type.Simple;
+            icon.preserveAspect = false;
+            icon.rectTransform.pivot = new Vector2(0.5f, 0.012f);
+            var breather = icon.gameObject.AddComponent<BossBreathing>();
+            breather.Setup(bd.Flying, contactSh.rectTransform, castSh.rectTransform, mistImg.rectTransform);
             if (anim) Tween.Pop(boss, 0.35f);
 
-            // 1) 首领脚下紧凑无背景关卡标题（左侧圆目录钮 + 偏红的立体艺术字）
-            float tagY = feet + 30f;
-            var tag = Top(0, tagY, new Vector2(560, 72), "levelTag");
+            // 1) 统领脚下紧凑无背景关卡标题（左侧圆目录钮 + 偏红的立体艺术字）
+            float tagScreenY = roadEndScreenY + 28f;
+            var tag = Ui.Top(_page, 0f, tagScreenY, new Vector2(560, 72), "levelTag");
             string stTitle = $"{st.No}.{st.Name}";
             var stLbl = Ui.GradOutlined(tag, stTitle, 40, Pal.Hex("FFE8E0"), Pal.Hex("FF7A62"),
                 new Vector2(22f, 0f), new Vector2(420, 56), Pal.Hex("7A1410"), 3.2f, TextAnchor.MiddleCenter, "stName");
@@ -433,18 +435,17 @@ namespace Liangshan
             var tagHit = Ui.Box(tag, new Vector2(stHalfW * 2f + 16f, 58f), new Vector2(22f, 0f), new Color(0, 0, 0, 0), Art.White, "tagHit");
             Ui.Tap(tagHit, () => MetaUi.LevelList(Layer), stLbl.transform);
 
-            // 2) 石板路中段原生态压印水墨地形大字（对标参考图「第 20 关 / 旷古草原 / 关卡提示胶囊」，让中段石路通透有层次！）
-            var roadMark = Ui.Rect(_page, "roadImprint");
-            roadMark.anchorMin = roadMark.anchorMax = new Vector2(0.5f, 0.5f);
-            roadMark.anchoredPosition = new Vector2(0f, 38f + sp * 0.04f);
-            roadMark.sizeDelta = new Vector2(560, 210);
+            // 2) 石板路中段原生态压印水墨地形大字（对标参考图「第 20 关 / 旷古草原 / 关卡提示胶囊」，落在宽阔石路中段，不挤脚下！）
+            float deckTopScreenY = Ui.Height - (podiumY + 78f);
+            float roadMidScreenY = Mathf.Lerp(tagScreenY + 52f, deckTopScreenY - 24f, 0.52f);
+            var roadMark = Ui.Top(_page, 0f, roadMidScreenY, new Vector2(560, 210), "roadImprint");
             roadMark.SetSiblingIndex(2); // 压在石板路之上、城台与飞箭之下，真正融入地面透视！
 
-            var roadInk = new Color(0.20f, 0.25f, 0.31f, 0.40f);
+            var roadInk = new Color(0.22f, 0.24f, 0.28f, 0.38f);
             var roadNo = Ui.Label(roadMark, $"第 {st.No} 关", 40, roadInk, new Vector2(0, 66f), new Vector2(420, 54), TextAnchor.MiddleCenter, Fonts.Heavy, "rNo");
             roadNo.raycastTarget = false;
             var nameFont = Fonts.Fits(Fonts.Brush, st.Name) ? Fonts.Brush : Fonts.Heavy;
-            var roadName = Ui.Label(roadMark, st.Name, nameFont == Fonts.Brush ? 76 : 64, new Color(0.18f, 0.23f, 0.29f, 0.44f),
+            var roadName = Ui.Label(roadMark, st.Name, nameFont == Fonts.Brush ? 76 : 64, new Color(0.20f, 0.22f, 0.26f, 0.42f),
                 new Vector2(0, 2f), new Vector2(540, 92), TextAnchor.MiddleCenter, nameFont, "rName");
             roadName.raycastTarget = false;
 

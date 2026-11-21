@@ -1,0 +1,10 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, rosy cheeks, zero armor scales, zero tiny details).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous white gap between frames so weapons NEVER touch adjacent frames) of the SAME Song Dynasty basic Foot Soldier (大宋小官兵) on a pure solid white background (#FFFFFF):
+- Character appearance: Oversized smooth pearl-white round pot helmet with a cute gold circle badge on the forehead and a fluffy bright tangerine-orange pom-pom on top; chubby face with determined cute curved eyebrows and rosy cheeks; simple smooth periwinkle-blue (#7A89FE) tunic with lavender trim; holding one chunky, stubby shiny silver broadsword with a simple gold hilt. ZERO scales, ZERO buckles, ZERO scabbard.
+- All 4 frames face 3/4 front-down-left, same character size and same ground baseline:
+  1. Frame 1 (leftmost): Standing ready, holding the stubby sword steady.
+  2. Frame 2: Cute marching bounce, opposite foot slightly forward.
+  3. Frame 3: Wind-up pose, raising the stubby sword above his helmet to strike.
+  4. Frame 4 (rightmost): Downward chop pose, swinging the sword forward-down (no detached flying slash effects).
+NO grid lines, NO ground shadows, NO TEXT, no numbers, no labels anywhere in the image.

@@ -16,12 +16,12 @@ namespace Liangshan
         {
             switch (d.Id)
             {
-                // 射手系：燕青三连机巧弩 / 花荣穿云强弓 / 解宝掷叉 / 解珍猎弓
-                case HeroId.YanQing: Sfx.Play(Snd.Crossbow, 0.52f * scale, 1.02f); return;
-                case HeroId.HuaRong: Sfx.Play(Snd.Bow, 0.46f * scale, 1.08f); return;
-                case HeroId.XieZhen: Sfx.Play(Snd.Bow, 0.40f * scale, 0.96f); return;
-                case HeroId.XieBao: Sfx.Play(Snd.Dart, 0.44f * scale, 0.90f); return;
-                case HeroId.ZhangQing: Sfx.Play(Snd.Dart, 0.44f * scale, 1.15f); return;
+                // 射手系：燕青机巧三连弩 / 花荣穿云强弓 / 解珍穿林猎弓 / 解宝倒钩钢叉 / 张清没羽飞石
+                case HeroId.YanQing: Sfx.Play(Snd.Crossbow, 0.56f * scale, 1.0f); return;
+                case HeroId.HuaRong: Sfx.Play(Snd.Bow, 0.54f * scale, 1.05f); return;
+                case HeroId.XieZhen: Sfx.Play(Snd.Bow, 0.50f * scale, 0.95f); return;
+                case HeroId.XieBao: Sfx.Play(Snd.Thrust, 0.48f * scale, 1.16f); return;
+                case HeroId.ZhangQing: Sfx.Play(Snd.Dart, 0.50f * scale, 1.08f); return;
 
                 // 长柄突刺系：卢俊义麒麟重枪 / 林冲寒星蛇矛 / 徐宁钩镰枪
                 case HeroId.LuJunyi: Sfx.Play(Snd.Thrust, 0.56f * scale, 0.88f); return;
@@ -33,37 +33,37 @@ namespace Liangshan
                 case HeroId.LuZhiShen: Sfx.Play(Snd.Staff, 0.56f * scale, 0.92f); return;
                 case HeroId.LiKui: Sfx.Play(Snd.Axe, 0.55f * scale, 0.96f); return;
                 case HeroId.WuSong: Sfx.Play(Snd.Jab, 0.56f * scale, 0.95f); return;
-                case HeroId.ShiXiu: Sfx.Play(Snd.Sword, 0.50f * scale, 1.12f); return;
+                case HeroId.ShiXiu: Sfx.Play(Snd.Sword, 0.52f * scale, 1.08f); return;
 
-                // 炮手爆破系：秦明火陨 / 凌振重炮出膛 / 魏定国掷油瓮 / 孔亮掷火雷
-                case HeroId.QinMing: Sfx.Play(Snd.FireBeam, 0.58f * scale, 0.88f); return;
-                case HeroId.LingZhen: Sfx.Play(Snd.CannonFire, 0.58f * scale, 1.0f); return;
-                case HeroId.WeiDingguo: Sfx.Play(Snd.Dart, 0.46f * scale, 0.78f); return;
-                case HeroId.KongLiang: Sfx.Play(Snd.Dart, 0.42f * scale, 0.86f); return;
+                // 炮手爆破系：秦明烈焰狼牙锤挥召 / 凌振重炮出膛 / 魏定国引信掷油瓮 / 孔亮引信掷火雷
+                case HeroId.QinMing: Sfx.Play(Snd.MaceCast, 0.58f * scale, 1.0f); return;
+                case HeroId.LingZhen: Sfx.Play(Snd.CannonFire, 0.56f * scale, 1.0f); return;
+                case HeroId.WeiDingguo: Sfx.Play(Snd.FuseThrow, 0.52f * scale, 0.90f); return;
+                case HeroId.KongLiang: Sfx.Play(Snd.FuseThrow, 0.48f * scale, 1.05f); return;
 
-                // 法师与控制系
-                case HeroId.GongSun: Sfx.Play(Snd.Spell, 0.52f * scale, 1.08f); return;
+                // 法师与控制系：公孙胜掌心聚雷 / 樊瑞呼风 / 乔道清喷火 / 单廷珪激流 / 马灵祭金砖 / 朱武布阵 / 扈三娘甩鞭 / 孙二娘掷药包 / 阮小七撒渔网
+                case HeroId.GongSun: Sfx.Play(Snd.ThunderCast, 0.52f * scale, 1.0f); return;
                 case HeroId.FanRui: Sfx.Play(Snd.Gust, 0.50f * scale, 0.92f); return;
                 case HeroId.QiaoDaoqing: Sfx.Play(Snd.FireBeam, 0.48f * scale, 1.05f); return;
-                case HeroId.ShanTinggui: Sfx.Play(Snd.Water, 0.45f * scale, 1.08f); return;
+                case HeroId.ShanTinggui: Sfx.Play(Snd.Water, 0.46f * scale, 1.06f); return;
                 case HeroId.MaLing: Sfx.Play(Snd.Spell, 0.48f * scale, 0.96f); return;
                 case HeroId.ZhuWu: Sfx.Play(Snd.Spell, 0.48f * scale, 0.90f); return;
-                case HeroId.HuSanniang: Sfx.Play(Snd.Whip, 0.52f * scale, 1.0f); return;
-                case HeroId.SunErniang: Sfx.Play(Snd.Gust, 0.44f * scale, 1.16f); return;
-                case HeroId.RuanXiaoqi: Sfx.Play(Snd.NetCast, 0.48f * scale, 1.0f); return;
+                case HeroId.HuSanniang: Sfx.Play(Snd.Whip, 0.54f * scale, 1.0f); return;
+                case HeroId.SunErniang: Sfx.Play(Snd.Dart, 0.48f * scale, 0.92f); return;
+                case HeroId.RuanXiaoqi: Sfx.Play(Snd.NetCast, 0.50f * scale, 1.0f); return;
             }
             switch (d.Shot)
             {
-                case ShotKind.Arrow: Sfx.Play(Snd.Bow, 0.42f * scale); break;
-                case ShotKind.Stone: Sfx.Play(Snd.Dart, 0.42f * scale, 1.12f); break;
+                case ShotKind.Arrow: Sfx.Play(Snd.Bow, 0.48f * scale); break;
+                case ShotKind.Stone: Sfx.Play(Snd.Dart, 0.46f * scale, 1.08f); break;
                 case ShotKind.Bomb:
-                case ShotKind.MiniBomb: Sfx.Play(Snd.Dart, 0.42f * scale, 0.82f); break;
-                case ShotKind.Fireball: Sfx.Play(Snd.FireBeam, 0.50f * scale, 0.90f); break;
+                case ShotKind.MiniBomb: Sfx.Play(Snd.FuseThrow, 0.46f * scale, 0.96f); break;
+                case ShotKind.Fireball: Sfx.Play(Snd.MaceCast, 0.52f * scale, 0.96f); break;
                 case ShotKind.Spear: Sfx.Play(Snd.Thrust, 0.50f * scale); break;
-                case ShotKind.Lasso: Sfx.Play(Snd.Whip, 0.48f * scale); break;
+                case ShotKind.Lasso: Sfx.Play(Snd.Whip, 0.50f * scale); break;
                 case ShotKind.Punch: Sfx.Play(Snd.Jab, 0.52f * scale); break;
                 case ShotKind.Wind: Sfx.Play(Snd.Gust, 0.45f * scale); break;
-                case ShotKind.Lightning: Sfx.Play(Snd.Spell, 0.50f * scale); break;
+                case ShotKind.Lightning: Sfx.Play(Snd.ThunderCast, 0.50f * scale); break;
                 case ShotKind.Beam: Sfx.Play(Snd.FireBeam, 0.45f * scale); break;
                 case ShotKind.Slam: Sfx.Play(Snd.Staff, 0.52f * scale, 0.92f); break;
             }
@@ -91,12 +91,12 @@ namespace Liangshan
             float v = (crit ? 1.28f : 1f) * scale;
             switch (d.Id)
             {
-                // 射手系：品级命中分明
-                case HeroId.YanQing: Sfx.Play(Snd.ArrowPierce, 0.44f * v, 1.08f); return;
-                case HeroId.HuaRong: Sfx.Play(Snd.ArrowPierce, 0.46f * v, 0.98f); return;
-                case HeroId.XieZhen: Sfx.Play(Snd.ArrowHit, 0.42f * v, 1.0f); return;
-                case HeroId.XieBao: Sfx.Play(Snd.SpearHit, 0.42f * v, 1.14f); return;
-                case HeroId.ZhangQing: Sfx.Play(Snd.JadePing, 0.46f * v, 1.0f); return;
+                // 射手系：品级与兵器材质命中分明（弩矢破甲 / 穿云贯甲 / 猎箭钉盾 / 毒叉刺肉 / 青石撞盔）
+                case HeroId.YanQing: Sfx.Play(Snd.ArrowPierce, 0.50f * v, 1.08f); return;
+                case HeroId.HuaRong: Sfx.Play(Snd.ArrowPierce, 0.54f * v, 0.98f); return;
+                case HeroId.XieZhen: Sfx.Play(Snd.ArrowHit, 0.52f * v, 1.0f); return;
+                case HeroId.XieBao: Sfx.Play(Snd.SpearHit, 0.46f * v, 1.14f); Sfx.Play(Snd.Poison, 0.24f * v, 1.18f); return;
+                case HeroId.ZhangQing: Sfx.Play(Snd.JadePing, 0.52f * v, 1.0f); return;
 
                 // 长柄突刺系
                 case HeroId.LuJunyi: Sfx.Play(Snd.SpearHit, 0.56f * v, 0.86f); return;
@@ -108,7 +108,7 @@ namespace Liangshan
                 case HeroId.LuZhiShen: Sfx.Play(Snd.Hammer, 0.60f * v, 0.94f); return;
                 case HeroId.LiKui: Sfx.Play(Snd.Chop, 0.58f * v, 1.0f); return;
                 case HeroId.WuSong: Sfx.Play(Snd.Fist, 0.62f * v, 1.0f); return;
-                case HeroId.ShiXiu: Sfx.Play(Snd.Dao, 0.50f * v, 1.06f); return;
+                case HeroId.ShiXiu: Sfx.Play(Snd.Dao, 0.52f * v, 1.06f); return;
 
                 // 炮手爆破系：火雷 -> 猛火油瓮碎燃 -> 重炮震雷 -> 狼牙火陨
                 case HeroId.QinMing: Sfx.Play(Snd.MeteorHit, 0.66f * v, 1.0f); return;
@@ -116,7 +116,7 @@ namespace Liangshan
                 case HeroId.WeiDingguo: Sfx.Play(Snd.OilJar, 0.58f * v, 1.0f); return;
                 case HeroId.KongLiang: Sfx.Play(Snd.Bomb, 0.52f * v, 1.04f); return;
 
-                // 法师、控制与辅助系
+                // 法师、控制与辅助系（阮小七天罗地网命中对齐绳网束缚声，不再误播泼水声）
                 case HeroId.GongSun: Sfx.Play(Snd.Thunder, 0.58f * v, 1.0f); return;
                 case HeroId.MaLing: Sfx.Play(Snd.GoldSlam, 0.56f * v, 1.0f); return;
                 case HeroId.QiaoDaoqing: Sfx.Play(Snd.FireBeam, 0.34f * v, 1.12f); return;
@@ -124,17 +124,17 @@ namespace Liangshan
                 case HeroId.FanRui: Sfx.Play(Snd.Whirl, 0.38f * v, 1.0f); return;
                 case HeroId.ZhuWu: Sfx.Play(Snd.ArraySeal, 0.52f * v, 1.0f); return;
                 case HeroId.HuSanniang: Sfx.Play(Snd.Lasso, 0.52f * v, 1.0f); return;
-                case HeroId.SunErniang: Sfx.Play(Snd.Poison, 0.48f * v, 1.0f); return;
-                case HeroId.RuanXiaoqi: Sfx.Play(Snd.Water, 0.46f * v, 0.92f); return;
+                case HeroId.SunErniang: Sfx.Play(Snd.Poison, 0.50f * v, 1.0f); return;
+                case HeroId.RuanXiaoqi: Sfx.Play(Snd.Lasso, 0.50f * v, 0.88f); return;
                 case HeroId.WuYong: Sfx.Play(Snd.Magic, 0.42f * v, 1.0f); return;
                 case HeroId.AnDaoquan: Sfx.Play(Snd.Heal, 0.40f * v, 1.0f); return;
             }
             switch (d.Shot)
             {
-                case ShotKind.Arrow: Sfx.Play(Snd.ArrowHit, 0.40f * v); break;
-                case ShotKind.Stone: Sfx.Play(Snd.JadePing, 0.42f * v); break;
+                case ShotKind.Arrow: Sfx.Play(Snd.ArrowHit, 0.48f * v); break;
+                case ShotKind.Stone: Sfx.Play(Snd.JadePing, 0.48f * v); break;
                 case ShotKind.Bomb: Sfx.Play(Snd.Bomb, 0.52f * v); break;
-                case ShotKind.MiniBomb: Sfx.Play(Snd.Bomb, 0.36f * v, 1.22f); break;
+                case ShotKind.MiniBomb: Sfx.Play(Snd.ArrowBlast, 0.44f * v, 0.90f); break;
                 case ShotKind.Fireball: Sfx.Play(Snd.MeteorHit, 0.58f * v); break;
                 case ShotKind.Lightning: Sfx.Play(Snd.Thunder, 0.56f * v); break;
                 case ShotKind.Punch: Sfx.Play(Snd.Fist, 0.58f * v); break;

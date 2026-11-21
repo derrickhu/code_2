@@ -1,0 +1,10 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, rosy cheeks, zero armor scales, zero tiny details).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous white gap between frames so weapons NEVER touch adjacent frames) of the SAME Song Dynasty Crossbowman (弩手) on a pure solid white background (#FFFFFF):
+- Character appearance: Chubby cute soldier wearing a smooth pearl-white & periwinkle-blue cap with a cute orange-red ribbon bow on top and a small gold badge; dressed in a clean light cream vest over a periwinkle-blue shirt; holding a chunky, simplified warm-orange wooden crossbow loaded with a stubby white-tipped bolt. ZERO quivers, ZERO straps, ZERO tiny details.
+- All 4 frames face 3/4 front-down-left, same character size and same ground baseline:
+  1. Frame 1 (leftmost): Standing holding the chunky crossbow ready.
+  2. Frame 2: Cute little marching bounce with crossbow held steady.
+  3. Frame 3: Aiming and drawing back the chunky crossbow, squinting one eye cutely.
+  4. Frame 4 (rightmost): Firing recoil pose, crossbow tilted slightly up after shot (no flying arrow detached from body).
+NO grid lines, NO ground shadows, NO TEXT, no numbers, no labels anywhere in the image.

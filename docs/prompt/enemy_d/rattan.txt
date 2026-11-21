@@ -1,0 +1,12 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, rosy cheeks, ZERO armor scales, ZERO tiny details/buckles/rivets).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous pure-white gap between frames so weapons/mounts NEVER touch adjacent frames) on a pure solid white background (#FFFFFF):
+- Character: Song Dynasty Rattan Shield Soldier (藤牌手). Cute chubby 2-heads-tall soldier wearing a smooth warm butter-yellow rounded woven hat with an orange-red trim and a fresh sky-blue tunic; holding a big smooth round mint-green & warm-tan rattan shield (with one simple clean white circle ring in the center, zero complex tiger face) in front and a stubby silver short sabre.
+  1. Frame 1: Standing guard facing left behind the round green-tan shield.
+  2. Frame 2: Cute bouncy step forward facing left.
+  3. Frame 3: Pulling the stubby sabre up behind the shield to strike.
+  4. Frame 4: Short compact downward chop to the left.
+- CRITICAL RULES:
+  * Every single one of the 4 frames MUST face 3/4 front-down-LEFT (facing toward the LEFT side of the image), same character scale and same ground baseline!
+  * Keep all weapons, shields, mounts, and props intact in ALL 4 frames (never omit the weapon in frame 2, and NO detached flying projectiles, smoke clouds, or slash lines).
+  * NO grid lines, NO ground drop shadows, NO TEXT, no numbers, no labels anywhere in the image.

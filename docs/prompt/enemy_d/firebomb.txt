@@ -1,0 +1,10 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, rosy cheeks, zero armor scales, zero tiny details).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous white gap between frames) of the SAME Song Dynasty Fire-Bomb Soldier (火药兵) on a pure solid white background (#FFFFFF):
+- Character appearance: Cute frantic chubby soldier wearing a smooth bright tangerine-orange headband with a gold circle badge on his forehead, and a simple sleeveless periwinkle-blue tunic; hugging a HUGE smooth round plum-indigo cartoon bomb in both stubby arms, with a thick short rope fuse topped by a bright sunny-yellow star-spark! ZERO pouches, ZERO extra grenades, ZERO soot/dirt.
+- All 4 frames face 3/4 front-down-left, same character size and same ground baseline:
+  1. Frame 1 (leftmost): Hugging the big round bomb in front of his belly, wide excited eyes.
+  2. Frame 2: Scurrying forward step while clutching the big bomb.
+  3. Frame 3: Raising the big glowing-fuse bomb high over his head with both arms.
+  4. Frame 4 (rightmost): Lunging forward about to slam the bomb down (keep bomb intact in his hands, no explosion cloud).
+NO grid lines, NO ground shadows, NO TEXT, no numbers, no labels anywhere in the image.

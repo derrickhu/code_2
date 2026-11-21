@@ -1,0 +1,20 @@
+主界面远景尽头古道背景方案 v6（对标《永远的蔚蓝星球》「路尽头立怪 + 远山薄雾景深」）
+================================================================================
+
+设计目标：
+1. 彻底淘汰旧版 v5 背景正中央高达半屏的垂直灰砖城墙与深褐城楼——旧版导致本关统领/首领像一张扁平贴纸硬贴在垂直砖墙上，毫无地面透视纵深。
+2. 严格学习《永远的蔚蓝星球》的透视构图法则：
+   - 道路采用强烈而自然的一点透视（One-point perspective），从下半屏宽阔的青白石路面一路向远方收窄延伸，在距画面顶部约 32%~34% 处抵达「道路最终尽头（山口平坝/断崖隘口）」。
+   - 道路尽头正后方（画面中央 10%~32% 高度区域）绝不画任何城墙、门洞或建筑遮挡，而是豁然开朗的梁山水泊远景薄雾、低对比度层叠远山与晴空云气（空气透视法），让站在路尽头的怪物上半身剪影干净利落地衬托在通透远景雾气之前，下半身双脚稳稳踩在古道尽头的平整石面上！
+   - 道路尽头左右两侧（仅在 x < 32% 与 x > 68% 的路旁，绝不侵入中央路面）点缀宋代木制拒马鹿角、青苔山石与苍松翠竹，在怪物脚踝两侧建立真实的三维地面参照系。
+   - 中下段石板路面（34%~72% 高度）保持平整柔和的低对比度暖灰青白石质感，既与下半屏前景点将城台（home_deck.png）石材色温无缝衔接，又让中段石路压印大字（「第 X 关 / 地名」）清透自然。
+
+Prompt: home_road_v6 (9:16 vertical background)
+-----------------------------------------------
+Use the first reference image ONLY for the 1-point perspective composition, camera angle, and depth staging (a wide receding road narrowing upward to a flat road-end clearing around 32% from the top, with open misty distant mountain silhouettes behind the road's end and wooden barricades/trees/rocks ONLY on the left and right sides of the road). Use the second reference image ONLY for the crisp Q-version Chinese casual strategy cel-shaded cartoon style and refreshing Song-dynasty blue-green landscape (qinglv shanshui) daylight color palette. Do NOT copy any monster, character, UI, icons, coins, banners, fortress brick wall, gatehouse building, or text from either reference.
+
+Vertical 9:16 mobile game background illustration, top-tier Q-version Chinese casual strategy cartoon style, refreshing sunny morning with soft atmospheric mist, Song-dynasty blue-green landscape palette:
+- Upper zone (top 0% to 32% of the frame): an open, airy, unobstructed misty horizon over the Liangshan marsh valley — clear soft sky-blue fading into pale celadon-cyan morning mist, with low-contrast distant layered blue-green mountain peaks far across the misty water. Keep the central upper area (x 28%–72%, y 8%–32%) calm, misty, and completely free of buildings or walls so a boss character standing at the end of the road will read with crisp 3D depth.
+- Road terminus / far end of the road (at 31% to 35% from the top, centered): the ancient stone mountain road narrows in perspective and reaches its flat, grounded far-end crest overlooking the misty valley beyond (NO wall, NO gatehouse, NO stairs blocking behind it). Flanking ONLY on the left side (x 6%–31%) and right side (x 69%–94%) of the road's far end: weathered Song-dynasty crossed wooden battle barricades, mossy grey rocks, and lush green pines and bamboo framing the pass.
+- Midground to bottom road (from 33% down to 100%): a wide, clean, continuous one-point perspective ancient road paved with large flat weathered pale grey-celadon bluestone slabs, widening smoothly from ~28% screen width at its far end (at 32% height) down to ~72% screen width near the bottom. Smooth, calm, low-contrast stone slabs in the middle with subtle stone joints, natural sunlight, chiseled curb stones, a few tiny roadside pebbles and two stray wooden arrows in the grass along the road edges, and sparkling turquoise marsh water streams with lotus leaves and green bamboo along the outer left and right margins.
+- Completely empty road surface in the center: NO characters, NO monsters, NO fortress wall, NO pagoda, NO chests, NO UI, NO TEXT, no labels, no numbers, no writing anywhere in the image.

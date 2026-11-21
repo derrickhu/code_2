@@ -1,0 +1,12 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, rosy cheeks, ZERO armor scales, ZERO tiny details/buckles/rivets).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous pure-white gap between frames so weapons/mounts NEVER touch adjacent frames) on a pure solid white background (#FFFFFF):
+- Character: Divine Fire Cannon Cart Elite (神火轰天车). Ornate cute chibi crimson-and-gold 4-wheel siege cannon cart facing left, featuring a chunky shiny bronze-gold barrel on top and a smooth gold sun shield on the front, tended by one tiny red-helmeted soldier on the right side of the cart.
+  1. Frame 1: Cute crimson-gold cannon cart ready facing left with tiny gunner.
+  2. Frame 2: Rolling forward left on chunky gold-rimmed wheels.
+  3. Frame 3: Gunner tilting the chunky bronze barrel up slightly, fuse sparkling.
+  4. Frame 4: Cannon recoil pose jolting back slightly (NO detached cannonball or huge smoke).
+- CRITICAL RULES:
+  * Every single one of the 4 frames MUST face 3/4 front-down-LEFT (facing toward the LEFT side of the image), same character scale and same ground baseline!
+  * Keep all weapons, shields, mounts, and props intact in ALL 4 frames (never omit the weapon in frame 2, and NO detached flying projectiles, smoke clouds, or slash lines).
+  * NO grid lines, NO ground drop shadows, NO TEXT, no numbers, no labels anywhere in the image.

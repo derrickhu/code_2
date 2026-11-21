@@ -1365,10 +1365,22 @@ def build_all_recipes() -> List[Tuple[str, Callable[[], array.array]]]:
     return recipes
 
 
+# 纯五声音阶旋律/和弦类 UI 与加持音效（其余全部战斗兵器与物理材质拟音由 tools/gen_real_sfx.py 生成，默认绝不覆盖！）
+PENTATONIC_ONLY = {
+    "ui_deny", "ui_tick", "ui_reel", "ui_reel_stop", "join", "rank_up", "ui_slot_add",
+    "ui_unlock", "ui_talent", "ui_levelup", "ui_reward", "ui_reveal", "ui_jackpot",
+    "awaken", "sig_trigger", "magic_soft", "ult_heal", "ult_fire",
+}
+
+
 def main() -> None:
+    import sys
+    overwrite_foley = "--overwrite-foley" in sys.argv
     t0 = time.time()
     recipes = build_all_recipes()
-    print(f"[build_sfx] 开始合成并母带导出 {len(recipes)} 枚商业级音效 -> {OUT_DIR}")
+    if not overwrite_foley:
+        recipes = [(n, fn) for n, fn in recipes if n in PENTATONIC_ONLY]
+    print(f"[build_sfx] 开始合成并母带导出 {len(recipes)} 枚五声器乐音效 -> {OUT_DIR} (物理拟音由 gen_real_sfx.py 维护)")
     for name, fn in recipes:
         buf = fn()
         mp3_path = os.path.join(OUT_DIR, f"{name}.mp3")

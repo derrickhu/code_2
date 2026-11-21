@@ -316,7 +316,7 @@ namespace Liangshan.Tests
                     Assert.AreEqual(14, regular.Count, d.Name);
                 }
                 else Assert.AreEqual(10, regular.Count, d.Name);
-                foreach (var p in regular.Where(p => p.Has2)) Assert.Less(p.V2, 0f, p.Name + " 取舍的代价是负的");
+                foreach (var p in regular.Where(p => p.Kind == PerkKind.Trade && p.Has2)) Assert.Less(p.V2, 0f, p.Name + " 取舍的代价是负的");
                 Assert.IsNotNull(Meta.OptPerk(d.Id, 1), d.Name);
                 Assert.IsNotNull(Meta.OptPerk(d.Id, 3), d.Name);
                 Assert.IsNotNull(Defs.FinisherPerk(d.Id), d.Name + " 全员皆有第4终结技卡（大招或奥义）");
@@ -359,6 +359,60 @@ namespace Liangshan.Tests
             Assert.IsFalse(Meta.Talent(HeroId.WuYong, 1).Contains("锦囊妙计"), "吴用 5 级绝不再重复出现锦囊妙计");
             Assert.IsFalse(Meta.Talent(HeroId.WuYong, 3).Contains("锦囊妙计"), "吴用 15 级绝不再重复出现锦囊妙计");
             Assert.IsFalse(Meta.Talent(HeroId.GuanSheng, 1).Contains("青龙偃月"), "青龙偃月刀开局就会，5 级不该再解锁");
+        }
+
+        /// <summary>同一卡池里，两条单属性强化不能一条完全盖过另一条；双属性卡按同一对属性比较。</summary>
+        [Test]
+        public void EnhancementCardsAreNotStrictlyDominated()
+        {
+            foreach (var d in Defs.Heroes)
+            {
+                foreach (bool star in new[] { false, true })
+                {
+                    var pool = Defs.PerksOf(d.Id, star)
+                        .Where(p => p.Kind == PerkKind.Value && string.IsNullOrEmpty(p.Req) && !p.Id.EndsWith("_exec"))
+                        .ToList();
+                    for (int i = 0; i < pool.Count; i++)
+                        for (int j = i + 1; j < pool.Count; j++)
+                        {
+                            var a = pool[i];
+                            var b = pool[j];
+                            if (!SameOffer(a, b)) continue;
+                            if (Dominates(a, b))
+                                Assert.Fail(d.Name + "「" + a.Name + "」完全压过「" + b.Name + "」（" + a.Eff + " " + a.V + " / " + b.Eff + " " + b.V + "）");
+                            if (Dominates(b, a))
+                                Assert.Fail(d.Name + "「" + b.Name + "」完全压过「" + a.Name + "」（" + b.Eff + " " + b.V + " / " + a.Eff + " " + a.V + "）");
+                        }
+                }
+            }
+            var rain = Defs.PerksOf(HeroId.XieZhen, true).Single(p => p.Name == "箭雨");
+            var god = Defs.PerksOf(HeroId.XieZhen, true).Single(p => p.Name == "猎神");
+            Assert.AreEqual(Eff.Count, rain.Eff, "解珍满星「箭雨」应改成多射箭，不再和「猎神」抢同一条箭伤害");
+            Assert.AreNotEqual(god.Eff, rain.Eff);
+        }
+
+        static bool SameOffer(PerkDef a, PerkDef b)
+        {
+            if (a.Has2 != b.Has2) return false;
+            if (!a.Has2) return a.Eff == b.Eff;
+            return (a.Eff == b.Eff && a.Eff2 == b.Eff2) || (a.Eff == b.Eff2 && a.Eff2 == b.Eff);
+        }
+
+        static bool Dominates(PerkDef better, PerkDef worse)
+        {
+            if (better.Max < worse.Max) return false;
+            if (!better.Has2)
+                return better.V >= worse.V && (better.V > worse.V || better.Max > worse.Max || better.V == worse.V);
+            float bv = StatOf(better, worse.Eff);
+            float bv2 = StatOf(better, worse.Eff2);
+            return bv >= worse.V && bv2 >= worse.V2 && (bv > worse.V || bv2 > worse.V2 || better.Max > worse.Max || (bv == worse.V && bv2 == worse.V2));
+        }
+
+        static float StatOf(PerkDef p, Eff e)
+        {
+            if (p.Eff == e) return p.V;
+            if (p.Has2 && p.Eff2 == e) return p.V2;
+            return float.NegativeInfinity;
         }
 
         /// <summary>完全同名、只差一个字，或只少一个字的简称，都会被读成同一招。</summary>
@@ -826,6 +880,33 @@ namespace Liangshan.Tests
             Assert.IsTrue(Meta.ClaimCodex(s, minions[0]));
             Assert.IsFalse(Meta.ClaimCodex(s, minions[0]));
             Assert.AreEqual(need - 1, Meta.CodexGroupBadge(s, 0));
+        }
+
+        [Test]
+        public void AllSfxResourcesLoadCleanlyWithValidDuration()
+        {
+            string[] clips =
+            {
+                "array_seal", "arrow_blast", "arrow_hit", "arrow_pierce", "awaken", "axe", "axe_chop",
+                "blade_hit", "blade_swing", "bow", "cannon_boom", "cannon_fire", "crit", "crossbow", "dart",
+                "fire", "fire_beam", "fist", "fist_swing", "fuse_throw", "glaive_cleave", "gold_slam",
+                "hammer", "horse", "ice_shatter", "jade_ping", "join", "kill_pop", "lasso", "lord_slash",
+                "mace_cast", "magic_soft", "meteor_hit", "net_cast", "oil_jar", "poison_puff", "rank_up",
+                "shield_block", "sig_trigger", "spear", "spear_thrust", "spell_cast", "spell_wind", "staff",
+                "stone", "stun_bonk", "thunder_cast", "thunder_hit",
+                "ui_card", "ui_close", "ui_coin", "ui_deny", "ui_drum", "ui_flip", "ui_forge", "ui_jackpot",
+                "ui_levelup", "ui_open", "ui_reel", "ui_reel_stop", "ui_reveal", "ui_reward", "ui_slot_add",
+                "ui_swap", "ui_tab", "ui_talent", "ui_tap", "ui_tick", "ui_unlock",
+                "ult_arrow", "ult_cannon", "ult_drum", "ult_fire", "ult_heal", "ult_smash", "ult_thunder",
+                "ult_water", "ult_whirl", "ult_wind", "warn_horn", "water", "whip",
+            };
+            foreach (var name in clips)
+            {
+                var clip = UnityEngine.Resources.Load<UnityEngine.AudioClip>("Sfx/" + name);
+                Assert.IsNotNull(clip, $"缺失或导入失败音效: Resources/Sfx/{name}");
+                Assert.Greater(clip.length, 0.03f, $"音效时长异常过短: {name} ({clip.length:F3}s)");
+                Assert.LessOrEqual(clip.length, 1.50f, $"短音效时长超标: {name} ({clip.length:F3}s)");
+            }
         }
 
         static int SkillRowLevel(Meta.TalentSkill kind)

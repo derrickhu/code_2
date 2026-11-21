@@ -1,0 +1,10 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, zero armor scales, zero tiny details).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous white gap between frames so shields/spears NEVER touch adjacent frames) of the SAME Song Dynasty Shield Guard (盾兵) on a pure solid white background (#FFFFFF):
+- Character appearance: Cute chubby soldier wearing a smooth periwinkle-purple rounded hood-helmet with a small gold circle badge on the forehead; holding a HUGE smooth round shield painted in bright concentric rings of tangerine-orange and sunny-gold in front of his body (with his determined cute eyes and stubby feet peeking out), and a stubby wooden spear with a smooth white leaf tip in his other hand. ZERO complex patterns, ZERO rivets or scales.
+- All 4 frames face 3/4 front-down-left, same character size and same ground baseline:
+  1. Frame 1 (leftmost): Guarding stance with the big round shield held in front.
+  2. Frame 2: Cute marching step behind the big shield.
+  3. Frame 3: Bracing and pulling the stubby spear back to thrust.
+  4. Frame 4 (rightmost): Short forward spear poke / shield bash pose (compact, no detached effects).
+NO grid lines, NO ground shadows, NO TEXT, no numbers, no labels anywhere in the image.

@@ -28,7 +28,8 @@ SMALL = [
 for _k in SMALL:
     TARGETS[_k] = "hero_" + _k
 for _k in ("diver", "farmer", "hound", "rattan", "taoist", "berserker", "catapult", "lantern", "scout", "brute",
-           "hetao", "zhucf", "zengkui", "hantao", "liuml"):
+           "hetao", "zhucf", "zengkui", "hantao", "liuml",
+           "waterchief", "crossbowcapt", "goldeneagle", "ironpagoda", "highpriest", "giantbrute", "firecart"):
     TARGETS[_k] = "en_" + _k
 BIG = {"en_boss", "en_luan", "en_shiwen", "en_huyan", "en_gaoqiu", "en_hetao", "en_zhucf", "en_zengkui", "en_hantao", "en_liuml"}
 FRAMES = 4

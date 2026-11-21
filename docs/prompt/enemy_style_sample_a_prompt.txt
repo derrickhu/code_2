@@ -1,0 +1,12 @@
+A 2x2 character design sheet showing 4 minimal, ultra-clean chibi Song Dynasty government soldiers (官兵) on a pure solid white background (#FFFFFF). Top-tier commercial 2D mobile tower defense art style (inspired by Kingdom Rush Vengeance & Brawl Stars 2D concept art): 2-heads-tall round stubby proportions, smooth bold dark-brown/warm-charcoal outer outlines, bright cheerful sunlit color palette, soft two-tone cel shading with crisp specular rim highlights.
+
+STRICT SIMPLIFICATION RULES:
+- ZERO lamellar armor tiles, ZERO scale textures, ZERO tiny rivets, ZERO belt buckles, ZERO stitching, ZERO scratches or grime.
+- Every piece of clothing or armor MUST be a single smooth, solid, clean geometric shape (1-2 big color blocks per character).
+- Bright, high-value, clean colors: sky-blue / teal-cyan uniform, bright coral-red tassel/trim, warm cream-gold accents, bright clean silver-white metal. NO dark navy, NO muddy charcoal grey, NO heavy black shadows.
+- Cute comical enemy expressions (goofy grumpy eyebrows, round expressive eyes, funny little determined mouths). Each character faces slightly down-left (3/4 front-down game view), full body, generous white margin between the 4 characters, no grid lines, NO TEXT, no labels, no captions, no writing anywhere in the image.
+
+Top-left: Basic Foot Soldier (步卒) — round smooth sky-blue cloth cap with a fluffy bright red pom-pom on top, simple bright coral-red vest over a light sky-blue tunic, holding one chunky shiny silver curved short sabre.
+Top-right: Shield Soldier (盾兵) — smooth shiny silver-white pot helmet with red tuft, holding a big clean round golden-rimmed wooden shield (simple bold geometric swirl in the center, no complex tiger face) in front and a short spear.
+Bottom-left: Crossbowman (弩手) — cute round teal-blue cap with red ribbon, simple light cream-and-blue vest, holding a chunky simplified wooden crossbow with a bright arrow.
+Bottom-right: Heavy Guard (铁甲兵) — smooth rounded bright silver-blue breastplate (one clean solid piece, no scales!) and smooth round helmet with a big red plume, carrying a chunky round cartoon iron mace on his shoulder.

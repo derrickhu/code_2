@@ -1,0 +1,12 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, rosy cheeks, ZERO armor scales, ZERO tiny details/buckles/rivets).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous pure-white gap between frames so weapons/mounts NEVER touch adjacent frames) on a pure solid white background (#FFFFFF):
+- Character: Basket Strongman (力士). Big extra-chubby 2-heads-tall strongman in an orange-red sleeveless vest and periwinkle pants, carrying a HUGE smooth butter-yellow woven basket on his back with TWO tiny cute white-helmeted soldier heads peeking out of the basket top! He holds a chunky wooden club in hand.
+  1. Frame 1: Standing facing left with the big basket on his back (2 tiny helmet heads peeking out) and club in hand.
+  2. Frame 2: Heavy bouncy stomp facing left, still with basket + 2 peeking heads + club.
+  3. Frame 3: Raising the chunky wooden club overhead to smash.
+  4. Frame 4: Swinging the wooden club forward-down to the left.
+- CRITICAL RULES:
+  * Every single one of the 4 frames MUST face 3/4 front-down-LEFT (facing toward the LEFT side of the image), same character scale and same ground baseline!
+  * Keep all weapons, shields, mounts, and props intact in ALL 4 frames (never omit the weapon in frame 2, and NO detached flying projectiles, smoke clouds, or slash lines).
+  * NO grid lines, NO ground drop shadows, NO TEXT, no numbers, no labels anywhere in the image.

@@ -462,6 +462,8 @@ namespace Liangshan.EditorTools
             _rarityFilter = rIdx == 0 ? 0 : rIdx + 1;
             EditorGUILayout.EndHorizontal();
 
+            EditorGUILayout.HelpBox("四技能数值写在每行下面：特性、绝技（次数 / 主值 / 副值）、15 级专属卡的两个数。保存后说明文字跟着变。旧表没有这几列时，沿用代码里的出厂数值。", MessageType.None);
+
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
             GUILayout.Label("好汉", GUILayout.Width(92));
             GUILayout.Label("职业/品阶", GUILayout.Width(76));
@@ -513,6 +515,21 @@ namespace Liangshan.EditorTools
                 float cycle = Math.Max(0.1f, r.Interval + r.Chan);
                 float dps = def.Kind == Role.Support ? 0f : (r.Coef * r.Count * ticks + (r.Chan <= 0 ? r.Coef * r.Dot : 0f)) / cycle;
                 GUILayout.Label(def.Kind == Role.Support ? $"辅助({r.Interval:0.#}s)" : $"{dps:F2} ×攻/s", GUILayout.Width(95));
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Space(104);
+                GUILayout.Label("特性", GUILayout.Width(36));
+                r.TraitV = EditorGUILayout.FloatField(r.TraitV, GUILayout.Width(52));
+                r.TraitN = EditorGUILayout.IntField(r.TraitN, GUILayout.Width(32));
+                GUILayout.Label("绝技", GUILayout.Width(36));
+                r.SigN = EditorGUILayout.IntField(r.SigN, GUILayout.Width(32));
+                r.SigV = EditorGUILayout.FloatField(r.SigV, GUILayout.Width(52));
+                r.SigV2 = EditorGUILayout.FloatField(r.SigV2, GUILayout.Width(52));
+                GUILayout.Label("15级", GUILayout.Width(36));
+                r.Opt15V = EditorGUILayout.FloatField(r.Opt15V, GUILayout.Width(52));
+                r.Opt15V2 = EditorGUILayout.FloatField(r.Opt15V2, GUILayout.Width(52));
+                r.HasKit = true;
                 EditorGUILayout.EndHorizontal();
             }
         }

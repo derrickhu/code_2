@@ -1,0 +1,12 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, rosy cheeks, ZERO armor scales, ZERO tiny details/buckles/rivets).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous pure-white gap between frames so weapons/mounts NEVER touch adjacent frames) on a pure solid white background (#FFFFFF):
+- Character: Birthday Treasure Porter (生辰纲脚夫). Cheerful chubby 2-heads-tall porter wearing a bright tangerine soft cap and sky-blue vest, carrying a smooth wooden shoulder pole balanced with TWO shiny bright-gold treasure chests tied with red ribbons (one in front, one in back), sweating cutely.
+  1. Frame 1: Standing facing left balancing the two shiny gold chests on the pole.
+  2. Frame 2: Bouncy carrying trot facing left, knees bent.
+  3. Frame 3: Bobbing down slightly under the heavy gold chests.
+  4. Frame 4: Pushing onward facing left with a cute puffing expression.
+- CRITICAL RULES:
+  * Every single one of the 4 frames MUST face 3/4 front-down-LEFT (facing toward the LEFT side of the image), same character scale and same ground baseline!
+  * Keep all weapons, shields, mounts, and props intact in ALL 4 frames (never omit the weapon in frame 2, and NO detached flying projectiles, smoke clouds, or slash lines).
+  * NO grid lines, NO ground drop shadows, NO TEXT, no numbers, no labels anywhere in the image.

@@ -1,0 +1,12 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, rosy cheeks, ZERO armor scales, ZERO tiny details/buckles/rivets).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous pure-white gap between frames so weapons/mounts NEVER touch adjacent frames) on a pure solid white background (#FFFFFF):
+- Character: Boss Lord Zhu in Palanquin (祝朝奉 · 坐轿撒钱庄主). Plump wealthy old chibi lord with a cute white beard, wearing a bright golden brocade robe and gold cap, sitting on an open red-and-gold sedan chair carried by TWO tiny cute yellow-hatted bearers (one front-left, one back-right), holding a huge shiny gold ingot (金元宝).
+  1. Frame 1: Rich lord sitting smugly in the sedan chair facing left holding the big gold ingot, carried by 2 tiny bearers.
+  2. Frame 2: Tiny bearers trotting left, palanquin bouncing up.
+  3. Frame 3: Rich lord raising the huge shiny gold ingot high with both hands.
+  4. Frame 4: Rich lord thrusting the big gold ingot forward-left triumphantly.
+- CRITICAL RULES:
+  * Every single one of the 4 frames MUST face 3/4 front-down-LEFT (facing toward the LEFT side of the image), same character scale and same ground baseline!
+  * Keep all weapons, shields, mounts, and props intact in ALL 4 frames (never omit the weapon in frame 2, and NO detached flying projectiles, smoke clouds, or slash lines).
+  * NO grid lines, NO ground drop shadows, NO TEXT, no numbers, no labels anywhere in the image.

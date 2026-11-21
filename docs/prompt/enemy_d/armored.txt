@@ -1,0 +1,11 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, zero armor scales, zero tiny details).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous white gap between frames so hammers NEVER touch adjacent frames) of the SAME Song Dynasty Heavy Armored Soldier (铁甲兵) on a pure solid white background (#FFFFFF):
+- Character appearance: Tubby round soldier encased in a SINGLE smooth, glossy ice-silver & pale-sky-blue rounded pot-armor shell with cute round shoulder pads and a full-face helmet where only two bright determined eyes peek through a horizontal visor slit; topped with a perky red-orange plume; wielding a chunky toy-like war hammer with a smooth white cylindrical head and golden-yellow handle. ZERO lamellar scales, ZERO scratches, ZERO dark grey!
+- CRITICAL: He MUST hold the chunky white-and-gold war hammer in EVERY SINGLE ONE of the 4 frames (Frame 1, Frame 2, Frame 3, and Frame 4)! Never omit the hammer!
+- All 4 frames face 3/4 front-down-left, same character size and same ground baseline:
+  1. Frame 1 (leftmost): Standing sturdy holding the chunky white hammer over his shoulder.
+  2. Frame 2: Heavy cute waddle step while STILL holding the chunky white hammer in both hands.
+  3. Frame 3: Lifting the chunky white hammer high above his helmet with both hands.
+  4. Frame 4 (rightmost): Smashing the chunky white hammer forward-down (compact, no detached shockwave).
+NO grid lines, NO ground shadows, NO TEXT, no numbers, no labels anywhere in the image.

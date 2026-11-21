@@ -1,0 +1,12 @@
+Use the reference image ONLY for the exact art style, proportions, line weight, and bright pastel-vibrant color palette (2-heads-tall chubby cute chibi, big smooth rounded shapes, creamy vinyl cel-shading, clean warm-dark outlines, rosy cheeks, ZERO armor scales, ZERO tiny details/buckles/rivets).
+
+Create a 1x4 horizontal sprite strip (4 separate full-body frames evenly spaced in a single row from left to right, generous pure-white gap between frames so weapons/mounts NEVER touch adjacent frames) on a pure solid white background (#FFFFFF):
+- Character: Cute Water Ghost Diver (水鬼). Adorable 2-heads-tall chubby aquatic imp/diver with smooth bright aqua-turquoise skin, rosy cheeks, wearing a big smooth emerald-green lotus leaf like a round cap on his head and simple navy swim shorts, holding a stubby golden 3-prong mini trident.
+  1. Frame 1: Standing ready facing left holding the stubby golden trident.
+  2. Frame 2: Cute waddling step facing left.
+  3. Frame 3: Pulling the stubby golden trident back with both hands.
+  4. Frame 4: Forward poke with the golden trident to the left.
+- CRITICAL RULES:
+  * Every single one of the 4 frames MUST face 3/4 front-down-LEFT (facing toward the LEFT side of the image), same character scale and same ground baseline!
+  * Keep all weapons, shields, mounts, and props intact in ALL 4 frames (never omit the weapon in frame 2, and NO detached flying projectiles, smoke clouds, or slash lines).
+  * NO grid lines, NO ground drop shadows, NO TEXT, no numbers, no labels anywhere in the image.
