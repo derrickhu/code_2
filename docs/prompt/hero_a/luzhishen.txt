@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached rocks or shockwaves, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Lu Zhishen (鲁智深 · Tattooed Monk), 2.2 heads tall, sturdy broad build, facing 3/4 front-right:
+- Head & Face: Shiny smooth bald monk head with 6 tiny golden incense dots, thick curly black beard, booming cheerful fearless grin and big bright eyes, chunky red prayer beads around neck.
+- Outfit: Asymmetrical warm ochre-brown monk robe (#C87428) draped off one bare muscular shoulder showing ONE bold simplified crimson peony flower tattoo, bright golden waist sash (distinct ochre-gold palette, NOT red or dark black!).
+- Weapon (MUST hold the monk staff in ALL 4 frames): Oversized heavy dark-iron & golden-ringed crescent Buddhist monk spade-staff (浑铁金环水磨月牙禅杖).
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Hearty 3/4 front-right stance resting the big crescent monk staff on his shoulder.
+2. Idle B: Cheerful belly laugh bounce, gripping the heavy crescent staff with both hands.
+3. Windup: Heaving the giant golden-ringed crescent staff high overhead with both hands to slam down.
+4. Strike: Mighty downward-forward slam pose driving the crescent staff head forward-right!

@@ -110,7 +110,7 @@ Shader "Liangshan/FxUber"
                 fixed3 col;
                 if (_CorePower < 0.0)
                 {
-                    col = mainSample.rgb * _Color.rgb;
+                    col = mainSample.rgb * _Color.rgb * (0.86 + 0.30 * fbm);
                     col *= (1.0 + rim * max(0.0, _EdgeBoost - 1.0) * 0.55);
                 }
                 else

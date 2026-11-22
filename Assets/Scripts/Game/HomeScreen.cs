@@ -191,7 +191,7 @@ namespace Liangshan
             avMask.sizeDelta = new Vector2(94, 94);
             avMask.anchoredPosition = new Vector2(0, 1);
             avMask.gameObject.AddComponent<RectMask2D>();
-            Ui.Icon(avMask, "lord_songjiang", 204, new Vector2(0, -48));
+            Ui.Icon(avMask, "lord_songjiang", 172, new Vector2(-8, -18));
             int lv = Meta.LordLevel(S, out float xp);
             Ui.Icon(av, "ui/h_round", 46, new Vector2(-42, -42), "lvBadge");
             Ui.Outlined(av, lv.ToString(), 22, Paper, new Vector2(-42, -41), new Vector2(44, 36), Ink, 1.4f);
@@ -393,8 +393,10 @@ namespace Liangshan
             float bossW = Mathf.Clamp(bossH * aspect, 196f, 410f);
             bossH = bossW / Mathf.Max(0.25f, aspect);
 
-            // boss 零尺寸原点精准钉在古道尽头地面落脚线（子节点的 (0,0) 即双靴贴地线，Pop 动画亦从脚底向上生长）
-            var boss = Ui.Top(_page, 0f, roadEndScreenY, Vector2.zero, "boss");
+            // 统领、脚下关卡绶带、石路关卡字是同一块预览区。整体上移一截，立绘尺寸和三块之间的间距都不变。
+            const float previewLift = 72f;
+            // boss 零尺寸原点以古道尽头落脚线为基准（子节点的 (0,0) 即双靴贴地线，Pop 动画亦从脚底向上生长）
+            var boss = Ui.Top(_page, 0f, roadEndScreenY - previewLift, Vector2.zero, "boss");
 
             // 山口薄雾轻拢脚踝后方 + 双层透视贴地石影（漫射投射影 + 靴底紧实接触暗影），彻底消除“贴纸感”
             var mistImg = Ui.Box(boss, new Vector2(bossW * 1.62f, 118f), new Vector2(0f, 42f),
@@ -415,7 +417,7 @@ namespace Liangshan
             if (anim) Tween.Pop(boss, 0.35f);
 
             // 1) 统领脚下紧凑无背景关卡标题（左侧圆目录钮 + 偏红的立体艺术字）
-            float tagScreenY = roadEndScreenY + 28f;
+            float tagScreenY = roadEndScreenY + 28f - previewLift;
             var tag = Ui.Top(_page, 0f, tagScreenY, new Vector2(560, 72), "levelTag");
             string stTitle = $"{st.No}.{st.Name}";
             var stLbl = Ui.GradOutlined(tag, stTitle, 40, Pal.Hex("FFE8E0"), Pal.Hex("FF7A62"),
@@ -437,7 +439,7 @@ namespace Liangshan
 
             // 2) 石板路中段原生态压印水墨地形大字（对标参考图「第 20 关 / 旷古草原 / 关卡提示胶囊」，落在宽阔石路中段，不挤脚下！）
             float deckTopScreenY = Ui.Height - (podiumY + 78f);
-            float roadMidScreenY = Mathf.Lerp(tagScreenY + 52f, deckTopScreenY - 24f, 0.52f);
+            float roadMidScreenY = Mathf.Lerp(roadEndScreenY + 80f, deckTopScreenY - 24f, 0.52f) - previewLift;
             var roadMark = Ui.Top(_page, 0f, roadMidScreenY, new Vector2(560, 210), "roadImprint");
             roadMark.SetSiblingIndex(2); // 压在石板路之上、城台与飞箭之下，真正融入地面透视！
 
@@ -502,10 +504,10 @@ namespace Liangshan
                 float draw = 160f, standY = 5f;
                 if (framed)
                 {
-                    float bodyH = 0.85f, foot = 0.01f;
+                    float bodyH = 0.64f, foot = 0.016f;
                     if (AnimMeta.Info.TryGetValue(d.Art, out var meta)) { bodyH = meta.Body; foot = meta.Foot; }
-                    draw = 152f / Mathf.Max(0.6f, bodyH);
-                    standY = -75f - draw * (foot - 0.5f);
+                    draw = 148f / Mathf.Max(0.28f, bodyH);
+                    standY = -74f - draw * (foot - 0.5f);
                 }
                 var art = Ui.Icon(g, d.Art, draw, new Vector2(0, standY), "art");
                 if (framed)
@@ -1054,11 +1056,39 @@ namespace Liangshan
                 qPad.type = Image.Type.Simple;
                 qPad.raycastTarget = false;
                 Ui.Box(g, new Vector2(138, 30), new Vector2(0, -102), new Color(0.06f, 0.04f, 0.10f, 0.48f), Art.GroundShadow, "shadow");
-                var art = Ui.Icon(g, d.Art, 242, Vector2.zero, "art");
+                float pedDraw = 180f;
+                float pedY = -103f;
+                bool pedFramed = Art.Animated(d.Art);
+                if (pedFramed && AnimMeta.Info.TryGetValue(d.Art, out var pedMeta))
+                {
+                    pedDraw = 152f / Mathf.Max(0.28f, pedMeta.Body);
+                    pedY = -102f - pedDraw * pedMeta.Foot;
+                }
+                var art = Ui.Icon(g, d.Art, pedDraw, Vector2.zero, "art");
                 art.rectTransform.pivot = new Vector2(0.5f, 0f);
-                art.rectTransform.anchoredPosition = new Vector2(0, -104);
+                art.rectTransform.anchoredPosition = new Vector2(0, pedY);
                 float ph = i * 0.7f;
-                Tween.Run(art, 999f, k => art.rectTransform.localScale = new Vector3(1f, 1f + 0.012f * Mathf.Sin(k * 999f * 2.2f + ph), 1f));
+                if (pedFramed)
+                {
+                    string pedKey = d.Art;
+                    Art.Late(art, pedKey, () =>
+                    {
+                        var fr = Art.Frames(pedKey);
+                        if (fr == null || fr.Length == 0 || !art) return;
+                        art.sprite = fr[0];
+                        Tween.Run(art, 999f, k =>
+                        {
+                            if (!art) return;
+                            float t = k * 999f + ph;
+                            art.sprite = fr[((int)(t * 1.6f)) % Mathf.Min(2, fr.Length)];
+                            art.rectTransform.localScale = new Vector3(1f, 1f + 0.012f * Mathf.Sin(t * 2.2f), 1f);
+                        });
+                    });
+                }
+                else
+                {
+                    Tween.Run(art, 999f, k => art.rectTransform.localScale = new Vector3(1f, 1f + 0.012f * Mathf.Sin(k * 999f * 2.2f + ph), 1f));
+                }
                 // 右下精致职业圆章
                 Ui.Box(g, Vector2.one * 44, new Vector2(66, -86), Color.white, Art.Circle, "rRing");
                 Ui.Box(g, Vector2.one * 37, new Vector2(66, -86), MetaUi.RoleColor(d.Kind), Art.Circle, "rBg");
@@ -1303,7 +1333,9 @@ namespace Liangshan
                 backGlow.raycastTarget = false;
             }
             Ui.Box(artMask, new Vector2(130, 26), new Vector2(0, -48), new Color(0.06f, 0.05f, 0.10f, owned ? 0.34f : 0.22f), Art.GroundShadow, "footSh");
-            var art = Ui.Icon(artMask, d.Art, 202, new Vector2(0, -2));
+            var art = Ui.Icon(artMask, d.Art, 158, Vector2.zero);
+            art.rectTransform.pivot = new Vector2(0.5f, 0f);
+            art.rectTransform.anchoredPosition = new Vector2(0, -50);
             if (!owned) art.color = new Color(0.13f, 0.16f, 0.21f, 0.88f);
 
             // 左上角立体白瓷镶边职业徽章（对标参考图左上压角圆章）
@@ -2202,7 +2234,7 @@ namespace Liangshan
             {
                 var wd = Defs.Hero(wish.Value);
                 Ui.Box(wArtMask, Vector2.one * 136, Vector2.zero, MetaUi.QualGlow(MetaUi.HeroTier(wd.Rarity)).A(0.32f), Art.SoftDot);
-                Ui.Icon(wArtMask, wd.Art, 142, new Vector2(0, -4));
+                Ui.Icon(wArtMask, wd.Art, 126, new Vector2(0, 8));
                 Ui.Box(wBox, new Vector2(138, 34), new Vector2(0, -68), new Color(0.05f, 0.10f, 0.18f, 0.82f), Art.Pill);
                 Ui.Outlined(wBox, wd.Name, 22, Gold, new Vector2(0, -67), new Vector2(142, 32), Ink, 1.7f);
                 Ui.Box(wBox, Vector2.one * 38, new Vector2(62, -68), Pal.Hex("1A3652"), Art.Circle);

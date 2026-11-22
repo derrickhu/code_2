@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached tornadoes far from body, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Fan Rui (樊瑞 · Demon King Wind Sorcerer), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Wild flowing dark hair crowned with a dark-iron & gold horned mystic circlet, fierce charismatic eyes with emerald highlights and bold smirk.
+- Outfit: Dramatic obsidian-slate & luminous mystic seafoam-emerald sorcerer robe (#24293D & #38E2A8) with clean gold trim and billowing sleeves (zero clutter!).
+- Weapon (MUST hold the wind sword/focus in ALL 4 frames): Oversized dark-gold mystic demon-king ritual broadsword wrapped closely in a compact swirl of bright emerald-mint wind energy.
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Commanding 3/4 front-right sorcerer stance holding the emerald-wind-wrapped ritual sword.
+2. Idle B: Slight mystical hover/sway, hair and sleeves fluttering slightly with mint wind.
+3. Windup: Sweeping both arms and the glowing emerald wind sword back to gather storm power.
+4. Cast Release: Thrusting the ritual sword and open palm forward-right unleashing a tight hand-held burst of mint wind (keep compact!).

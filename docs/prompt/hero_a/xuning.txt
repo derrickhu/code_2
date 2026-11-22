@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached slash waves, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Xu Ning (徐宁 · Golden Hook-Lance Captain), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Gleaming open-faced golden wild-goose helmet/crown with white-gold side wings (showing his handsome determined eyes and brows!).
+- Outfit: Iconic smooth shining SOLID-GOLD breastplate & shoulder guards (#FFCC38, simplified smooth shiny gold plates, ZERO tiny fish-scales!) over deep navy-indigo inner tunic.
+- Weapon (MUST hold the hook-lance in ALL 4 frames): Oversized gleaming golden Hooked-Sickle Spear (金甲钩镰枪 — spear tip with a very prominent curved crescent side-hook blade!).
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Proud 3/4 front-right guard stance holding the distinctive golden hooked-sickle spear upright.
+2. Idle B: Ready combat crouch, golden armor gleaming, gripping the hook-spear with both hands.
+3. Windup: Pulling the golden hooked-sickle spear back horizontally to hook enemy cavalry.
+4. Strike: Sharp forward-right thrust-and-hook lunge extending the curved golden sickle-spear head!

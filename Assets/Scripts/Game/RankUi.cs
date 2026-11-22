@@ -254,8 +254,8 @@ namespace Liangshan
             bool framed = Art.Animated(hd.Art);
             if (framed && AnimMeta.Info.TryGetValue(hd.Art, out var meta))
             {
-                float targetBody = isFirst ? 292f : 242f;
-                heroDraw = targetBody / Mathf.Max(0.58f, meta.Body);
+                float targetBody = isFirst ? 268f : 222f;
+                heroDraw = targetBody / Mathf.Max(0.28f, meta.Body);
                 standY = deckTopLocalY - heroDraw * (meta.Foot - 0.5f);
             }
 
@@ -404,7 +404,7 @@ namespace Liangshan
             mask.anchoredPosition = new Vector2(0f, -4f);
             mask.gameObject.AddComponent<RectMask2D>();
             Ui.Box(mask, new Vector2(82, 86), Vector2.zero, Pal.Hex("234466"), Art.White);
-            Ui.Icon(mask, "lord_songjiang", 156, new Vector2(0, -32));
+            Ui.Icon(mask, "lord_songjiang", 142, new Vector2(-6, -14));
             var avFrame = Ui.Icon(av, "ui/rank_av_gold", 116, Vector2.zero, "frame");
             Ui.Tap(avFrame, () => ShowRenameModal(layer, refresh), av);
 
@@ -603,16 +603,7 @@ namespace Liangshan
                 gold ? Pal.Hex("2C4E72") : Pal.Hex("24486A"), Art.White, "bg");
 
             var d = Defs.Hero(h);
-            var ic = Ui.Icon(mask, d.Art, innerH * 1.48f, new Vector2(0, -innerH * 0.22f));
-            if (Art.Animated(d.Art))
-            {
-                string key = d.Art;
-                Art.Late(ic, key, () =>
-                {
-                    var fr = Art.Frames(key);
-                    if (fr != null && fr.Length > 0 && ic) ic.sprite = fr[0];
-                });
-            }
+            Ui.Icon(mask, d.Art, innerH * 0.98f, new Vector2(0, -innerH * 0.01f));
 
             // 雕花外框压在人像上层，形成参考图同款立体压边遮罩感！
             Ui.Icon(box, gold ? "ui/rank_av_gold" : "ui/rank_av_azure", sz, Vector2.zero, "frame");
@@ -812,16 +803,7 @@ namespace Liangshan
                 mask.sizeDelta = new Vector2(146, 146);
                 mask.anchoredPosition = new Vector2(0, 18f);
                 mask.gameObject.AddComponent<RectMask2D>();
-                var ic = Ui.Icon(mask, hd.Art, 156, new Vector2(0, -6f));
-                if (Art.Animated(hd.Art))
-                {
-                    string key = hd.Art;
-                    Art.Late(ic, key, () =>
-                    {
-                        var fr = Art.Frames(key);
-                        if (fr != null && fr.Length > 0 && ic) ic.sprite = fr[0];
-                    });
-                }
+                Ui.Icon(mask, hd.Art, 134, new Vector2(0, 4f));
                 Ui.Outlined(cell, $"Lv.{hlv}", 21, Pal.Hex("FFE684"), new Vector2(0, -48f), new Vector2(140, 30), Pal.Ink, 1.6f);
                 Ui.Label(cell, hd.Name, 25, Pal.Ink, new Vector2(0, -92f), new Vector2(170, 34), TextAnchor.MiddleCenter, Fonts.Heavy);
             }

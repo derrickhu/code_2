@@ -1320,18 +1320,25 @@ namespace Liangshan
 
             var idle = Art.Frames(d.Art);
             Sprite sp0 = idle != null && idle.Length > 0 ? idle[0] : null;
-            Vector2[] rimOffsets = { new Vector2(-4.5f, 0f), new Vector2(4.5f, 0f), new Vector2(0f, -4.5f), new Vector2(0f, 4.5f) };
+            float silDraw = 368f;
+            float silOffY = 0f;
+            if (sp0 != null && AnimMeta.Info.TryGetValue(d.Art, out var silMeta))
+            {
+                silDraw = 236f / Mathf.Max(0.28f, silMeta.Body);
+                silOffY = (0.5f - silMeta.Foot) * silDraw - 168f;
+            }
+            Vector2[] rimOffsets = { new Vector2(-4.5f, silOffY), new Vector2(4.5f, silOffY), new Vector2(0f, silOffY - 4.5f), new Vector2(0f, silOffY + 4.5f) };
             fx.Rims = new Image[rimOffsets.Length];
             Color rimCol = Color.Lerp(col, Color.white, 0.52f).A(0.92f);
             for (int r = 0; r < rimOffsets.Length; r++)
             {
-                var rm = Ui.Icon(silWrap, d.Art, 368, rimOffsets[r], "rim" + r);
+                var rm = Ui.Icon(silWrap, d.Art, silDraw, rimOffsets[r], "rim" + r);
                 if (sp0) rm.sprite = sp0;
                 rm.color = rimCol;
                 fx.Rims[r] = rm;
             }
 
-            fx.Sil = Ui.Icon(silWrap, d.Art, 368, Vector2.zero, "sil");
+            fx.Sil = Ui.Icon(silWrap, d.Art, silDraw, new Vector2(0f, silOffY), "sil");
             if (sp0) fx.Sil.sprite = sp0;
             fx.Sil.color = new Color(0.05f, 0.06f, 0.14f, 0.96f);
 
@@ -1460,10 +1467,17 @@ namespace Liangshan
             heroHolder.sizeDelta = new Vector2(368, 368);
 
             var idleFrames = Art.Frames(d.Art);
-            var heroImg = Ui.Icon(heroHolder, d.Art, 368, Vector2.zero, "heroArt");
+            float revDraw = 368f;
+            Vector2 revPos = Vector2.zero;
+            if (idleFrames != null && idleFrames.Length > 0 && AnimMeta.Info.TryGetValue(d.Art, out var revMeta))
+            {
+                revDraw = 236f / Mathf.Max(0.28f, revMeta.Body);
+                revPos = new Vector2(0f, (0.5f - revMeta.Foot) * revDraw - 168f);
+            }
+            var heroImg = Ui.Icon(heroHolder, d.Art, revDraw, revPos, "heroArt");
             if (idleFrames != null && idleFrames.Length > 0) heroImg.sprite = idleFrames[0];
 
-            var flashCopy = Ui.Icon(heroHolder, d.Art, 368, Vector2.zero, "flash");
+            var flashCopy = Ui.Icon(heroHolder, d.Art, revDraw, revPos, "flash");
             if (idleFrames != null && idleFrames.Length > 0) flashCopy.sprite = idleFrames[0];
             flashCopy.color = Color.white.A(0.90f);
             Tween.Run(flashCopy, 0.20f, k =>
@@ -1619,7 +1633,9 @@ namespace Liangshan
                 miniHalo.color = Color.Lerp(cGlow, Color.white, 0.55f).A(tier >= 3 ? 0.62f : 0.34f);
             }
             Ui.Box(mask, new Vector2(sz.x * 0.56f, sz.y * 0.10f), new Vector2(0f, -sz.y * 0.22f), new Color(0.05f, 0.05f, 0.10f, 0.36f), Art.GroundShadow);
-            Ui.Icon(mask, d.Art, sz.x * 0.88f, new Vector2(0f, -sz.y * 0.02f));
+            var miniArt = Ui.Icon(mask, d.Art, sz.y * 0.58f, Vector2.zero);
+            miniArt.rectTransform.pivot = new Vector2(0.5f, 0f);
+            miniArt.rectTransform.anchoredPosition = new Vector2(0f, -sz.y * 0.23f);
 
             float rSz = sz.x * 0.22f;
             Vector2 rPos = new Vector2(-sz.x * 0.35f, sz.y * 0.36f);
@@ -1958,7 +1974,9 @@ namespace Liangshan
                 inHalo.color = Color.Lerp(cCol, Color.white, 0.55f).A(tier >= 3 ? 0.68f : 0.36f);
             }
             Ui.Box(artMask, new Vector2(128, 24), new Vector2(0, -46), new Color(0.05f, 0.05f, 0.10f, 0.36f), Art.GroundShadow);
-            Ui.Icon(artMask, d.Art, 198, new Vector2(0, -2));
+            var sumArt = Ui.Icon(artMask, d.Art, 152, Vector2.zero);
+            sumArt.rectTransform.pivot = new Vector2(0.5f, 0f);
+            sumArt.rectTransform.anchoredPosition = new Vector2(0, -48);
 
             SweepCardShine(artMask, new Vector2(204, 188), tier >= 2 ? 0.88f : 0.55f, animDelay + 0.14f);
 

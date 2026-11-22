@@ -16,6 +16,7 @@ namespace Liangshan.EditorTools
     {
         static readonly string[] Tabs =
         {
+            "0. 难度总控与快调",
             "1. 经济与生辰纲",
             "2. 战斗与合成乘区",
             "3. 波次与关卡曲线",
@@ -40,6 +41,7 @@ namespace Liangshan.EditorTools
         int _simBotSkill = 2; // 2 完整策略，1 只合人不买词条，0 纯召唤挂机
         int _simTrials = 8;
         string _simReport = "点击上方「运行对局模拟」，1 秒内实测当前数值下的胜率、银两构成与召唤/强化节奏。";
+        string _auditReport = "点击上方「一键运行全线梯度体检」，2 秒内自动验算第 1~50 关在【纯白板 / 落后养成 / 标准养成】下的通关率，直观检查「不太难、不太水、局外带动局内」是否达标。";
 
         [MenuItem("宋江别慌张/数值管理中心", false, 20)]
         public static void Open()
@@ -114,12 +116,13 @@ namespace Liangshan.EditorTools
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
             switch (_tab)
             {
-                case 0: DrawEconomyTab(); break;
-                case 1: DrawCombatTab(); break;
-                case 2: DrawWaveStageTab(); break;
-                case 3: DrawHeroesTab(); break;
-                case 4: DrawEnemiesTab(); break;
-                case 5: DrawSimulatorTab(); break;
+                case 0: DrawQuickMasterTab(); break;
+                case 1: DrawEconomyTab(); break;
+                case 2: DrawCombatTab(); break;
+                case 3: DrawWaveStageTab(); break;
+                case 4: DrawHeroesTab(); break;
+                case 5: DrawEnemiesTab(); break;
+                case 6: DrawSimulatorTab(); break;
             }
             EditorGUILayout.EndScrollView();
         }
@@ -164,6 +167,122 @@ namespace Liangshan.EditorTools
             GUILayout.FlexibleSpace();
             GUILayout.Label("配置文件: " + BalanceLoader.AssetFilePath, EditorStyles.miniLabel);
             EditorGUILayout.EndHorizontal();
+        }
+
+        // ---------------- 0. 难度总控与快调 ----------------
+
+        void DrawQuickMasterTab()
+        {
+            var w = _cfg.WaveStage;
+            var e = _cfg.Economy;
+            Balance.Apply(_cfg);
+            var est = Balance.EstimateTenWaveEconomy(true, 7);
+
+            EditorGUILayout.HelpBox(
+                "日常调难度只需动本页的【四大总推杆】，无需逐格改底层数组：\n" +
+                "• 觉得全盘偏难 → 调低「全局敌军血量总倍率 GlobalHpMul」（如 0.90 = 全 50 关怪血同步 -10%，不破坏关间斜率与局外养成挂钩）。\n" +
+                "• 觉得漏两只怪寨墙就碎 → 调低「全局拆墙伤害总倍率 GlobalAtkMul」或调高「基础寨墙血量」。\n" +
+                "• 觉得局内合成/买词条手头紧 → 调高「小怪基础赏银倍率」或「每波击退军饷递增」。\n" +
+                "改完点左上角绿色【保存 JSON 并立即生效】，编辑器与真机导出包即刻同步。",
+                MessageType.Info);
+
+            Section("一键难度档位预设（只改全局倍率，随时可切回 1.00 标准）", () =>
+            {
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("轻松爽玩 (血×0.85 伤×0.85)", GUILayout.Height(28))) { w.GlobalHpMul = 0.85f; w.GlobalAtkMul = 0.85f; }
+                if (GUILayout.Button("温和适中 (血×0.92 伤×0.92)", GUILayout.Height(28))) { w.GlobalHpMul = 0.92f; w.GlobalAtkMul = 0.92f; }
+                GUI.backgroundColor = new Color(0.85f, 0.95f, 1.0f);
+                if (GUILayout.Button("推荐标准 (血×1.00 伤×1.00)", GUILayout.Height(28))) { w.GlobalHpMul = 1.00f; w.GlobalAtkMul = 1.00f; }
+                GUI.backgroundColor = Color.white;
+                if (GUILayout.Button("进阶微难 (血×1.08 伤×1.06)", GUILayout.Height(28))) { w.GlobalHpMul = 1.08f; w.GlobalAtkMul = 1.06f; }
+                if (GUILayout.Button("硬核抗压 (血×1.18 伤×1.15)", GUILayout.Height(28))) { w.GlobalHpMul = 1.18f; w.GlobalAtkMul = 1.15f; }
+                EditorGUILayout.EndHorizontal();
+            });
+
+            Section("四大核心微调总推杆（最常用）", () =>
+            {
+                w.GlobalHpMul = EditorGUILayout.Slider("① 全局敌军血量总倍率 (GlobalHpMul)", w.GlobalHpMul, 0.65f, 1.45f);
+                w.GlobalAtkMul = EditorGUILayout.Slider("② 全局敌军拆墙伤害总倍率 (GlobalAtkMul)", w.GlobalAtkMul, 0.60f, 1.50f);
+                EditorGUILayout.Space(4);
+                e.KillCoinMul = EditorGUILayout.Slider("③ 局内小怪赏银倍率 (KillCoinMul)", e.KillCoinMul, 0.70f, 1.80f);
+                e.WaveBonusPerWave = EditorGUILayout.IntSlider("    每波守城军饷递增 (WaveBonusPerWave)", e.WaveBonusPerWave, 20, 100);
+                EditorGUILayout.Space(4);
+                w.HpScaleSlope = EditorGUILayout.Slider("④ 单局 10 波后期血量斜率 (HpScaleSlope)", w.HpScaleSlope, 0.60f, 1.40f);
+                w.WallBaseHp = EditorGUILayout.Slider("    基础寨墙血量 (WallBaseHp)", w.WallBaseHp, 3500f, 12000f);
+
+                Balance.Apply(_cfg);
+                var sb = new StringBuilder();
+                sb.Append($"实时预览  |  单局10波期望总银两: {est.GrandTotalExpected} 银  |  第1关第1波官兵血量: {Defs.Enemy(EnemyKind.Soldier).Hp * Defs.Tough(1) * Defs.StageHp(1):F0}  |  ");
+                foreach (int lv in new[] { 1, 4, 5, 10, 25, 50 })
+                    sb.Append($"第{lv}关倍率={Defs.StageHp(lv):F2}x  ");
+                EditorGUILayout.HelpBox(sb.ToString(), MessageType.None);
+            });
+
+            Section("局外带动局内 · 全线关键关梯度体检（防太难劝退 & 防太水白板平推）", () =>
+            {
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("一键运行全线梯度体检（第 1~50 关三档养成对比）", GUILayout.Height(32)))
+                    RunFullCurveAudit();
+                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.Space(4);
+                EditorGUILayout.TextArea(_auditReport, GUILayout.MinHeight(240));
+            });
+        }
+
+        static int SimWinsAt(int stage, SaveData save, int trials)
+        {
+            var lo = Meta.BuildLoadout(save);
+            var st = Defs.Level(stage);
+            int wins = 0;
+            for (int seed = 1; seed <= trials; seed++)
+            {
+                var b = new Battle(seed, lo.Lineup, st, lo);
+                var bot = new Bot(2);
+                while (b.Phase != Phase.Victory && b.Phase != Phase.Defeat && b.Time < 600f)
+                {
+                    bot.Step(b, 1f / 30f);
+                    b.Update(1f / 30f);
+                    b.Events.Clear();
+                }
+                if (b.Phase == Phase.Victory) wins++;
+            }
+            return wins;
+        }
+
+        void RunFullCurveAudit()
+        {
+            ApplyMemoryOnly();
+            var ws = _cfg.WaveStage;
+            var sb = new StringBuilder();
+            sb.AppendLine($"=== 全线梯度体检报告 (GlobalHpMul={ws.GlobalHpMul:F2}x, GlobalAtkMul={ws.GlobalAtkMul:F2}x) ===");
+            sb.AppendLine("设计红线：第1~2关白板稳过建立信心 → 第4~5关白板受阻催促养成 → 后续标准养成≥75%顺畅过、落后4关养成≤38%有卡点！");
+            sb.AppendLine();
+            sb.AppendLine("[前期破冰与首个局外卡点 (10局/关)]");
+            var fresh = Meta.NewSave(0);
+            for (int lv = 1; lv <= 5; lv++)
+            {
+                int wFresh = SimWinsAt(lv, fresh, 10);
+                int wExp = SimWinsAt(lv, Meta.ExpectedSave(lv), 10);
+                string tag = lv <= 2
+                    ? (wFresh >= 8 ? "✓ 新手顺畅" : "⚠ 开局偏难")
+                    : lv >= 4
+                        ? (wFresh <= 2 && wExp >= 7 ? "✓ 完美卡白板·养成稳过" : wFresh > 2 ? "⚠ 偏水(白板能混过)" : "⚠ 养成后仍偏难")
+                        : "✓ 过渡关";
+                sb.AppendLine($"  第 {lv} 关 ({Defs.Level(lv).Name,-4}) | 怪血倍率 {Defs.StageHp(lv),5:F2}x | 纯1级白板胜率: {wFresh,2}/10 | 标准养成胜率: {wExp,2}/10  --> {tag}");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("[中后期长线局外牵引检视 (8局/关)]");
+            foreach (int lv in new[] { 5, 8, 10, 15, 25, 40, 50 })
+            {
+                int wExp = SimWinsAt(lv, Meta.ExpectedSave(lv), 8);
+                int wLag = lv > 4 ? SimWinsAt(lv, Meta.ExpectedSave(lv - 4), 8) : -1;
+                string tag = wExp >= 6 && (wLag < 0 || wLag <= 3)
+                    ? "✓ 理想 (养成顺畅 / 欠账受阻)"
+                    : wExp < 6 ? "⚠ 偏难 (标准养成胜率偏低)" : "⚠ 偏水 (落后4关养成也能平推)";
+                sb.AppendLine($"  第 {lv,2} 关 ({Defs.Level(lv).Name,-4}) | 怪血倍率 {Defs.StageHp(lv),8:F2}x | 落后4关养成: {wLag}/8 | 标准同步养成: {wExp}/8  --> {tag}");
+            }
+            _auditReport = sb.ToString();
         }
 
         // ---------------- 1. 经济与生辰纲 ----------------
@@ -430,6 +549,10 @@ namespace Liangshan.EditorTools
 
             Section("50 关难度曲线锚点与保底斜率", () =>
             {
+                EditorGUILayout.BeginHorizontal();
+                w.GlobalHpMul = EditorGUILayout.Slider("全局敌军血量总倍率", w.GlobalHpMul, 0.65f, 1.45f);
+                w.GlobalAtkMul = EditorGUILayout.Slider("全局拆墙伤害总倍率", w.GlobalAtkMul, 0.60f, 1.50f);
+                EditorGUILayout.EndHorizontal();
                 w.HpTuneStages = DrawFloatArray("曲线关卡节点 (HpTuneStages)", w.HpTuneStages);
                 w.HpTuneValues = DrawFloatArray("对应难度系数 (HpTuneValues)", w.HpTuneValues);
                 EditorGUILayout.BeginHorizontal();

@@ -813,24 +813,25 @@ namespace Liangshan
             switch (e.Shot)
             {
                 case ShotKind.Qi:
-                    fx.Burst(Art.Sparkle, p + new Vector2(0, 0.5f), 1.0f, 0.2f, 9500, Pal.Hex("FFE8B8"), 90f, 0.35f, true);
-                    fx.Glint(p + new Vector2(0, 0.5f), e.Crit ? 1.2f : 0.85f, Pal.Hex("FFF2C8"), 0.14f, 9516);
-                    fx.SparkStreaks(p + new Vector2(0, 0.45f), 3, 0.26f, 3.6f, Pal.Hex("FFE29A"), 0.2f, 9515, 4f);
+                {
+                    var qb = p + new Vector2(0, 0.48f);
+                    fx.SlashHitFlare(qb, e.Crit);
+                    fx.CrimsonCrescent(qb, Away(p), e.Crit);
+                    fx.SparkStreaks(qb, 4, 0.30f, 4.2f, WorldFx.QiIce, 0.20f, 9515, 3.5f);
                     Jolt(p, 0.48f, e.Crit ? 0.65f : 0.40f, Away(p));
                     if (_hitSfxGap <= 0) { Sfx.Play(Snd.Dao, 0.28f, 1.18f); _hitSfxGap = 0.05f; }
                     return;
+                }
                 case ShotKind.Slash:
                 {
-                    // 剑气刃口横着划过敌人：斩痕垂直于飞行方向，碎光顺着剑气往前溅
+                    // 主公剑气切过敌军：横向白炽镜头十字闪 + 绯红弯月斩痕 + 顺势冰青飞溅星屑（1:1 对标参考图受击反馈）
                     var body = p + new Vector2(0, 0.45f);
                     var fly = body - Layout.LordOrigin.ToV();
                     fly = fly.sqrMagnitude < 1e-4f ? Vector2.up : fly.normalized;
-                    float cut = Mathf.Atan2(fly.y, fly.x) * Mathf.Rad2Deg + 90f + Random.Range(-12f, 12f);
-                    fx.CutLine(body, cut, e.Crit ? 1.9f : 1.45f, WorldFx.QiCyan, 0.22f, e.Crit ? 0.12f : 0.09f, 9560);
-                    fx.Flash(body, e.Crit ? 1.9f : 1.4f, WorldFx.QiCyan.A(0.6f), 0.16f, 9555);
-                    fx.Burst(Art.Sparkle, body, e.Crit ? 1.3f : 0.9f, 0.18f, 9561, WorldFx.QiIce, 90f, 0.4f, true);
-                    fx.Glint(body, e.Crit ? 1.7f : 1.25f, Pal.Hex("E8FFFF"), 0.16f, 9563);
-                    fx.SparkStreaks(body + fly * 0.2f, e.Crit ? 8 : 5, 0.4f, 5.6f, WorldFx.QiIce, 0.24f, 9562, 3f, fly, 50f);
+                    fx.CrimsonCrescent(body, fly, e.Crit);
+                    fx.SlashHitFlare(body, e.Crit);
+                    fx.Flash(body, e.Crit ? 1.85f : 1.35f, WorldFx.QiCyan.A(0.55f), 0.16f, 9555);
+                    fx.SparkStreaks(body + fly * 0.2f, e.Crit ? 8 : 5, 0.42f, 5.8f, WorldFx.QiIce, 0.24f, 9563, 3f, fly, 48f);
                     Jolt(p, 0.65f, e.Crit ? 1.15f : 0.82f, fly);
                     if (_hitSfxGap <= 0) { Sfx.Play(Snd.Dao, 0.38f, 0.96f); _hitSfxGap = 0.05f; }
                     return;
@@ -1914,10 +1915,6 @@ namespace Liangshan
             /// <summary>校正个别画布里人物重心偏左/偏右的视觉偏移，让好汉双脚正对石格中心。</summary>
             float HeroXBias(string art)
             {
-                if (art == "hero_huarong") return 0.045f;
-                if (art == "hero_shixiu") return 0.070f;
-                if (art == "hero_husanniang") return 0.022f;
-                if (art == "hero_qiaodaoqing") return -0.022f;
                 if (_anim != null && _anim.Length > 1 && AnimMeta.Info.TryGetValue(art, out var m))
                     return Mathf.Clamp(0.5f - m.LegCx, -0.06f, 0.06f);
                 return 0f;
@@ -2904,10 +2901,12 @@ namespace Liangshan
                         break;
                     case ShotKind.Qi:
                     {
-                        var c = hd.Tint != null ? Pal.Hex(hd.Tint) : Pal.Hex("C8E2FA");
-                        _sr = WorldFx.Spr(_root, Art.Crescent, Vector2.zero, 1.38f, 9200, c.A(0.78f));
-                        _fuse = WorldFx.Spr(_root, Art.Crescent, Vector2.zero, 1.02f, 9201, Color.white.A(0.92f), "core");
-                        AddTrail(0.10f, 0.20f, c.A(0.45f), false);
+                        var crestSheet = WorldFx.Sheet("fx_qi_crest_sheet", 4, 1);
+                        var crest0 = crestSheet.Length > 0 ? crestSheet[0] : Art.Crescent;
+                        _sr = WorldFx.Spr(_root, Art.Img("fx_qi_dome_body"), Vector2.zero, 1.35f, 9200, Color.white.A(0.92f));
+                        _sr.sharedMaterial = WorldFx.UberMat(false);
+                        _fuse = WorldFx.Spr(_root, crest0, Vector2.zero, 1.35f, 9201, Color.white, "crest");
+                        AddTrail(0.11f, 0.22f, WorldFx.QiCyan.A(0.42f), false);
                         break;
                     }
                     case ShotKind.Lightning:
@@ -3246,14 +3245,23 @@ namespace Liangshan
                     }
                     case ShotKind.Qi:
                     {
-                        // 刀气贴地往敌阵推，越飞越宽，最后两成路程淡掉。
-                        _root.localPosition = Vector2.Lerp(a, b, k) + new Vector2(0, 0.45f);
-                        float w = 1f + 0.35f * k;
-                        _sr.transform.localScale = new Vector3(1.72f * w, 1.72f, 1f);
-                        _fuse.transform.localScale = new Vector3(1.24f * w, 1.24f, 1f);
-                        float fade = k > 0.8f ? (1f - k) / 0.2f : 1f;
-                        _sr.color = _sr.color.A(0.92f * fade);
-                        _fuse.color = Color.white.A(fade);
+                        // 动态小皇冠流光剑气：朝目标方向顺滑推进，内部瀑布流光滚动 + 顶冠逐帧跃动，末段噪波消散。
+                        var d = b - a;
+                        var dir = d.sqrMagnitude > 1e-4f ? d.normalized : Vector2.up;
+                        var rot = Quaternion.Euler(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f);
+                        _root.localPosition = Vector2.Lerp(a, b, k) + new Vector2(0, 0.42f);
+                        float w = 1.48f * (1f + 0.30f * k);
+                        float h = 1.72f * (0.85f + 0.28f * k);
+                        float tailK = k > 0.76f ? (k - 0.76f) / 0.24f : 0f;
+                        float fade = 1f - Tween.InCubic(tailK);
+                        _sr.transform.localRotation = _fuse.transform.localRotation = rot;
+                        _sr.transform.localScale = new Vector3(w, h, 1f);
+                        _fuse.transform.localScale = new Vector3(w * (1f + 0.025f * Mathf.Sin(Time.time * 64f)), h, 1f);
+                        WorldFx.SetUberRaw(_sr, Color.white.A(0.92f * fade), tailK * 0.68f, 0.035f,
+                            new Vector4(0.08f, 4.2f, -0.12f, 6.0f), new Vector2(1.4f, 1.9f), 1.6f);
+                        var crestSheet = WorldFx.Sheet("fx_qi_crest_sheet", 4, 1);
+                        if (crestSheet.Length > 0) _fuse.sprite = crestSheet[(int)(Time.time * 26f) % crestSheet.Length];
+                        _fuse.color = Color.white.A(0.98f * fade);
                         EmitTrails();
                         break;
                     }

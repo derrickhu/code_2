@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached slash waves, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the other characters in the reference).
+
+CHARACTER: Lin Chong (林冲 · Leopard Head Spear General), 2.2 heads tall, facing 3/4 front-right:
+- Hair & Headgear: High black topknot crowned with a gleaming silver leopard-head clasp, handsome heroic brows, confident eyes with highlights, neat short black beard.
+- Outfit: Smooth glossy ice-silver breastplate with royal-azure blue trim (#2B68E8, ZERO fish-scale texture!), flowing snow-white cape, dark boots.
+- Weapon (MUST hold the spear in ALL 4 frames): Oversized gleaming silver wavy snake-spear (丈八蛇矛) with a big bright crimson tassel behind the spearhead.
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Dignified 3/4 front-right stance holding the crimson-tasseled silver snake-spear upright at his side.
+2. Idle B: Slight combat breathing crouch, cape fluttering slightly, gripping spear ready.
+3. Windup: Drawing the silver snake-spear back horizontally at waist/chest level, coiling torso to thrust.
+4. Strike: Powerful forward spear thrust lunge to the right, silver wavy tip extended forward (spear stays in his hands, NO detached energy beams!).

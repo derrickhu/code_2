@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached slash waves, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall upright toy-chibi hero proportions (same head size and standing height as the reference heroes!), warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks.
+
+CHARACTER: Shi Xiu (石秀 · Daredevil Fast Sabre Fighter), 2.2 heads tall, compact UPRIGHT standing posture (NOT a wide low squat!), facing 3/4 front-right:
+- Hair & Headgear: Dashing teal-cyan martial artist kerchief cap (苍青武生巾) over sharp dark bangs, fearless determined eyes and confident smirk.
+- Outfit: Crisp teal-emerald & white agile martial tunic (#1FA89A) with clean white bracers, dark trousers and boots standing upright with feet close together like the reference heroes.
+- Weapon (STRICTLY ONE SINGLE SABRE, NEVER dual swords!): Holding ONLY ONE gleaming silver Chinese broad-bladed fast sabre with a round golden disc guard (单把圆盘护手寒钢快刀) in his right hand, left hand in a martial arts guard fist!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Compact upright 3/4 front-right stance holding his SINGLE silver disc-guard sabre diagonally ready, left fist at waist.
+2. Idle B: Slight upright breathing bounce, confident smirk, single sabre poised.
+3. Windup: Upright torso twist drawing his single silver sabre back above his shoulder to slash.
+4. Strike: Crisp forward-right slash gripping his SINGLE silver sabre (compact stance, NO dual swords, NO detached slash beams!).

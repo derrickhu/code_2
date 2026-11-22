@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached slash waves, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Lu Junyi (卢俊义 · Jade Qilin Supreme Spear General), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Regal golden Qilin crown with twin long pheasant tail plumes (紫金双翎冠, NO helmet hiding face!), noble handsome brows, confident bright eyes, neat short beard.
+- Outfit: Smooth pearl-white & burnished radiant gold breastplate (玉白鎏金胸甲, ZERO fish-scale mail!) with a majestic crimson-vermilion cape.
+- Weapon (MUST hold the spear in ALL 4 frames): Oversized radiant golden Jade-Qilin broad-tipped spear (黄金麒麟红缨枪) with a crimson tassel.
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Noble 3/4 front-right stance holding the golden Qilin spear upright.
+2. Idle B: Slight poised breathing crouch, crimson cape fluttering, gripping golden spear ready.
+3. Windup: Drawing the golden Qilin spear wide back across his body to prepare a sweeping strike.
+4. Strike: Powerful wide horizontal spear sweep forward-right (spear stays in hands, NO detached energy beams!).

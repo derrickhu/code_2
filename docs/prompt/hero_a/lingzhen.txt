@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached cannonballs flying away, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Ling Zhen (凌振 · Master Cannoneer), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Chunky brass-and-cyan round engineer goggles perched up on his forehead over messy black hair with a cute puff of white smoke curl on top, bold mustache, eager grinning eyes.
+- Outfit: Bright vermilion-crimson master artilleryman coat (#E83838) with smooth brass shoulder trim and clean dark gloves (zero tiny straps or soot grime!).
+- Weapon (MUST hold the heavy cannon/shell in ALL 4 frames): Cradling an oversized stubby red-and-gold dragon-mouth hand-mortar / golden-banded heavy cannon shell with a bright glowing fuse!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Sturdy 3/4 front-right stance cradling his chunky brass-and-crimson hand-cannon at hip/chest level.
+2. Idle B: Enthusiastic bounce, adjusting the cannon barrel slightly upward with a big grin.
+3. Windup: Bracing back on rear leg, tilting the big brass-rimmed hand-cannon up at 45 degrees as the muzzle glows bright orange.
+4. Fire Release: Recoil kickback pose holding the smoking bright-muzzle hand-cannon (NO detached cannonball in midair!).

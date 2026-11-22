@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached flying arrows, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the other characters in the reference).
+
+CHARACTER: Hua Rong (花荣 · Master Archer), 2.2 heads tall, facing 3/4 front-right:
+- Hair & Headgear: Handsome young general with high topknot, sleek silver coronet adorned with one tall crisp white-and-jade plume feather, confident slight smirk.
+- Outfit: Vibrant emerald-jade green archer robe (#1EB87A) with smooth glossy silver shoulder pauldrons and crisp white inner collar (ZERO scale-mail clutter!).
+- Weapon (MUST hold ONE golden bow in ALL 4 frames): ONE oversized ornate golden recurve bow held in his front hand, glowing cyan bowstring.
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Graceful 3/4 front-right stance holding his single large golden recurve bow ready.
+2. Idle B: Slight poised breathing motion, feather bobbing slightly, holding the golden bow.
+3. Windup: Drawing a glowing silver-jade arrow all the way back on the golden bow, aiming sharply forward-right.
+4. Release: Crisp archer release follow-through pose holding the golden bow extended forward, bowstring vibrating (NO detached flying arrow in midair!).

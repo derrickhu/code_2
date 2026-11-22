@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached pouches in midair, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Sun Erniang (孙二娘 · Sassy Innkeeper Poisoner), 2.2 heads tall, facing 3/4 front-right:
+- Hair & Face: Playful double-bun black hairstyle pinned with golden hairpins, sassy winking/smirking big pretty eyes with rosy cheeks.
+- Outfit: Vibrant rose-magenta & orchid-purple cross-collar martial innkeeper dress (#E83882 & #9E52E8) with a clean gold waist sash (distinct sassy innkeeper look, NO heavy armor!).
+- Weapon/Prop (MUST hold in ALL 4 frames): Holding an oversized cute plump violet-and-gold sleeping-powder perfume pouch (紫金蒙汗药香囊) glowing with soft pink-purple mist in her front hand, and a small gleaming silver willow-leaf dagger at her hip/other hand.
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Sassy confident 3/4 front-right stance dangling the glowing violet sleeping-powder pouch from her fingers, other hand on hip.
+2. Idle B: Playful bounce and sly smile, swinging the glowing purple-pink spice pouch slightly.
+3. Windup: Drawing arm back to toss/waft the big glowing violet sleeping-powder pouch.
+4. Release: Sweeping forward-right toss/fanning gesture releasing a tiny compact puff of pink-purple mist right at her hand (pouch stays in hand!).

@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached coins flying far away, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Shi Qian (时迁 · Agile Treasure Thief), 2.2 heads tall, nimble compact build, facing 3/4 front-right:
+- Head & Face: Cheeky clever big eyes with a mischievous grin, sleek indigo-violet thief bandana/hood tied around forehead with a tuft of hair peeking out (face fully visible!).
+- Outfit: Nimble twilight-indigo & mint-cyan acrobat stealth outfit (#483D8B & #3CE0B8) with a bright gold sash (zero messy straps!).
+- Weapon/Prop (MUST hold the treasure bag in ALL 4 frames): Cradling an oversized plump white-and-crimson treasure sack overflowing at the neck with gleaming golden ingots/silver taels (爆金银两大钱袋)!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Sneaky nimble 3/4 front-right crouch-stance hugging the big gleaming gold-filled treasure sack.
+2. Idle B: Cheeky lightfooted bounce and wink, tossing the heavy gold sack slightly in his palms.
+3. Windup: Leaning back in an acrobatic coil, lifting the glowing golden treasure sack high.
+4. Cast Release: Quick nimble forward-right flourish presenting the sparkling gold treasure sack!

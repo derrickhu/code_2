@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached flying jars, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Wei Dingguo (魏定国 · Sacred Fire Oil-Jar General), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Blazing scarlet-and-gold flame-crested general coronet over spiky dark hair (NO goggles!), fierce fiery brows and confident eyes.
+- Outfit: Smooth glossy cinnabar-red & warm gold battle armor (#E23426 & #FFD15C, ZERO tiny armor scales!) with a flame-orange sash.
+- Weapon (MUST hold the burning oil jar in ALL 4 frames): Holding an oversized chunky crimson ceramic Fire-Oil Jar pasted with one bold yellow talisman seal and a bright flame burning out of its mouth (神火赤符猛火油瓮)!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Sturdy 3/4 front-right stance cradling the big burning talisman oil-jar at waist/chest level.
+2. Idle B: Eager combat bounce, jar mouth flickering with bright orange-gold fire.
+3. Windup: Hoisting the big flaming talisman oil-jar high overhead with both hands to hurl it.
+4. Release: Powerful forward-right hurling follow-through lunge while gripping a fresh glowing oil-jar in his off-hand (NO detached flying jar!).

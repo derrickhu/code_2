@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached flying sparks far away, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Tang Long (汤隆 · Master Weaponsmith), 2.2 heads tall, sturdy build, facing 3/4 front-right:
+- Head & Face: Hearty cheerful blacksmith with short tousled hair tied with a slate-blue sweatband, big warm friendly eyes, short stubble beard.
+- Outfit: Smooth warm saddle-brown blacksmith leather apron (#9E5A32) with ONE shiny golden coin-spot badge in the center over a clean cream shirt, sturdy gloves (zero messy straps!).
+- Weapon/Prop (MUST hold the forge hammer in ALL 4 frames): Oversized chunky glowing forge-hot iron & gold Master Smithing Hammer (通红流金锻造大铁锤)!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Hearty 3/4 front-right stance resting the huge glowing golden-orange smithing hammer on his shoulder.
+2. Idle B: Cheerful nod and bounce, gripping the heavy glowing forge hammer with both hands.
+3. Windup: Raising the giant glowing forge hammer high overhead to strike and empower weapons.
+4. Cast/Strike: Energetic downward-forward hammer strike pose radiating a small crisp golden spark ring at the hammer head!

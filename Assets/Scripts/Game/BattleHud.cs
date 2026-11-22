@@ -118,15 +118,34 @@ namespace Liangshan
             var hit = dim.gameObject.AddComponent<Button>();
             hit.transition = Selectable.Transition.None;
             hit.onClick.AddListener(CloseBattleGm);
-            var card = Ui.Panel(layer, new Vector2(820, 760), new Vector2(0, 40));
-            Ui.Ribbon(card, "GM", new Vector2(0, 386), 420, Pal.Red);
-            var x = Ui.Icon(card, "ui/close", 100, new Vector2(370, 340), "close");
+            var card = Ui.Panel(layer, new Vector2(820, 960), new Vector2(0, 40));
+            Ui.Ribbon(card, "GM", new Vector2(0, 486), 420, Pal.Red);
+            var x = Ui.Icon(card, "ui/close", 100, new Vector2(370, 440), "close");
             Ui.Tap(x, CloseBattleGm, null, false);
-            Ui.Label(card, "直接结束这一局，走真正的结算。\n胜利按满血三星，失败按寨墙失守，守到第几波就按第几波算。", 32, Pal.SubInk, new Vector2(0, 160), new Vector2(700, 140));
-            Ui.Btn(card, "跳过本关", new Vector2(560, 120), new Vector2(0, -20), Pal.Red, GmWin, 48);
-            Ui.Btn(card, "失败结算", new Vector2(560, 120), new Vector2(0, -180), Pal.Slate, GmLose, 48);
+            var statusLbl = Ui.Label(card, $"当前测试难度：怪血 ×{Balance.Current.WaveStage.GlobalHpMul:0.00} · 拆墙 ×{Balance.Current.WaveStage.GlobalAtkMul:0.00}\n调整难度对本局后续刷出的官军与之后各关即时生效。", 28, Pal.SubInk, new Vector2(0, 300), new Vector2(720, 110));
+            Ui.Btn(card, "难度 -10%", new Vector2(224, 80), new Vector2(-240, 175), Pal.Green, () => GmBattleDiff(-0.10f, statusLbl), 28);
+            Ui.Btn(card, "标准 1.0x", new Vector2(224, 80), new Vector2(0, 175), Pal.Slate, () => GmBattleDiff(0f, statusLbl), 28);
+            Ui.Btn(card, "难度 +10%", new Vector2(224, 80), new Vector2(240, 175), Pal.Red, () => GmBattleDiff(0.10f, statusLbl), 28);
+            Ui.Btn(card, "局内银两 +500", new Vector2(560, 96), new Vector2(0, 50), Pal.Gold, () => { B.Coins += 500; Ui.Toast("局内银两 +500", 880); }, 38);
+            Ui.Btn(card, "跳过本关", new Vector2(560, 108), new Vector2(0, -85), Pal.Red, GmWin, 44);
+            Ui.Btn(card, "失败结算", new Vector2(560, 108), new Vector2(0, -220), Pal.Slate, GmLose, 44);
             layer.SetAsLastSibling();
             Tween.Pop(card, 0.25f);
+        }
+
+        void GmBattleDiff(float delta, Text statusLbl)
+        {
+            if (Mathf.Abs(delta) < 0.001f) Gm.ResetDifficulty();
+            else Gm.NudgeDifficulty(delta);
+            if (B.Stage.Mode == StageMode.Main)
+            {
+                B.Stage.HpMul = Defs.StageHp(B.Stage.No);
+                B.Stage.AtkMul = Defs.StageAtk(B.Stage.No);
+            }
+            float hpM = Balance.Current.WaveStage.GlobalHpMul;
+            float atkM = Balance.Current.WaveStage.GlobalAtkMul;
+            if (statusLbl) statusLbl.text = $"当前测试难度：怪血 ×{hpM:0.00} · 拆墙 ×{atkM:0.00}\n调整难度对本局后续刷出的官军与之后各关即时生效。";
+            Ui.Toast($"测试难度：怪血 ×{hpM:0.00}", 880);
         }
 
         void CloseBattleGm()
@@ -841,7 +860,9 @@ namespace Liangshan
             var card = new Vector2(-386, 0);
             MetaUi.Card(_info, MetaUi.RarityCard(d.Rarity), new Vector2(226, 354), card);
             Ui.Box(_info, new Vector2(150, 30), card + new Vector2(0, -40), new Color(0.05f, 0.08f, 0.14f, 0.30f), Art.GroundShadow);
-            Ui.Icon(_info, d.Art, 204, card + new Vector2(0, 38));
+            var infoArt = Ui.Icon(_info, d.Art, 178, Vector2.zero);
+            infoArt.rectTransform.pivot = new Vector2(0.5f, 0f);
+            infoArt.rectTransform.anchoredPosition = card + new Vector2(0, -42);
             for (int i = 0; i < u.Star; i++)
                 Ui.Icon(_info, "ic_star", 34, card + new Vector2((i - (u.Star - 1) * 0.5f) * 30, -82));
             Ui.Box(_info, new Vector2(186, 50), card + new Vector2(0, -134), new Color(0.06f, 0.10f, 0.16f, 0.72f), Art.Pill);
@@ -2265,7 +2286,11 @@ namespace Liangshan
                 var r = rows[i];
                 Ui.Box(band, new Vector2(112, 112), new Vector2(x - 90, y), r.Art == "lord_songjiang" ? Pal.Gold : Color.white, Art.Rounded);
                 Ui.Box(band, new Vector2(100, 100), new Vector2(x - 90, y), Pal.Hex("8FB3D6"), Art.Rounded);
-                Ui.Icon(band, r.Art, 96, new Vector2(x - 90, y + 2));
+                var statMask = Ui.Rect(band, "statMask" + i);
+                statMask.sizeDelta = new Vector2(96, 96);
+                statMask.anchoredPosition = new Vector2(x - 90, y);
+                statMask.gameObject.AddComponent<RectMask2D>();
+                Ui.Icon(statMask, r.Art, 92, new Vector2(0, -1));
                 if (i == 0)
                 {
                     var mvp = Ui.Outlined(band, "MVP", 30, Pal.Hex("FFD84A"), new Vector2(x - 110, y + 50), new Vector2(110, 44), Pal.Hex("8A3A0A"), 2.5f);

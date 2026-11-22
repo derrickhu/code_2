@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached lightning bolts far from body, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Gongsun Sheng (公孙胜 · Thunder Taoist Master), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Tall golden lotus Taoist crown over sleek black topknot, small golden thunder mark on forehead, serene piercing eyes and neat short goatee.
+- Outfit: Rich royal amethyst-purple Taoist robe (#6E42E8) with crisp white wide sleeves, gold trim, and ONE clean bold golden Yin-Yang emblem on chest (zero messy patterns!).
+- Weapon (MUST hold the thunder sword in ALL 4 frames): Oversized ancient bronze-and-gold Taoist ritual sword crackling closely along the blade with bright violet-gold spark accents.
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Mystical 3/4 front-right stance holding the glowing thunder sword upright and two fingers raised in a Taoist hand seal.
+2. Idle B: Gentle floating-like robe sway, serene expression, sword humming with tiny sparks.
+3. Windup: Raising the crackling golden-violet ritual sword skyward to summon heaven's thunder, sleeves billowing.
+4. Cast Release: Pointing the thunder sword sharply forward-right in a commanding spellcast lunge!

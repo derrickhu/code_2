@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO long water beams leaving the frame, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Shan Tinggui (单廷珪 · Sacred Water General), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Sleek ocean-blue & silver wave-crested general coronet, cool sharp heroic eyes with aqua catchlights.
+- Outfit: Smooth glossy deep-aqua & pearl-white wave-trimmed battle armor (#1888E8 & #EBF6FF, ZERO fish-scale clutter!) with a flowing cyan cape.
+- Weapon (MUST hold the water trident-scepter in ALL 4 frames): Oversized silver-and-sapphire Sacred Water Scepter/Trident cradling a tight swirling crystal-blue water orb right at its prongs!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Composed 3/4 front-right stance holding the crystal-blue water scepter upright.
+2. Idle B: Slight gentle wave-like breathing stance, water orb gleaming at the scepter tip.
+3. Windup: Drawing the sapphire water scepter back with both hands as a compact swirl of bright cyan water gathers at the tip.
+4. Cast Release: Pointing the sapphire water scepter sharply forward-right channeling sacred water power (keep water tight around the tip!).

@@ -32,9 +32,26 @@ namespace Liangshan
                 }
             }
         }
+
+        public static float NudgeDifficulty(float delta)
+        {
+            var cfg = Balance.ExportCurrent();
+            cfg.WaveStage.GlobalHpMul = Mathf.Clamp(Mathf.Round((cfg.WaveStage.GlobalHpMul + delta) * 100f) / 100f, 0.65f, 1.45f);
+            cfg.WaveStage.GlobalAtkMul = Mathf.Clamp(Mathf.Round((cfg.WaveStage.GlobalAtkMul + delta * 0.8f) * 100f) / 100f, 0.60f, 1.50f);
+            Balance.Apply(cfg);
+            return Balance.Current.WaveStage.GlobalHpMul;
+        }
+
+        public static void ResetDifficulty()
+        {
+            var cfg = Balance.ExportCurrent();
+            cfg.WaveStage.GlobalHpMul = 1.00f;
+            cfg.WaveStage.GlobalAtkMul = 1.00f;
+            Balance.Apply(cfg);
+        }
     }
 
-    /// <summary>主界面 GM：跳过还没打的关，发元宝等物资，或把本地和云端一起换成新档。</summary>
+    /// <summary>主界面 GM：跳过还没打的关，发元宝等物资，实时微调测试难度或一键套用标准局外养成。</summary>
     public sealed partial class HomeScreen
     {
         Text _gmStatus;
@@ -50,28 +67,38 @@ namespace Liangshan
 
         public void ShowGm()
         {
-            const float H = 1640f;
+            const float H = 1780f;
             MetaUi.Modal(Layer, "gm", "GM", new Vector2(860, H), out var card, Pal.Slate);
-            float y = H * 0.5f - 118f;
-            _gmStatus = Ui.Label(card, GmFrontier(), 36, Pal.Ink, new Vector2(0, y), new Vector2(740, 56), TextAnchor.MiddleCenter, Fonts.Heavy);
-            y -= 64f;
-            Ui.Label(card, "只在编辑器和微信开发者工具里出现。跳过按三星通关结算。", 26, Pal.SubInk, new Vector2(0, y), new Vector2(740, 44));
+            float y = H * 0.5f - 110f;
+            _gmStatus = Ui.Label(card, GmFrontier(), 34, Pal.Ink, new Vector2(0, y), new Vector2(760, 52), TextAnchor.MiddleCenter, Fonts.Heavy);
+            y -= 54f;
+            Ui.Label(card, "只在编辑器和微信开发者工具里出现。可实时微调难度或套用标准养成。", 24, Pal.SubInk, new Vector2(0, y), new Vector2(760, 40));
+            y -= 74f;
+
+            // 测试期难度快调与局外养成模拟档位
+            Ui.Btn(card, "难度 -10%", new Vector2(236, 72), new Vector2(-252f, y), Pal.Green, () => GmDiff(-0.10f), 28);
+            Ui.Btn(card, "标准 1.0x", new Vector2(236, 72), new Vector2(0f, y), Pal.Slate, () => GmDiff(0f), 28);
+            Ui.Btn(card, "难度 +10%", new Vector2(236, 72), new Vector2(252f, y), Pal.Red, () => GmDiff(0.10f), 28);
+            y -= 84f;
+            Ui.Btn(card, "套用本关标准养成", new Vector2(364, 72), new Vector2(-190f, y), Pal.Azure, () => GmApplyExpected(0), 28);
+            Ui.Btn(card, "套用落后3关养成", new Vector2(364, 72), new Vector2(190f, y), Pal.Teal, () => GmApplyExpected(-3), 28);
             y -= 92f;
+
             void Big(string name, Color c, Action act)
             {
-                Ui.Btn(card, name, new Vector2(560, 100), new Vector2(0, y), c, act, 40);
-                y -= 114f;
+                Ui.Btn(card, name, new Vector2(560, 86), new Vector2(0, y), c, act, 36);
+                y -= 98f;
             }
             Big("跳过本关", Pal.Azure, () => GmSkip(1));
             Big("连跳五关", Pal.Teal, () => GmSkip(5));
             Big("关卡全开", Pal.Green, () => GmSkip(Defs.LevelCount));
             Big("解锁全部好汉", Pal.Gold, GmUnlockAll);
             Big("清档", Pal.Red, () => MetaUi.Confirm(Layer, "本地和云端都换成新档\n铜钱、进度、好汉都没了，不能恢复", WipeAll));
-            y -= 6f;
-            Ui.Label(card, "发物资，直接写进存档", 26, Pal.SubInk, new Vector2(0, y), new Vector2(740, 40));
-            y -= 72f;
-            Ui.Btn(card, "发一套常用", new Vector2(560, 88), new Vector2(0, y), Pal.Gold, GmPack, 36);
-            y -= 96f;
+            y -= 4f;
+            Ui.Label(card, "发物资，直接写进存档", 24, Pal.SubInk, new Vector2(0, y), new Vector2(740, 36));
+            y -= 64f;
+            Ui.Btn(card, "发一套常用", new Vector2(560, 80), new Vector2(0, y), Pal.Gold, GmPack, 34);
+            y -= 86f;
             var grants = new (string name, Cur cur, int n)[]
             {
                 ("元宝", Cur.Ingot, 1000),
@@ -93,9 +120,46 @@ namespace Liangshan
                 Cur cur = g.cur;
                 int n = g.n;
                 string name = g.name;
-                Ui.Btn(card, $"{name} +{n}", new Vector2(360, 76), new Vector2(i % 2 == 0 ? -190f : 190f, y - (i / 2) * 86f), Pal.Slate,
-                    () => GmGive(cur, n, name), 30);
+                Ui.Btn(card, $"{name} +{n}", new Vector2(360, 68), new Vector2(i % 2 == 0 ? -190f : 190f, y - (i / 2) * 76f), Pal.Slate,
+                    () => GmGive(cur, n, name), 28);
             }
+        }
+
+        void GmDiff(float delta)
+        {
+            if (Mathf.Abs(delta) < 0.001f) Gm.ResetDifficulty();
+            else Gm.NudgeDifficulty(delta);
+            float hpM = Balance.Current.WaveStage.GlobalHpMul;
+            float atkM = Balance.Current.WaveStage.GlobalAtkMul;
+            if (_gmStatus) _gmStatus.text = GmFrontier();
+            Ui.Toast($"测试难度：怪血 ×{hpM:0.00} · 拆墙 ×{atkM:0.00}", 900);
+        }
+
+        void GmApplyExpected(int offset)
+        {
+            int stage = Mathf.Clamp(S.Selected > 0 ? S.Selected : S.Cleared + 1, 1, Defs.LevelCount);
+            int target = Mathf.Max(1, stage + offset);
+            var exp = Meta.ExpectedSave(target);
+            Array.Copy(exp.HeroLv, S.HeroLv, Mathf.Min(exp.HeroLv.Length, S.HeroLv.Length));
+            Array.Copy(exp.Lineup, S.Lineup, S.Lineup.Length);
+            if (exp.Presets != null && S.Presets != null)
+                Array.Copy(exp.Presets, S.Presets, Mathf.Min(exp.Presets.Length, S.Presets.Length));
+            Array.Copy(exp.EquipLv, S.EquipLv, S.EquipLv.Length);
+            Array.Copy(exp.EquipQ, S.EquipQ, S.EquipQ.Length);
+            S.Talent = exp.Talent;
+            S.CloakLv = exp.CloakLv;
+            S.PageLv = exp.PageLv;
+            S.Totems.Clear();
+            S.Totems.AddRange(exp.Totems);
+            Array.Copy(exp.TotemEquipped, S.TotemEquipped, S.TotemEquipped.Length);
+            S.NextTotemId = exp.NextTotemId;
+            S.Cleared = Mathf.Max(S.Cleared, stage - 1);
+            S.Selected = stage;
+            Profile.Save();
+            Rebuild(false);
+            if (_gmStatus) _gmStatus.text = GmFrontier();
+            string label = offset == 0 ? $"第 {stage} 关标准养成" : $"第 {target} 关养成(落后{-offset}关)";
+            Ui.Toast($"已套用：{label}（战力 {Meta.TeamPower(S)}）", 920);
         }
 
         void GmGive(Cur c, int n, string name)
@@ -175,9 +239,11 @@ namespace Liangshan
 
         static string GmFrontier()
         {
-            if (S.Cleared >= Defs.LevelCount) return "已全部通关";
+            float hpM = Balance.Current.WaveStage.GlobalHpMul;
+            string diff = $"  |  难度 ×{hpM:0.00}";
+            if (S.Cleared >= Defs.LevelCount) return "已全部通关" + diff;
             var st = Defs.Level(S.Cleared + 1);
-            return "下一关　第 " + st.No + " 关 · " + st.Name;
+            return "下一关 第 " + st.No + " 关·" + st.Name + diff;
         }
     }
 }

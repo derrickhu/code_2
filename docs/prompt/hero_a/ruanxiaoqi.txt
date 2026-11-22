@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO giant net sprawling into neighboring frames, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Ruan Xiaoqi (阮小七 · Water Fortress Net Fighter), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Sunny tanned water-bandit youth with spiky dark hair, a cute warm-straw conical hat slung behind his neck/head (fully showing his bold grinning face and bright eyes!).
+- Outfit: Open-chested turquoise-lagoon water vest (#18B2B8) with a bright coral-red waist sash and rolled-up trousers (zero clutter!).
+- Weapon (MUST hold the fishing net in ALL 4 frames): Holding a chunky bundled golden-rope casting Fishing Net weighted with shiny brass sinker beads (金绳铜坠大渔网)!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Spirited 3/4 front-right stance holding the neatly coiled golden-rope fishing net draped over his forearm/hands.
+2. Idle B: Cheerful sea-breeze bounce, bold grin, readying the weighted golden net.
+3. Windup: Twisting torso back with both hands spreading a compact section of the golden-rope net behind him to cast.
+4. Release: Dynamic forward-right net-casting sweep pose holding the lead rope of the flaring golden net (keep compact within frame!).

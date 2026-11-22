@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO long fire beams extending out of frame, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Qiao Daoqing (乔道清 · Phantom Flame Sorcerer), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Ornate golden-flame Taoist crown over dark hair, mysterious confident eyes with fiery amber highlights, thin neat goatee.
+- Outfit: Crisp sunset-tangerine & deep plum-crimson mystic Taoist vestments (#FF6828 & #6A2858) with clean gold trim (zero clutter!).
+- Weapon (MUST hold the flame staff in ALL 4 frames): Oversized ruby-topped bronze flame staff cradling a tight bright orange-gold fireball right at its tip!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Poised 3/4 front-right mage stance holding the ruby flame staff upright with a compact flame at the tip.
+2. Idle B: Slight mystical breathing sway, hand forming a spell seal, staff flame glowing bright.
+3. Windup: Drawing the ruby flame staff back with both hands as the tip blazes bright golden-orange.
+4. Cast Release: Thrusting the ruby flame staff sharply forward-right channeling flame magic (keep flame tight around staff tip!).

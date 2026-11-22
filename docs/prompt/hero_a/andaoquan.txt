@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached floating orbs, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: An Daoquan (安道全 · Divine Physician Healer), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Gentle, wise court physician cloth cap in soft jade-green with a golden gourd/heart emblem, warm kind smiling eyes, neat short beard.
+- Outfit: Clean moon-white & fresh spring-leaf green healer robe (#F6FAF6 & #4AD87A) with warm gold trim (zero busy patterns!).
+- Weapon/Prop (MUST hold the healing gourd in ALL 4 frames): Oversized glowing emerald-jade & gold medicine gourd (发光碧玉悬壶药葫芦) tied with a red silk cord.
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Gentle 3/4 front-right stance cradling the glowing jade-gold healing gourd in both hands.
+2. Idle B: Warm reassuring smile, slight gentle sway, soft green glow around the gourd stopper.
+3. Windup: Lifting the big jade-gold medicine gourd upward with both hands, channeling bright spring-green healing light.
+4. Cast Release: Presenting the open glowing jade medicine gourd forward-right in a warm blessing gesture!

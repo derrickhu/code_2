@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached flying stones in midair, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Zhang Qing (张清 · Featherless Stone Marksman), 2.2 heads tall, facing 3/4 front-right:
+- Hair & Headgear: Energetic high black ponytail tied with long flowing sky-cyan ribbons (#38C4F8, NO helmet!), handsome youthful smirk and bright eyes.
+- Outfit: Crisp sky-cyan & pearl-white light cavalry vest with a bright gold-trimmed stone pouch at his hip (zero scale-mail!).
+- Weapon (MUST hold glowing jade stones in ALL 4 frames): Holding oversized radiant cyan-jade throwing stones (流光青玉飞蝗石) gleaming in his hands!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Agile 3/4 front-right stance tossing/cradling a large glowing cyan-jade stone in his palm, second hand by his hip pouch.
+2. Idle B: Lightfooted bounce, confident wink/smirk, glowing cyan stone pulsing in hand.
+3. Windup: Pitcher-style windup twisting torso back, arm cocked behind with the bright glowing cyan-jade stone ready to whip forward.
+4. Throw Release: Snappy sidearm whipping follow-through pose while drawing the next glowing cyan stone in his hand (NO detached stone flying far away!).

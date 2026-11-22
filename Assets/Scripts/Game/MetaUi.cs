@@ -164,13 +164,14 @@ namespace Liangshan
             if (tipLayer != null) Ui.Tap(face, () => ItemTip(tipLayer, it, t), t);
             if (it.Cur == Cur.Shard)
             {
-                // 好汉碎片采用半身胸像裁切入框（不把全身小人缩成蚂蚁），辨识度与清晰度倍增
+                // 好汉碎片框内完整居中呈现 Q 版全身与专属兵器（头顶不空、下半身与武器不裁切）
                 var mask = Ui.Rect(t, "bustMask");
-                mask.sizeDelta = Vector2.one * (size - 16f);
+                float mSz = size - 16f;
+                mask.sizeDelta = Vector2.one * mSz;
                 mask.anchoredPosition = new Vector2(0, 1f);
                 mask.gameObject.AddComponent<RectMask2D>();
-                Ui.Icon(mask, CurIcon(it), size * 1.14f, new Vector2(0, -size * 0.16f));
-                Ui.Icon(t, "ic_shard", size * 0.32f, new Vector2(-size * 0.29f, size * 0.29f));
+                Ui.Icon(mask, CurIcon(it), mSz * 0.96f, new Vector2(0, -mSz * 0.01f));
+                Ui.Icon(t, "ic_shard", size * 0.30f, new Vector2(-size * 0.30f, size * 0.30f));
             }
             else
             {
@@ -429,7 +430,7 @@ namespace Liangshan
                     mask7.sizeDelta = Vector2.one * 112f;
                     mask7.anchoredPosition = new Vector2(-280, -7);
                     mask7.gameObject.AddComponent<RectMask2D>();
-                    Ui.Icon(mask7, sd.Art, 134, new Vector2(0, -14));
+                    Ui.Icon(mask7, sd.Art, 108, new Vector2(0, -1));
                     // 头像右缘约 -207，右侧留给已领取勾（勾左缘约 324）。
                     const float textLeft = -188f, textRight = 308f;
                     float textW = textRight - textLeft;
@@ -755,19 +756,21 @@ namespace Liangshan
         static Image StandByHeight(Transform parent, string artName, float targetH, float footY, string objName = "art")
         {
             var sp = Art.Img(artName);
-            float w = targetH, h = targetH;
+            bool isHero = !string.IsNullOrEmpty(artName) && artName.StartsWith("hero_");
+            float drawH = isHero ? targetH * 1.12f : targetH;
+            float w = drawH, h = drawH;
             if (sp != null && sp.rect.height > 1f && sp.rect.width > 1f)
             {
                 float ratio = sp.rect.width / sp.rect.height;
-                w = targetH * ratio;
-                if (w > targetH * 1.25f) { w = targetH * 1.25f; h = w / ratio; }
+                w = drawH * ratio;
+                if (!isHero && w > drawH * 1.25f) { w = drawH * 1.25f; h = w / ratio; }
             }
             var img = Ui.Box(parent, new Vector2(w, h), Vector2.zero, Color.white, sp, objName);
             img.type = Image.Type.Simple;
             img.preserveAspect = true;
             img.raycastTarget = false;
             img.rectTransform.pivot = new Vector2(0.5f, 0f);
-            img.rectTransform.anchoredPosition = new Vector2(0f, footY);
+            img.rectTransform.anchoredPosition = new Vector2(0f, isHero ? footY - h * 0.015f : footY);
             return img;
         }
 
@@ -973,7 +976,7 @@ namespace Liangshan
             avMask.sizeDelta = new Vector2(118, 118);
             avMask.anchoredPosition = new Vector2(0, 1);
             avMask.gameObject.AddComponent<RectMask2D>();
-            Ui.Icon(avMask, "lord_songjiang", 250, new Vector2(0, -58));
+            Ui.Icon(avMask, "lord_songjiang", 216, new Vector2(-10, -22));
             int lv = Meta.LordLevel(S, out _);
             Ui.Icon(av, "ui/h_round", 52, new Vector2(-50, -50), "lvBadge");
             Ui.Outlined(av, lv.ToString(), 24, Color.white, new Vector2(-50, -49), new Vector2(48, 40), Pal.Ink, 1.4f);
@@ -1353,8 +1356,8 @@ namespace Liangshan
                 mask.sizeDelta = Vector2.one * 100f;
                 mask.anchoredPosition = new Vector2(0, 17);
                 mask.gameObject.AddComponent<RectMask2D>();
-                Ui.Icon(mask, icon, 122, new Vector2(0, -14));
-                Ui.Icon(r, "ic_shard", 46, new Vector2(-42, 58));
+                Ui.Icon(mask, icon, 96, new Vector2(0, -1));
+                Ui.Icon(r, "ic_shard", 42, new Vector2(-42, 58));
             }
             else
             {
@@ -1383,9 +1386,26 @@ namespace Liangshan
             Ui.Box(p, new Vector2(940, 320), new Vector2(0, 680), rc.A(0.4f), Art.SoftDot, "headGlow");
             var medal = Ui.Icon(p, "ui/medal", 250, new Vector2(0, 776), "medal");
             medal.color = Color.Lerp(rc, Color.white, 0.3f);
-            var art = Ui.Icon(p, d.Art, 300, new Vector2(0, 805), "art");
+            float detDraw = 254f;
+            float detBaseY = 668f;
+            if (Art.Animated(d.Art) && AnimMeta.Info.TryGetValue(d.Art, out var detMeta))
+            {
+                detDraw = 224f / Mathf.Max(0.28f, detMeta.Body);
+                detBaseY = 672f - detDraw * detMeta.Foot;
+            }
+            var art = Ui.Icon(p, d.Art, detDraw, new Vector2(0, detBaseY), "art");
+            art.rectTransform.pivot = new Vector2(0.5f, 0f);
             if (!owned) art.color = new Color(0.3f, 0.3f, 0.34f);
-            Tween.Run(art, 999f, k => art.rectTransform.anchoredPosition = new Vector2(0, 805 + 5 * Mathf.Sin(k * 999f * 2f)));
+            if (Art.Animated(d.Art))
+            {
+                string detKey = d.Art;
+                Art.Late(art, detKey, () =>
+                {
+                    var fr = Art.Frames(detKey);
+                    if (fr != null && fr.Length > 0 && art) art.sprite = fr[0];
+                });
+            }
+            Tween.Run(art, 999f, k => art.rectTransform.anchoredPosition = new Vector2(0, detBaseY + 5 * Mathf.Sin(k * 999f * 2f)));
 
             var lvc = Ui.Icon(p, "ui/lv", 86, new Vector2(-150, 622), "lv");
             Ui.Outlined(lvc.transform, owned ? lv.ToString() : "-", 40, Color.white, new Vector2(0, 2), new Vector2(86, 60), Pal.Ink, 2f);
@@ -1545,7 +1565,7 @@ namespace Liangshan
                 mask.sizeDelta = Vector2.one * 102f;
                 mask.anchoredPosition = new Vector2(-300, 1);
                 mask.gameObject.AddComponent<RectMask2D>();
-                Ui.Icon(mask, d.Art, 124, new Vector2(0, -14));
+                Ui.Icon(mask, d.Art, 98, new Vector2(0, -1));
                 Ui.Icon(head, "ic_shard", 48, new Vector2(-344, 44));
                 Ui.Label(head, d.Name + "碎片", 36, Pal.Ink, new Vector2(-50, 40), new Vector2(360, 50), TextAnchor.MiddleLeft, Fonts.Heavy);
                 Ui.Label(head, HeroText.OnLight($"拥有数量：{HeroText.O(S.Shards[(int)hero.Value])}"), 26, Pal.SubInk, new Vector2(240, 40), new Vector2(260, 40), TextAnchor.MiddleRight, Fonts.Heavy);

@@ -1210,7 +1210,7 @@ namespace Liangshan.Sim
             return n == 1 ? p1 : (0.25f * p0 + 0.50f * p1 + 0.25f * p2);
         }
 
-        public static float StageHp(int n)
+        static float StageHpBase(int n)
         {
             var ws = Balance.Current.WaveStage;
             float raw = HpTune(n) * SmoothStagePower(n) * StageEscalation(n);
@@ -1219,10 +1219,12 @@ namespace Liangshan.Sim
             else if (idx == 10) raw *= 1.12f;
             if (n <= 1) return raw;
             // 保证每关严格单调上升且前期斜率饱满（第1~5关每关至少+18%，第6~15关至少+12%，后续至少+7.5%紧咬养成）
-            float prev = StageHp(n - 1);
+            float prev = StageHpBase(n - 1);
             float minStep = n <= 5 ? ws.StageMinStep1To5 : n <= 15 ? ws.StageMinStep6To15 : ws.StageMinStep16Plus;
             return System.Math.Max(raw, prev * minStep);
         }
+
+        public static float StageHp(int n) => StageHpBase(n) * Balance.Current.WaveStage.GlobalHpMul;
 
         static float HpTune(int n)
         {
@@ -1242,9 +1244,10 @@ namespace Liangshan.Sim
 
         public static float StageAtk(int n)
         {
-            float a = Meta.ExpectedWall(n) * (1.16f + 0.022f * (n - 1));
+            var ws = Balance.Current.WaveStage;
+            float a = Meta.ExpectedWall(n) * (1.08f + 0.020f * (n - 1)) * ws.GlobalAtkMul;
             // 第4关移速放慢后，白板号会靠多出来的走位时间滚起阵容。拆墙伤害略抬，让摸到寨墙的官军能把这关压回去。
-            if (n == 4) a *= 1.18f;
+            if (n == 4) a *= 1.22f;
             return a;
         }
 

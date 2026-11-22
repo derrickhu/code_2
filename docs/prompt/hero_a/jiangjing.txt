@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached coins flying away, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Jiang Jing (蒋敬 · Divine Abacus Treasurer), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Cute round gold-rimmed spectacles over bright clever smiling eyes, dark-teal scholar cap adorned with a shiny golden ingot badge on the front, neat short mustache.
+- Outfit: Prosperous dark-jade teal & rich warm-gold treasurer robe (#1D6E68 & #FFC83D) with clean ivory cuffs (zero complex brocade noise!).
+- Weapon/Prop (MUST hold the golden abacus in ALL 4 frames): Holding an oversized gleaming solid-gold Chinese Abacus (超大纯金招财算盘) with big shiny golden beads!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Cheerful scholarly 3/4 front-right stance holding the oversized gleaming golden abacus across his chest.
+2. Idle B: Happy calculating bounce, flicking the golden abacus beads with a clever smile.
+3. Windup: Raising the big radiant golden abacus high with one hand, fingers poised to snap a grand calculation.
+4. Cast Release: Dynamic forward-right flourish presenting the sparkling golden abacus as golden light glints off the beads!

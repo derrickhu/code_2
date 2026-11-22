@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached blade waves, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Guan Sheng (关胜 · Great Green Dragon Blade General), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Dignified emerald-green & gold martial cloth crown (绿金武圣巾), warm ruddy-tan heroic complexion, sharp noble eyes, iconic long flowing sleek black beard!
+- Outfit: Smooth rich emerald-green & burnished gold battle robe and shoulder armor (#169E68 & #FFD15C, ZERO tiny armor scales!).
+- Weapon (MUST hold the Guandao in ALL 4 frames): Oversized gleaming jade-emerald & gold Green Dragon Crescent Blade polearm (青龙偃月大刀).
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Commanding 3/4 front-right stance holding the giant jade-gold crescent blade polearm at his side, stroking/framing his long beard.
+2. Idle B: Slight sturdy breathing stance, gripping the heavy crescent polearm with both hands.
+3. Windup: Raising the massive jade-gold crescent blade high behind his shoulder with both hands.
+4. Strike: Mighty downward-forward cleaving chop with the Green Dragon crescent blade!

@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached flying arrows or slash lines, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Xie Zhen (解珍 · Mountain Hunter Archer), 2.2 heads tall, facing 3/4 front-right:
+- Hair & Headgear: Spiky dark hair tied high with a warm orange-brown tiger-pelt headband/circlet (NO helmet covering face), sharp confident eyes and bold brows.
+- Outfit: Clean forest-emerald hunting tunic (#2CA86E) with a simple warm tan fur shoulder trim and dark brown boots (zero tiny buckles or scale patterns!).
+- Weapon (MUST hold the same bow in ALL 4 frames): Oversized sturdy horn-and-wood recurve hunting bow with a gleaming iron-tipped arrow nocked on the string.
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Standing ready in 3/4 front-right stance holding the hunting bow.
+2. Idle B: Slight knee bounce / breathing, cheerful determined grin, holding bow.
+3. Windup: Drawing the bowstring taut back toward his cheek, arrow tip glowing faintly, leaning back slightly.
+4. Release: Bowstring snapped forward right after release (NO detached flying arrow in the air!), energetic follow-through pose holding the bow forward.

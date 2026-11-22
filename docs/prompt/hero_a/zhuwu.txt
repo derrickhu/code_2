@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached floating circles on ground, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Zhu Wu (朱武 · Eight-Trigram Array Strategist), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Starry royal-indigo Taoist strategist cap with a golden Bagua octagon badge, calm brilliant eyes, neat short goatee.
+- Outfit: Crisp porcelain-blue & pure white strategist robe (#326EE8 & #F6F8FC) trimmed in warm gold (zero busy clutter!).
+- Weapon (MUST hold the array flag in ALL 4 frames): Oversized triangular royal-blue & radiant-gold Eight-Trigrams command Pennant Flag (霁蓝鎏金奇门八卦令旗) on a golden pole!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Dignified 3/4 front-right stance holding the blue-and-gold Eight-Trigrams array flag upright.
+2. Idle B: Gentle breeze fluttering the triangular blue-gold flag, calm strategic smile.
+3. Windup: Sweeping the big blue-and-gold array flag high back in a grand arc, golden starlight glinting on the tip.
+4. Cast Release: Commanding forward-right wave pointing the Eight-Trigrams array flag to deploy a formation!

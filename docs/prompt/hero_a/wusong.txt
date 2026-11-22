@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached shockwaves, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the other characters in the reference).
+
+CHARACTER: Wu Song (武松 · Tiger-Slaying Brawler), 2.2 heads tall, facing 3/4 front-right:
+- Hair & Headgear: Wild spiky high black ponytail bound with a gleaming golden monk headband circlet (亮金行者头箍), fierce heroic eyes and slanted brows.
+- Outfit: Sleeveless charcoal-black martial vest showing strong chibi arms, vibrant orange-and-black simplified tiger-skin waist wrap, crimson sash (zero tiny clutter!).
+- Weapon (MUST wear the gauntlets in ALL 4 frames): Oversized chunky glowing amber-gold & dark-iron Tiger-Slaying gauntlets (琥珀鎏金打虎铁拳套) on both hands!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Powerful 3/4 front-right martial arts guard stance with both big amber-gold iron fists raised.
+2. Idle B: Slight rhythmic brawler bounce, fierce confident grin, fists ready.
+3. Windup: Pulling right oversized amber-gold gauntlet way back behind his hip, twisting shoulders to charge a heavy punch.
+4. Strike: Explosive forward straight punch lunge to the right with the huge glowing amber-gold iron fist!

@@ -1290,19 +1290,30 @@ namespace Liangshan.Tests
             try
             {
                 float trait = HeroKits.Of(HeroId.HuaRong).TraitV;
-                Assert.IsFalse(parsed.Heroes[0].HasKit, "现有数值表还没有四技能列");
-                Balance.Apply(parsed);
+                var legacyCfg = Balance.CreateDefault();
+                legacyCfg.Heroes[0].HasKit = false;
+                legacyCfg.Heroes[0].TraitV = 0f;
+                Balance.Apply(legacyCfg);
                 Assert.AreEqual(trait, HeroKits.Of(HeroId.HuaRong).TraitV, 1e-4f, "旧表导入不能把特性数值清成 0");
 
+                Balance.Apply(parsed);
+                Assert.AreEqual(trait, HeroKits.Of(HeroId.HuaRong).TraitV, 1e-4f, "Resources/BalanceConfig.json 导入后四技能数值完整");
+
+                float baseHp10 = Defs.StageHp(10);
+                float baseAtk10 = Defs.StageAtk(10);
                 var custom = Balance.CreateDefault();
                 custom.Economy.StartCoins = 155;
                 custom.Economy.EnhanceTable[0] = 66;
+                custom.WaveStage.GlobalHpMul = 0.85f;
+                custom.WaveStage.GlobalAtkMul = 0.90f;
                 custom.Heroes[0].Coef = 2.22f;
                 var xz = custom.Heroes.Single(h => h.Id == HeroId.XieZhen.ToString());
                 Assert.IsTrue(xz.HasKit, "导出的数值表要带上四技能");
                 Assert.AreEqual(HeroKits.Of(HeroId.XieZhen).SigV, xz.SigV, 1e-4f);
                 xz.SigV = 3f;
                 Balance.Apply(custom);
+                Assert.AreEqual(baseHp10 * 0.85f, Defs.StageHp(10), 1e-3f, "GlobalHpMul 总推杆应按精确比例缩放全关卡怪血");
+                Assert.AreEqual(baseAtk10 * 0.90f, Defs.StageAtk(10), 1e-3f, "GlobalAtkMul 总推杆应按精确比例缩放全关卡拆墙伤害");
                 Assert.AreEqual(155, new Battle(1, Lineup).Coins);
                 Assert.AreEqual(66, Defs.EnhanceCost(0));
                 Assert.AreEqual(2.22f, Defs.Heroes[0].Coef, 1e-4f);

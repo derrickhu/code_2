@@ -186,9 +186,13 @@ namespace Liangshan.Sim
         public float StageBuffNormal = 0.35f;
         public float StageBuffBoss = 0.50f;
 
-        /// <summary>50 关血量微调折线锚点与关间保底递增率。</summary>
+        /// <summary>全局难度总推杆：1.0 为校准标准值；调小（如 0.90）全关卡怪血/拆墙同步降低 10%，调大（如 1.10）全关卡同步提升 10%，不破坏关间斜率。</summary>
+        public float GlobalHpMul = 1.00f;
+        public float GlobalAtkMul = 1.00f;
+
+        /// <summary>50 关血量微调折线锚点与关间保底递增率（适度放宽约 8%~10% 容错，标准养成顺畅通关，跳过养成仍在第 4~5 关及各章受阻）。</summary>
         public float[] HpTuneStages = { 1f, 4f, 5f, 10f, 25f, 40f, 50f };
-        public float[] HpTuneValues = { 1.58f, 2.08f, 1.72f, 1.72f, 1.90f, 1.76f, 2.24f };
+        public float[] HpTuneValues = { 1.44f, 1.96f, 1.64f, 1.57f, 1.76f, 1.65f, 1.98f };
         public float StageMinStep1To5 = 1.18f;
         public float StageMinStep6To15 = 1.12f;
         public float StageMinStep16Plus = 1.075f;
@@ -377,6 +381,8 @@ namespace Liangshan.Sim
                 c.WaveStage.WaveCounts = new WaveStageBalance().WaveCounts;
             if (c.WaveStage.EarlyWaveTough == null)
                 c.WaveStage.EarlyWaveTough = new WaveStageBalance().EarlyWaveTough;
+            if (c.WaveStage.GlobalHpMul <= 0.05f) c.WaveStage.GlobalHpMul = 1.0f;
+            if (c.WaveStage.GlobalAtkMul <= 0.05f) c.WaveStage.GlobalAtkMul = 1.0f;
             if (c.WaveStage.HpTuneStages == null || c.WaveStage.HpTuneValues == null || c.WaveStage.HpTuneStages.Length != c.WaveStage.HpTuneValues.Length || c.WaveStage.HpTuneStages.Length == 0)
             {
                 var d = new WaveStageBalance();
@@ -678,6 +684,8 @@ namespace Liangshan.Sim
                     WallBaseHp = w.WallBaseHp,
                     StageBuffNormal = w.StageBuffNormal,
                     StageBuffBoss = w.StageBuffBoss,
+                    GlobalHpMul = w.GlobalHpMul,
+                    GlobalAtkMul = w.GlobalAtkMul,
                     HpTuneStages = CopyArr(w.HpTuneStages),
                     HpTuneValues = CopyArr(w.HpTuneValues),
                     StageMinStep1To5 = w.StageMinStep1To5,

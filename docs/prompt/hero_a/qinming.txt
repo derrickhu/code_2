@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached fireballs in midair, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Qin Ming (秦明 · Thunderbolt Fire Mace General), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Open-faced blazing golden-red phoenix-wing war helmet with a tall fiery red plume (showing his fierce angry-heroic eyes, thick brows, and full dark beard!).
+- Outfit: Smooth glossy molten-crimson & burnished gold heavy plate armor (#D82E28 & #FFC43D, ZERO tiny lamellar scales!).
+- Weapon (MUST hold the flaming mace in ALL 4 frames): Oversized heavy golden-spiked Wolf-Teeth Mace wreathed closely in bright orange-gold flames (霹雳赤焰狼牙棒).
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Fierce 3/4 front-right stance resting the huge flaming spiked golden mace on his shoulder.
+2. Idle B: Aggressive battle breathing crouch, flames flickering on the spiked mace head.
+3. Windup: Heaving the giant blazing spiked mace high behind his head with both hands.
+4. Strike: Explosive forward-right overhead smash driving the flaming wolf-teeth mace down!

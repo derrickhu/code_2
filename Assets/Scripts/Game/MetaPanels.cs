@@ -106,7 +106,7 @@ namespace Liangshan
                 mask.sizeDelta = Vector2.one * 104f;
                 mask.anchoredPosition = iconPos + new Vector2(0, 1);
                 mask.gameObject.AddComponent<RectMask2D>();
-                Ui.Icon(mask, CurIcon(it), 126, new Vector2(0, -14));
+                Ui.Icon(mask, CurIcon(it), 100, new Vector2(0, -1));
                 Ui.Icon(card, "ic_shard", 42, iconPos + new Vector2(-38, 38));
             }
             else
@@ -567,7 +567,7 @@ namespace Liangshan
                 mask.sizeDelta = Vector2.one * 74f;
                 mask.anchoredPosition = new Vector2(-372, 2);
                 mask.gameObject.AddComponent<RectMask2D>();
-                Ui.Icon(mask, d.Art, 92, new Vector2(0, -10));
+                Ui.Icon(mask, d.Art, 72, new Vector2(0, -1));
                 Ui.Label(r, $"{d.Name}  Lv.{lv}", 29, WarmTitle, new Vector2(-132, 26), new Vector2(310, 38), TextAnchor.MiddleLeft, Fonts.Heavy);
                 Bar(r, new Vector2(-178, -22), new Vector2(216, 22), Mathf.Clamp01(S.Shards[(int)h] / (float)Mathf.Max(1, need)), Pal.Azure, $"{S.Shards[(int)h]}/{need}");
                 Ui.Label(r, halfLeft > 0 ? $"本周半价剩 {halfLeft} 片" : "原价兑换", 21, halfLeft > 0 ? Pal.GreenDeep : WarmSub,

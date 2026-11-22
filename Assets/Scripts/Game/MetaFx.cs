@@ -533,7 +533,24 @@ namespace Liangshan
             card.anchoredPosition = new Vector2(0, 40);
             card.sizeDelta = new Vector2(440, 560);
             MetaUi.Card(card, MetaUi.RarityCard(d.Rarity), new Vector2(440, 560), Vector2.zero);
-            var art = Ui.Icon(card, d.Art, 400, new Vector2(0, 52));
+            float fxDraw = 320f;
+            float fxBaseY = -126f;
+            if (Art.Animated(d.Art) && AnimMeta.Info.TryGetValue(d.Art, out var fxMeta))
+            {
+                fxDraw = 280f / Mathf.Max(0.28f, fxMeta.Body);
+                fxBaseY = -124f - fxDraw * fxMeta.Foot;
+            }
+            var art = Ui.Icon(card, d.Art, fxDraw, new Vector2(0, fxBaseY));
+            art.rectTransform.pivot = new Vector2(0.5f, 0f);
+            if (Art.Animated(d.Art))
+            {
+                string fxKey = d.Art;
+                Art.Late(art, fxKey, () =>
+                {
+                    var fr = Art.Frames(fxKey);
+                    if (fr != null && fr.Length > 0 && art) art.sprite = fr[0];
+                });
+            }
             var namePlaque = Ui.Box(card, new Vector2(340, 74), new Vector2(0, -206), new Color(0.06f, 0.10f, 0.16f, 0.68f), Art.Pill);
             Ui.Box(namePlaque.transform, new Vector2(332, 66), Vector2.zero, MetaUi.QualGlow(MetaUi.HeroTier(d.Rarity)).A(0.28f), Art.Pill);
             Ui.Outlined(card, d.Name, 54, d.Rarity >= 4 ? Pal.Hex("FFF1B4") : Color.white, new Vector2(0, -205), new Vector2(330, 72), Pal.Ink, 3f);

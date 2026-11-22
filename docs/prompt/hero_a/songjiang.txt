@@ -1,0 +1,10 @@
+A 1x2 character sheet (TWO figures side by side in one horizontal row) of Lord Song Jiang (及时雨·宋江, Commander of Liangshan) on a pure solid white background (#FFFFFF). Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style (warm dark-brown outline #2B2338, expressive glossy eyes with crisp white highlights, smooth vinyl-cel shading, bright clean color blocks, zero tiny clutter).
+
+LAYOUT MANDATE: STRICTLY TWO FIGURES SIDE BY SIDE IN ONE HORIZONTAL ROW, wide pure white gap between them, full body head-to-toe, NO ground shadow, NO TEXT, no labels, no writing anywhere.
+
+CHARACTER DESIGN (Lord Song Jiang · 2.2 heads tall):
+- Head & Face: Traditional black Song official winged scholar cap (展脚幞头) with a clean golden emblem in front; warm, wise, charismatic big eyes with white catchlights, kind heroic eyebrows, neat short black beard and mustache.
+- Outfit: Noble apricot-imperial-yellow robe (明亮杏黄锦袍) with clean vermilion-red jade belt and simple gold collar trim (ZERO tiny floral embroidery clutter!), black boots with white soles.
+
+Left figure (Commander Full-Body Portrait for `lord_songjiang`): Standing in a dignified 3/4 front-left pose, holding a gleaming rolled golden decree scroll in his right hand, left hand resting calmly on the golden hilt of a sheathed sword at his waist.
+Right figure (Battlefield Dais Pose for `prop_songjiang`): Same exact Song Jiang in a spirited 3/4 front-right commanding stance, holding up a gleaming silver-and-gold command sword in one hand and the golden scroll in the other to rally his troops!

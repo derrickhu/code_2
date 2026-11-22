@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached flying forks, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Xie Bao (解宝 · Twin-Tailed Scorpion Venom Trident Hunter), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Wild tied-back dark hair with a bold purple-and-lime scorpion-emblem headband, sharp mischievous hunter grin and bright eyes.
+- Outfit: Sleeveless warm chestnut-brown & vibrant toxic-lime green mountain hunter vest (#6E442A & #4CE258, zero tiny buckles!).
+- Weapon (MUST hold the venom trident in ALL 4 frames): Oversized barbed three-pronged steel hunting trident/fork (淬毒倒钩三股钢叉) with bright glowing venom-green tips!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Agile 3/4 front-right hunter stance holding the glowing green-tipped barbed trident ready.
+2. Idle B: Nimble crouch bounce, wild grin, tilting the venom trident forward.
+3. Windup: Cocking the big green-tipped barbed trident high back above his shoulder like a javelin thrower.
+4. Strike/Release: Fierce forward-right javelin thrust/throw follow-through gripping the barbed venom trident!

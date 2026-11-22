@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached flying axes, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Li Kui (李逵 · Black Whirlwind Dual-Axe Berserker), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Wild spiky black hair tied with a bright red cord, warm sun-bronzed tan skin, booming wide-eyed fearless grin and bushy black beard!
+- Outfit: Bare muscular chibi chest with a bold red X-sash, vibrant whirlwind-cerulean blue & gold waist battle kilt (#22A8D8 & #FFD15C, zero messy straps!).
+- Weapon (MUST hold BOTH axes in ALL 4 frames): Wielding TWO oversized chunky gleaming silver-steel broad battle axes (双板斧), one in each hand!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Wild energetic 3/4 front-right stance holding both huge silver broad-axes wide at his sides.
+2. Idle B: Eager battle bounce, wide grin, clinking the two big broad-axes ready.
+3. Windup: Crossing and pulling both massive silver broad-axes high back behind his shoulders to hurl/cleave.
+4. Strike: Ferocious forward-right dual-axe whirlwind cleave lunge gripping both gleaming broad-axes!

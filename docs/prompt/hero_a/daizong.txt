@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached projectiles, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Dai Zong (戴宗 · Divine Speed Messenger), 2.2 heads tall, facing 3/4 front-right:
+- Head & Face: Energetic windswept dark hair bound by a bright golden-amber headband with cute golden swift-wing ornaments on both sides, bright eager eyes and big grin.
+- Outfit: Sporty azure-teal & sunlit amber-yellow courier tunic (#2498E0 & #FFC838), wearing iconic glowing golden winged talisman greaves on his boots (神行甲马金翼靴)!
+- Weapon/Prop (MUST hold the talisman in ALL 4 frames): Holding an oversized radiant golden speed-charm banner/scroll gleaming with golden wind sparks.
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Ready runner's 3/4 front-right stance holding the glowing golden speed talisman, winged boots gleaming.
+2. Idle B: Bouncy sprinter hop in place, cheerful grin, golden boot wings fluttering.
+3. Windup: Crouching into an explosive sprinter/caster coil, raising the golden speed talisman bright overhead.
+4. Cast Release: Dynamic forward-right dash-blessing pose thrusting the glowing golden talisman forward!

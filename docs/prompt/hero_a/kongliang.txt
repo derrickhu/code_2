@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached flying bombs or smoke clouds, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Kong Liang (孔亮 · Fiery Bomber), 2.2 heads tall, facing 3/4 front-right:
+- Hair & Headgear: Wild spiky black hair tied up with a bright flame-orange headband (#FF6E2E) with a simple gold flame badge, fiery excited big eyes and thick grin.
+- Outfit: Sleeveless charcoal-slate martial vest with bright tangerine trim, warm red waist sash, sturdy boots (zero tiny straps or clutter!).
+- Weapon (MUST hold a bomb in ALL 4 frames): Holding one chunky oversized glossy black-iron round bomb with a bright yellow-orange sizzling spark on its short fuse!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Standing in 3/4 front-right stance cradling the big round sparking black bomb with both hands.
+2. Idle B: Slight crouch bounce, excited grin, lifting the sparking round bomb slightly.
+3. Windup: Twisting torso back and raising the big sparking black bomb high overhead with one hand to hurl it.
+4. Release: Energetic forward throwing follow-through lunge while still gripping a fresh round black bomb in his off-hand (keep silhouette compact, NO detached bomb flying away!).

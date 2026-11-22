@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO long lasso flying across other frames, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (match the crimson female warrior style from the reference!).
+
+CHARACTER: Hu Sanniang (扈三娘 · Crimson Female General), 2.2 heads tall, facing 3/4 front-right:
+- Hair & Headgear: Voluminous high black ponytail tied with a bright scarlet ribbon, golden phoenix tiara with red gem, determined pretty eyes with bright catchlights.
+- Outfit: Smooth vibrant crimson-red & warm gold female general breastplate and battle skirt (#E6323E & #FFD15C, ZERO fish-scale textures!).
+- Weapon (MUST hold in ALL 4 frames): Gleaming silver sun-moon saber in one hand AND a glowing coiled crimson-gold silk lasso loop (红锦缚龙索) in her throwing hand!
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Confident 3/4 front-right stance holding her silver saber and coiled red-gold silk lasso at her side.
+2. Idle B: Agile combat bounce, ponytail swaying, lifting the glowing red-gold lasso coil ready.
+3. Windup: Twisting back and twirling the compact glowing red-gold lasso loop overhead while saber guards low.
+4. Release: Dynamic forward-right whip-throw follow-through lunge holding the lasso rope end and silver saber (keep compact within frame!).

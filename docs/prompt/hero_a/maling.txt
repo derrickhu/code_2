@@ -1,0 +1,14 @@
+LAYOUT MANDATE: STRICTLY ONE SINGLE HORIZONTAL ROW of 4 animation frames (1x4 horizontal sprite strip, left to right: Frame 1, Frame 2, Frame 3, Frame 4), NEVER a 2x2 grid! Pure solid white background (#FFFFFF), wide clear white gaps between the 4 frames, NO ground shadows, NO detached projectiles, NO TEXT, no numbers, no labels anywhere.
+
+Use the reference image ONLY for the exact 2.2-heads-tall toy-chibi hero art style, warm dark-brown outline (#2B2338), expressive glossy eyes with white highlights, and smooth clean color blocks (do NOT copy the characters in the reference).
+
+CHARACTER: Ma Ling (马灵 · Golden Brick Mystic Mage), 2.2 heads tall, facing 3/4 front-right:
+- Hair & Headgear: Sleek dark topknot with a bright golden wheel-circlet on his forehead (金轮额饰), mystical confident eyes with golden highlights.
+- Outfit: Crisp deep-cobalt & ivory-white swift Taoist robe (#2E58D8 & #F5F7FC) with clean gold trim (zero complex embroidery!).
+- Weapon (MUST hold the golden brick in ALL 4 frames): Holding an oversized chunky radiant magical Golden Brick talisman (发光镇魔大金砖) gleaming with warm gold facets.
+
+4 FRAMES LEFT TO RIGHT:
+1. Idle A: Standing in 3/4 front-right stance holding the glowing oversized golden brick at chest level.
+2. Idle B: Slight mystical breathing pose, golden brick hovering slightly in his palm.
+3. Windup: Raising the radiant golden brick high above his head with both hands, channeling power.
+4. Cast Release: Thrusting palm forward presenting the glowing golden brick with dynamic robe flare (brick stays in/at his hand, NO detached flying object!).
