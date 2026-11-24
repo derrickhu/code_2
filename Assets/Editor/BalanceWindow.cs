@@ -415,7 +415,7 @@ namespace Liangshan.EditorTools
                 c.LordPctBase = EditorGUILayout.Slider("基础剑气伤害倍率 (×统帅攻击)", c.LordPctBase, 0.5f, 5.0f);
                 c.LordCdBase = EditorGUILayout.Slider("基础冷却秒数", c.LordCdBase, 10f, 80f);
                 c.LordFirstCast = EditorGUILayout.Slider("开战首次拔剑秒数", c.LordFirstCast, 5f, 45f);
-                c.LordWaveSpeed = EditorGUILayout.Slider("统帅剑气推进速度 (格/秒)", c.LordWaveSpeed, 6.0f, 24.0f);
+                c.LordWaveSpeed = EditorGUILayout.Slider("统帅剑气推进速度 (格/秒)", c.LordWaveSpeed, 4.0f, 24.0f);
             });
 
             Section("全职业弹道飞行速度与法术/刀剑特效节奏（×1 第一档速度基准）", () =>

@@ -1582,10 +1582,13 @@ namespace Liangshan
         /// <summary>词条顶栏一律用这名好汉的品质色，和名册、卡框同一套，不按词条种类另配色。</summary>
         static Color CardHeadColor(PerkDef p) => MetaUi.RarityColor(Defs.Hero(p.Hero).Rarity);
 
-        /// <summary>卡底一行：进阶写它从哪张来。取舍互斥只在发牌里生效，卡上不提。</summary>
-        static string PerkNote(PerkDef p)
+        /// <summary>卡底一行：流派质变提示终阶解锁、取舍卡提示20级免负面、进阶卡标注前置来源。</summary>
+        static string PerkNote(PerkDef p, int heroLv)
         {
             if (p.Req != null) return $"进阶自「{Defs.Perk(p.Req)?.Name}」";
+            if (p.Kind == PerkKind.Morph) return "流派质变 · 解锁终阶形态";
+            if (p.Kind == PerkKind.Trade && p.Has2 && p.V2 < 0f)
+                return heroLv >= Meta.NoPenaltyLv ? "满20级 · 已免负面代价" : "重装取舍 · 20级免负面";
             return null;
         }
 
@@ -1599,9 +1602,9 @@ namespace Liangshan
                 float s = 1;
                 foreach (var sl in B.Slots)
                     if (sl.Unit != null && sl.Unit.Hero == p.Hero) s += sl.Unit.Star;
-                if (p.Eff == Eff.Dmg || p.Eff == Eff.Count || p.Eff == Eff.UltPow) s += 0.5f;
-                if (p.Kind == PerkKind.Morph) s += 1.2f;
-                if (p.Kind == PerkKind.Adv) s += 2f;
+                if (p.Eff == Eff.Dmg || p.Eff == Eff.Count || p.Eff == Eff.UltPow || p.Eff == Eff.Conduct || p.Eff == Eff.Refract) s += 0.7f;
+                if (p.Kind == PerkKind.Morph) s += 1.4f;
+                if (p.Kind == PerkKind.Adv) s += 2.2f;
                 if (p.Ult) s += 6f;
                 if (p.Finisher) s += 5f;
                 if (s > bs) { bs = s; best = i; }
@@ -1744,8 +1747,9 @@ namespace Liangshan
                 Ui.Label(card, $"{hd.Name} · {hd.Role}", 24, Pal.Hex("5E7082"), new Vector2(0, -16), new Vector2(cw - 48, 34), TextAnchor.MiddleCenter, Fonts.Heavy);
 
                 Ui.Box(card, new Vector2(cw - 64, 2), new Vector2(0, -44), Pal.Hex("E2DDD0"), Art.White);
-                string note = PerkNote(p);
-                var desc = Ui.Label(card, Colorize(p.Desc), 30, Pal.Hex("243240"), new Vector2(0, -151), new Vector2(cw - 40, 186), TextAnchor.UpperCenter);
+                int heroLv = B.Lo.Lv[(int)p.Hero];
+                string note = PerkNote(p, heroLv);
+                var desc = Ui.Label(card, Colorize(Defs.PerkDesc(p, heroLv)), 30, Pal.Hex("243240"), new Vector2(0, -151), new Vector2(cw - 40, 186), TextAnchor.UpperCenter);
                 desc.lineSpacing = 1f;
                 desc.verticalOverflow = VerticalWrapMode.Truncate;
 

@@ -522,7 +522,9 @@ namespace Liangshan.Sim
                 case 1: return d.HasUlt
                     ? $"解锁大招「{d.UltName}」与「{OptPerk(h, 1).Name}」选项"
                     : $"解锁奥义「{kit.FinisherName}」与「{OptPerk(h, 1).Name}」选项";
-                case 2: return $"获得绝技「{kit.SigName}」，伤害 +20%";
+                case 2: return d.Kind == Role.Support
+                    ? $"获得绝技「{kit.SigName}」，加持效力 +20%"
+                    : $"获得绝技「{kit.SigName}」，伤害 +20%";
                 case 3: return $"解锁「{kit.Opt15Name}」选项，技能冷却 -10%";
                 case 4: return $"{kit.Lv20Desc}（解锁「{OptPerk(h, 2).Name}」且取舍卡无负面）";
                 case 5: return kit.Lv25Desc;

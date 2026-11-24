@@ -284,14 +284,10 @@ namespace Liangshan.Tests
             b.Update(0.05f);
             Assert.AreEqual(1, b.LordCasts);
             var crowd = new V2((0.8f + 1.5f + 1.1f) / 3f, Layout.WallRowY + (2.4f + 2.6f + 3.1f) / 3f);
-            int slashes = 0;
-            foreach (var s in b.Shots)
-            {
-                if (s.Kind != ShotKind.Slash) continue;
-                slashes++;
-                Assert.Less((s.To - crowd).Len, (s.To - loner.Pos).Len, "剑气落点靠近人群，不追更近的落单者");
-            }
-            Assert.AreEqual(4, slashes, "半圆里的人都会被打到");
+            var wave = b.Shots.Single(s => s.Kind == ShotKind.Slash);
+            Assert.Less((wave.To - crowd).Len, (wave.To - loner.Pos).Len, "剑气落点靠近人群，不追更近的落单者");
+            for (int t = 0; t < 20; t++) b.Update(0.05f);
+            Assert.AreEqual(4, new[] { loner, c1, c2, c3 }.Count(e => e.Hp < 1e6f), "半圆里的人都会被扩散剑气扫中打到");
         }
 
         [Test]
@@ -638,9 +634,9 @@ namespace Liangshan.Tests
             return u;
         }
 
-        static Enemy Dummy(Battle b, float x = 0, float y = 3f)
+        static Enemy Dummy(Battle b, float x = 0, float y = 3f, float hp = 1e9f)
         {
-            var e = new Enemy { Id = 900 + b.Enemies.Count, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 1e9f, MaxHp = 1e9f, Pos = new V2(x, y), Attacking = true };
+            var e = new Enemy { Id = 900 + b.Enemies.Count, Def = Defs.Enemy(EnemyKind.Soldier), Hp = hp, MaxHp = hp, Pos = new V2(x, y), Attacking = true };
             b.Enemies.Add(e);
             return e;
         }
@@ -1384,6 +1380,85 @@ namespace Liangshan.Tests
             Assert.IsTrue(b4.IsAwakened(HeroId.HuaRong), "抽到奥义卡当场觉醒");
             Assert.IsTrue(b4.Events.Any(e => e.Type == Ev.Awaken && e.Hero == HeroId.HuaRong));
             Assert.GreaterOrEqual(b4.Shots.Count(s => s.Hero == HeroId.HuaRong), 3, "奥义觉醒瞬间当场齐射贯阵箭雨");
+        }
+
+        [Test]
+        public void RoleAuthenticMageChainRefractSupportMorphAndShatterGateWork()
+        {
+            // 1) 公孙胜逐跳蛇形连锁与阶梯衰减（默认 0.82^hop -> 高压超导 +2 连锁 & 0.92^hop -> 紫电雷池 100% 无损 + 终点麻痹雷池）
+            var luMage = new[] { HeroId.GongSun, HeroId.ShanTinggui, HeroId.WuYong, HeroId.ShiXiu };
+            var lo = Loadout.Plain(luMage);
+            lo.Crit = 0f;
+            var b = new Battle(77, luMage, Defs.Level(1), lo);
+            Put(b, 0, HeroId.GongSun, 1);
+            b.Slots[0].Unit.Cd = 0.01f;
+            var e0 = Dummy(b, -1.2f, 2.0f, 50000f);
+            var e1 = Dummy(b, 0.0f, 2.2f, 50000f);
+            var e2 = Dummy(b, 1.2f, 2.4f, 50000f);
+            var e3 = Dummy(b, 2.2f, 2.6f, 50000f);
+
+            // 初始 1 级公孙胜：主目标 + 连锁 1 跳（共打 2 人，第 2 跳伤害约为首跳的 82%）
+            for (int step = 0; step < 30; step++) b.Update(0.05f);
+            float d0 = 50000f - e0.Hp, d1 = 50000f - e1.Hp, d2 = 50000f - e2.Hp;
+            Assert.Greater(d0, 10f, "主目标受天雷直击");
+            Assert.That(d1 / d0, Is.InRange(0.76f, 0.95f), "第1次连锁跳跃按约 82% 阶梯递减（含感电易伤微调）");
+            Assert.AreEqual(0f, d2, 0.01f, "未强化前仅连锁 1 人（共打 2 人），第 3 人不受击");
+
+            // 升级「高压超导」+「紫电雷池」：连锁人数扩至 1+2=3 跳（共打 4 人），100% 无衰减且第 4 跳终点触发紫电雷池麻痹！
+            void Grant(Battle bt, string id) { bt.Choices = new[] { Defs.Perk(id) }; bt.Phase = Phase.Choosing; bt.Pick(0); }
+            e0.Hp = e1.Hp = e2.Hp = e3.Hp = 50000f;
+            e0.VulnT = e1.VulnT = e2.VulnT = e3.VulnT = 0f;
+            Grant(b, "gongsun_morph");
+            Grant(b, "gongsun_adv");
+            b.Slots[0].Unit.Cd = 0.01f;
+            b.Events.Clear();
+            bool sawThunderPool = false;
+            for (int step = 0; step < 40; step++)
+            {
+                b.Update(0.05f);
+                if (b.Events.Any(ev => ev.Type == Ev.Hit && ev.Shot == ShotKind.Lightning && ev.Value >= 100))
+                {
+                    sawThunderPool = true;
+                    break;
+                }
+            }
+            Assert.Greater(50000f - e3.Hp, (50000f - e0.Hp) * 0.95f, "紫电雷池实现全链路无衰减传导并附加终点雷池溅射");
+            Assert.Greater(e3.Stun, 0.1f, "终点紫电雷池麻痹敌军");
+            Assert.IsTrue(sawThunderPool, "向视图层发出紫电雷池终极特效事件");
+
+            // 2) 单廷珪持续射线折射（「寒晶折射」从主目标身上向周围折射副光束）
+            var bBeam = new Battle(88, luMage, Defs.Level(1), lo);
+            Grant(bBeam, "shantinggui_morph");
+            Put(bBeam, 1, HeroId.ShanTinggui, 1);
+            bBeam.Slots[1].Unit.Cd = 0.01f;
+            var bt0 = Dummy(bBeam, 0f, 2.0f, 50000f);
+            var bt1 = Dummy(bBeam, 1.4f, 2.2f, 50000f);
+            for (int step = 0; step < 15; step++) bBeam.Update(0.05f);
+            Assert.Greater(50000f - bt0.Hp, 5f);
+            Assert.Greater(50000f - bt1.Hp, 3f, "折射副光束同步灼烧/冻结主目标身旁敌军");
+
+            // 3) 辅助职业强化：「广发锦囊」(Count) 扩充祝福目标数，「军师破阵」(Morph) 施法同步给强敌挂易伤
+            var bSup = new Battle(99, luMage, Defs.Level(1), lo);
+            Grant(bSup, "wuyong_3"); // 广发锦囊 Count +1
+            Grant(bSup, "wuyong_morph"); // 军师破阵 Vuln +28%
+            Put(bSup, 0, HeroId.WuYong, 1);
+            Put(bSup, 1, HeroId.GongSun, 1);
+            Put(bSup, 2, HeroId.ShiXiu, 1);
+            var boss = Dummy(bSup, 0f, 2.0f, 80000f);
+            bSup.Slots[0].Unit.Cd = 0.01f;
+            bSup.Update(0.05f);
+            Assert.AreEqual(2, bSup.Slots.Count(s => s.Unit != null && s.Unit.Def.Carry && s.Unit.BlessN > 0), "1星吴用点出广发锦囊后一次同时祝福 2 名输出主将");
+            Assert.GreaterOrEqual(boss.Vuln, 0.28f - 1e-4f, "军师破阵在施放辅助技时同步给强敌挂上破绽易伤");
+
+            // 4) 阵容条件过滤：纯菜刀无控阵容绝不发废卡「破冰追击」(Eff.Shatter)
+            var noCtrlLu = new[] { HeroId.ShiXiu, HeroId.XieZhen, HeroId.LingZhen, HeroId.WuYong };
+            var bGate = new Battle(101, noCtrlLu, Defs.Level(1), Loadout.Plain(noCtrlLu)) { Coins = 999999 };
+            Assert.IsFalse(bGate.HasControlInLineup());
+            for (int r = 0; r < 25 && bGate.Enhance(); r++)
+            {
+                Assert.IsFalse(bGate.Choices.Any(c => c.Eff == Eff.Shatter), "无减速/控制好汉时绝不污染发牌池刷出破冰追击");
+                bGate.Pick(0);
+            }
         }
     }
 }

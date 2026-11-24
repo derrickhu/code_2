@@ -149,7 +149,11 @@ namespace Liangshan.Sim
                 Opt15Name = o15Name, Opt15Eff = o15Eff, Opt15V = o15V, Opt15Eff2 = o15Eff2, Opt15V2 = o15V2, Opt15Tpl = o15Tpl,
                 Lv20Desc = lv20,
                 Lv25Desc = lv25,
-                Lv30Desc = lv30 ?? (sup ? $"「{d.AtkName}」冷却 -20%" : $"{d.Name}攻击速度 +20%"),
+                Lv30Desc = lv30 ?? (sup ? $"「{d.AtkName}」冷却 -20%"
+                    : d.Kind == Role.Mage ? $"「{d.AtkName}」回气速率 +20%"
+                    : d.Kind == Role.Bomber ? $"「{d.AtkName}」装填速度 +20%"
+                    : d.Kind == Role.Control ? $"「{d.AtkName}」布阵速度 +20%"
+                    : $"{d.Name}攻击速度 +20%"),
             };
             Refresh(kit);
             return kit;
@@ -166,7 +170,7 @@ namespace Liangshan.Sim
                 "入云龙", "sk_sig_legion", SigKind.StarSum, 12, 0.04f, 0, "场上公孙胜总星级每 1 星，天雷与大招伤害 +{sv%}（上限 {sn_sv%}）",
                 null, null,
                 "掌心神雷", Eff.Count, 1f, Eff.Stun, 0.25f, "掌心再引一雷\n落雷数量 +{ov}，麻痹几率 +{ov2%}",
-                "释放「五雷天罡」后 6 秒内，公孙胜攻速 +35%",
+                "释放「五雷天罡」后 6 秒内，公孙胜回气速率 +35%",
                 "「五雷天罡」冷却 -15%，技能伤害 +15%"));
 
             Put(K(HeroId.LinChong,
@@ -229,7 +233,7 @@ namespace Liangshan.Sim
                 "甲马神行", "sk_trait_tactic", TraitKind.UltAuraCd, 0.04f, 0, "戴宗在场冷却光环同步加速全军大招回转",
                 "日行八百", "sk_sig_merge", SigKind.OnMerge, 0, 0.18f, 0, "戴宗参与合成升星时，全军其余好汉当前技能与大招冷却立刻缩短 {sv%}",
                 null, null,
-                "八百里加急", Eff.Speed, 0.36f, Eff.Coin, 14f, "甲马符催到极致\n攻速 +{ov%}，沿途摸银 +{ov2}",
+                "八百里加急", Eff.UltCd, 0.24f, Eff.Coin, 32f, "甲马符催到极致\n技能冷却 -{ov%}，合成摸银 +{ov2}",
                 "释放「日行千里」时，额外立刻缩短全军技能冷却 20%",
                 "「神行甲马」效果 +15%，「日行千里」冷却 -15%"));
 
@@ -253,7 +257,7 @@ namespace Liangshan.Sim
             Put(K(HeroId.LingZhen,
                 "重炮轰雷", "sk_trait_exec", TraitKind.KnockBonus, 0.12f, 0, "虎蹲重炮气浪猛烈，震退距离 +{tv%}",
                 "火药精通", "sk_sig_combo", SigKind.EveryNCast, 3, 1.45f, 0.35f, "每第 {sn} 轮发射升级为红衣巨炮：伤害 ×{sv}，爆炸范围 +{sv2%}",
-                "sk_aoyi_fire", "终伤 +{awkDmg%}，攻速 +{awkSpd%}；当场倾泻重炮弹幕，之后每 3 轮普攻额外轰出 4 枚连环火炮",
+                "sk_aoyi_fire", "重炮终伤 +{awkDmg%}，装填速度 +{awkSpd%}；当场倾泻重炮弹幕，之后每 3 轮普攻额外轰出 4 枚连环火炮",
                 "神机火药", Eff.Count, 1f, Eff.Dmg, 0.40f, "神机火药连发\n重炮数量 +{ov}，重炮伤害 +{ov2%}",
                 "「火药精通」巨炮触发节拍加快为每第 2 轮，必带震晕 0.5 秒",
                 "「霹雳重炮」伤害 +15%，奥义「火烧连营」弹幕伤害 +35%"));
@@ -285,8 +289,8 @@ namespace Liangshan.Sim
             Put(K(HeroId.WuYong,
                 "羽扇指阵", "sk_trait_tactic", TraitKind.AdjacentSpeed, 0.16f, 0, "羽扇指点战局：吴用左右相邻两格的好汉常驻攻速 +{tv%}",
                 "锦囊妙计", "sk_sig_merge", SigKind.OnMerge, 0, 20f, 0, "吴用参与合成升星时，额外献计 +{sv} 银两，并立刻向 1 位输出好汉抛出祝福法球",
-                "sk_aoyi_aid", "光环与祝福效果 +{awkAura%}，攻速 +{awkSpd%}；觉醒瞬间立刻为至多 2 位输出好汉降下满层神速祝福",
-                "奇门借风", Eff.Coin, 22f, Eff.Speed, 0.28f, "奇门借风聚财\n献计银两 +{ov}，祝福攻速 +{ov2%}",
+                "sk_aoyi_aid", "光环与祝福效力 +{awkAura%}，号令回转 +{awkSpd%}；觉醒瞬间立刻为至多 2 位输出好汉降下满层神速祝福",
+                "奇门借风", Eff.Coin, 35f, Eff.UltPow, 0.35f, "奇门借风聚财\n每次合成 +{ov} 银两，祝福效力 +{ov2%}",
                 "被祝福的好汉参与合成升星时，剩余祝福层数无损继承给新好汉",
                 "「运筹帷幄」效果 +15%，奥义「八方风雨」增益再 +25%"));
 
@@ -301,15 +305,15 @@ namespace Liangshan.Sim
             Put(K(HeroId.QiaoDaoqing,
                 "赤焰蚀甲", "sk_trait_elem", TraitKind.DotBonus, 0.30f, 0, "火焰射线引燃真火，命中附带持续灼烧（{tv%} 伤害）",
                 "幻术", "sk_sig_seal", SigKind.OnDebuff, 0, 0.38f, 0, "幻火相生：对正处于灼烧、减速状态的敌军，火焰射线伤害 +{sv%}",
-                "sk_aoyi_spell", "终伤 +{awkDmg%}，攻速 +{awkSpd%}，持续施法延长 1 秒；觉醒当场激发真火冲击波灼烧前排",
-                "九天玄火", Eff.Crit, 0.25f, Eff.Dmg, 0.45f, "三昧真火凝练\n暴击率 +{ov%}，射线伤害 +{ov2%}",
+                "sk_aoyi_spell", "法术终伤 +{awkDmg%}，回气速率 +{awkSpd%}，持续施法延长 1 秒；觉醒当场激发真火冲击波灼烧前排",
+                "九天玄火", Eff.Refract, 1f, Eff.Dmg, 0.45f, "三昧真火折跃\n折射 +{ov} 道副光束，射线伤害 +{ov2%}",
                 "持续施法结束那一刻，在终点炸开一团烈焰爆破",
                 "「火焰射线」伤害 +15%，奥义「幻魔真火」持续时间再 +0.6 秒"));
 
             Put(K(HeroId.ZhuWu,
                 "奇门破绽", "sk_trait_tactic", TraitKind.ZoneVuln, 0.14f, 0, "踏入八阵图的敌军阵脚大乱，2.5 秒内所受伤害 +{tv%}",
                 "八门金锁", "sk_sig_seal", SigKind.OnStunBurst, 0, 0.65f, 0.8f, "八阵图落下时阵心锁敌：对中心敌军定身 {sv2} 秒并追加 {sv%} 阵法伤害",
-                "sk_aoyi_bind", "终伤 +{awkDmg%}，攻速 +{awkSpd%}；当场展开天罡八卦大阵定身前排，之后每 3 轮普攻额外布下一座副阵",
+                "sk_aoyi_bind", "破阵终伤 +{awkDmg%}，布阵速度 +{awkSpd%}；当场展开天罡八卦大阵定身前排，之后每 3 轮普攻额外布下一座副阵",
                 "太乙生门", Eff.Area, 0.45f, Eff.Slow, 1.0f, "阵盘扩演八方\n八阵图范围 +{ov%}，减速 +{ov2} 秒",
                 "八阵图造成的破绽易伤提升至 +22%，持续延长 1.5 秒",
                 "「八阵图」伤害 +15%，奥义「奇门八卦」副阵范围 +35%"));
@@ -317,7 +321,7 @@ namespace Liangshan.Sim
             Put(K(HeroId.XuNing,
                 "破甲金钩", "sk_trait_exec", TraitKind.CavBonus, 0.55f, 0, "祖传钩镰枪专破铁骑，对骑兵与连环马伤害 +{tv%}",
                 "金枪班", "sk_sig_combo", SigKind.HighHpBreak, 0, 0.35f, 0, "迎头痛击：对生命高于 50% 的敌军，钩镰枪伤害 +{sv%}",
-                "sk_aoyi_blade", "终伤 +{awkDmg%}，攻速 +{awkSpd%}；当场刺出金钩裂阵枪芒，之后每 3 轮普攻额外挥出双道破马金罡",
+                "sk_aoyi_blade", "破阵终伤 +{awkDmg%}，布阵速度 +{awkSpd%}；当场刺出金钩裂阵枪芒，之后每 3 轮普攻额外挥出双道破马金罡",
                 "雁翎倒钩", Eff.Stun, 0.28f, Eff.Cav, 0.65f, "倒钩锁拿铁骑\n击晕几率 +{ov%}，对骑兵伤害 +{ov2%}",
                 "钩镰枪命中骑兵与精英时，将其向城门方向往回强拽 0.5 格",
                 "「钩镰枪」伤害 +15%，奥义「金枪破连环」枪罡伤害 +35%"));
@@ -325,15 +329,15 @@ namespace Liangshan.Sim
             Put(K(HeroId.ShanTinggui,
                 "玄水寒潮", "sk_trait_elem", TraitKind.SplashSlow, 0.8f, 0, "圣水冰寒彻骨，减速持续时间额外 +{tv} 秒",
                 "圣水灌顶", "sk_sig_seal", SigKind.OnDebuff, 0, 0.40f, 0, "寒潮叠涌：对处于减速、眩晕中的敌军，圣水射线伤害 +{sv%}",
-                "sk_aoyi_spell", "终伤 +{awkDmg%}，攻速 +{awkSpd%}，持续施法延长 1 秒；觉醒当场激起寒水狂澜冻结前排",
-                "玄冥重水", Eff.Dmg, 0.55f, Eff.Slow, 1.2f, "高压寒流贯体\n圣水射线伤害 +{ov%}，减速 +{ov2} 秒",
+                "sk_aoyi_spell", "法术终伤 +{awkDmg%}，回气速率 +{awkSpd%}，持续施法延长 1 秒；觉醒当场激起寒水狂澜冻结前排",
+                "玄冥重水", Eff.Refract, 1f, Eff.Slow, 1.2f, "寒晶分流贯体\n折射 +{ov} 道副光束，减速 +{ov2} 秒",
                 "被圣水持续冲刷的敌军，15% 几率凝结冰封 0.6 秒",
                 "「圣水射线」伤害 +15%，奥义「弱水三千」持续时间再 +0.6 秒"));
 
             Put(K(HeroId.WeiDingguo,
                 "猛火绝疗", "sk_trait_elem", TraitKind.DotBonus, 0.25f, 0, "猛火油黏附甲胄，灼烧伤害 +{tv%} 并降低妖道治疗 60%",
                 "神火焚营", "sk_sig_seal", SigKind.OnDebuff, 0, 0.45f, 0, "火上浇油：对已处于灼烧状态的敌军，油罐直击伤害 +{sv%}",
-                "sk_aoyi_fire", "终伤 +{awkDmg%}，攻速 +{awkSpd%}；灼烧敌军阵亡必连环引爆，且每 3 轮普攻额外抛投 4 枚猛火小油弹",
+                "sk_aoyi_fire", "重炮终伤 +{awkDmg%}，装填速度 +{awkSpd%}；灼烧敌军阵亡必连环引爆，且每 3 轮普攻额外抛投 4 枚猛火小油弹",
                 "赤磷猛油", Eff.Burn, 0.85f, Eff.Area, 0.35f, "提纯赤磷火油\n持续灼烧 +{ov%}，火罐范围 +{ov2%}",
                 "油罐爆炸范围 +25%，铺开的地面火海持续时间延长",
                 "「猛火油罐」伤害 +15%，奥义「神火燎原」爆燃伤害 +35%"));
@@ -366,7 +370,7 @@ namespace Liangshan.Sim
             Put(K(HeroId.MaLing,
                 "神驹疾影", "sk_trait_crit", TraitKind.NthShotCrit, 0.18f, 3, "脚踏风火轮法力流转，每第 {tn} 轮祭砖暴击率 +{tv%}",
                 "风火金印", "sk_sig_combo", SigKind.EveryNCast, 3, 1.35f, 0.8f, "每第 {sn} 轮祭出镇山大金砖：伤害 ×{sv}，多弹射 1 次且必晕 {sv2} 秒",
-                "sk_aoyi_spell", "终伤 +{awkDmg%}，攻速 +{awkSpd%}；当场天降连环金砖镇压前排，之后每 3 轮普攻额外砸落 2 块追魂金砖",
+                "sk_aoyi_spell", "法术终伤 +{awkDmg%}，回气速率 +{awkSpd%}；当场天降连环金砖镇压前排，之后每 3 轮施法额外砸落 2 块追魂金砖",
                 "乾坤金光", Eff.Chain, 2f, Eff.Stun, 0.20f, "金光折跃连砸\n金砖弹射 +{ov} 次，击晕几率 +{ov2%}",
                 "被金砖击晕的敌军 3 秒内所受伤害 +20%",
                 "「金砖镇魔」伤害 +15%，奥义「五岳金砖」追砸伤害 +35%"));
@@ -374,7 +378,7 @@ namespace Liangshan.Sim
             Put(K(HeroId.KongLiang,
                 "烈性火药", "sk_trait_elem", TraitKind.DotBonus, 0.12f, 0, "独火雷内掺硫磺铁砂，爆炸后灼烧敌军（{tv%} 伤害）",
                 "星火燎原", "sk_sig_legion", SigKind.CountGE, 3, 1f, 0, "场上同时存在 ≥{sn} 位孔亮时，全体孔亮每次投雷数量 +1",
-                "sk_aoyi_fire", "终伤 +{awkDmg%}，攻速 +{awkSpd%}；当场倾泻漫天火雷雨，之后每 3 轮普攻额外抛投 4 枚流星小火雷",
+                "sk_aoyi_fire", "重炮终伤 +{awkDmg%}，装填速度 +{awkSpd%}；当场倾泻漫天火雷雨，之后每 3 轮普攻额外抛投 4 枚流星小火雷",
                 "轰天双响", Eff.Area, 0.42f, Eff.Dmg, 0.40f, "扩装生铁雷壳\n火雷范围 +{ov%}，火雷伤害 +{ov2%}",
                 "场上满 4 位孔亮时，爆炸范围再 +25%",
                 "「独火雷」伤害 +15%，奥义「独火燎天」流星火雷伤害 +35%"));
@@ -382,15 +386,15 @@ namespace Liangshan.Sim
             Put(K(HeroId.TangLong,
                 "百炼锋芒", "sk_trait_tactic", TraitKind.CritDmgAura, 0.12f, 0, "神匠坐镇：汤隆在场时，全军暴击伤害额外 +{tv%}",
                 "铁匠世家", "sk_sig_merge", SigKind.OnMerge, 0, 0.42f, 6f, "汤隆参与合成升星时，当场开炉淬火：全军伤害 +{sv%} 持续 {sv2} 秒",
-                "sk_aoyi_aid", "光环与神兵效果 +{awkAura%}，攻速 +{awkSpd%}；觉醒瞬间全军神兵淬火 10 秒，暴击与终伤齐升",
-                "赤炉精锻", Eff.Aura, 0.50f, Eff.UltPow, 0.45f, "炉火纯青精锻\n伤害光环 +{ov%}，神兵效果 +{ov2%}",
+                "sk_aoyi_aid", "光环与神兵效力 +{awkAura%}，号令回转 +{awkSpd%}；觉醒瞬间全军神兵淬火 10 秒，暴击与终伤齐升",
+                "赤炉精锻", Eff.Aura, 0.58f, Eff.Coin, 32f, "炉火纯青精锻\n伤害光环 +{ov%}，每次合成 +{ov2} 银两",
                 "「打造神兵」持续时间从 8 秒延长至 11 秒",
                 "「打造神兵」效果 +15%，奥义「欧冶传人」增幅再 +25%"));
 
             Put(K(HeroId.SunErniang,
                 "迷魂软筋", "sk_trait_elem", TraitKind.ZoneVuln, 0.15f, 0, "蒙汗药粉侵入经脉，命中的敌军 2.5 秒内所受伤害 +{tv%}",
                 "十字坡", "sk_sig_seal", SigKind.OnDebuff, 0, 0.42f, 0, "趁病要命：对已处于眩晕或减速的敌军，蒙汗药伤害 +{sv%}",
-                "sk_aoyi_bind", "终伤 +{awkDmg%}，攻速 +{awkSpd%}；当场爆开漫天紫雾迷倒前排，之后每 3 轮普攻额外加抛一团浓烈迷烟",
+                "sk_aoyi_bind", "破阵终伤 +{awkDmg%}，布阵速度 +{awkSpd%}；当场爆开漫天紫雾迷倒前排，之后每 3 轮普攻额外加抛一团浓烈迷烟",
                 "醉仙浓香", Eff.Stun, 0.28f, Eff.Area, 0.32f, "秘制陈年蒙汗药\n击晕几率 +{ov%}，范围 +{ov2%}",
                 "被蒙汗药击晕的敌军，眩晕持续时间延长 0.4 秒",
                 "「蒙汗药」伤害 +15%，奥义「十字坡夜叉」毒雾伤害 +35%"));
@@ -398,7 +402,7 @@ namespace Liangshan.Sim
             Put(K(HeroId.RuanXiaoqi,
                 "水泊渔歌", "sk_trait_tactic", TraitKind.PriorityElite, 0.30f, 0, "天罗地网连低空飞禽与精英一并罩住，对其伤害 +{tv%}",
                 "石碣水寨", "sk_sig_seal", SigKind.OnStunBurst, 0, 0.75f, 0.18f, "渔网收紧勒伤猎物：网住瞬间爆开水浪造成 {sv%} 伤害，并挂 {sv2%} 易伤",
-                "sk_aoyi_bind", "终伤 +{awkDmg%}，攻速 +{awkSpd%}；当场撒开巨型铁索大网困住敌潮，之后每 3 轮普攻额外补撒一张大网",
+                "sk_aoyi_bind", "破阵终伤 +{awkDmg%}，布阵速度 +{awkSpd%}；当场撒开巨型铁索大网困住敌潮，之后每 3 轮普攻额外补撒一张大网",
                 "铁索沉江", Eff.Stun, 0.45f, Eff.Area, 0.32f, "网绳坠满铁砣\n定身时间 +{ov} 秒，范围 +{ov2%}",
                 "被渔网定身的敌军减速延长 1.5 秒",
                 "「天罗地网」伤害 +15%，奥义「石碣村阎罗」追网伤害 +35%"));
@@ -406,16 +410,16 @@ namespace Liangshan.Sim
             Put(K(HeroId.ShiQian,
                 "易容百搭", "sk_trait_tactic", TraitKind.WildMerge, 0.28f, 0, "召唤与合成出时迁时，{tv%} 几率呈「易容百搭」态，可与任意同星好汉合成",
                 "飞檐走壁", "sk_sig_merge", SigKind.OnMerge, 0, 28f, 0.30f, "时迁参与合成升星时，妙手顺走 {sv} 银两，并立刻给最强敌军挂 {sv2%} 破绽易伤",
-                "sk_aoyi_aid", "赏银光环与顺手牵羊收益 +{awkAura%}，攻速 +{awkSpd%}；觉醒当场盗取一笔赏银并标记全场精英破绽",
-                "探囊取物", Eff.Coin, 18f, Eff.Aura, 0.40f, "神偷绝技大成\n每次合成 +{ov} 银两，赏银光环 +{ov2%}",
+                "sk_aoyi_aid", "赏银光环与顺手牵羊收益 +{awkAura%}，号令回转 +{awkSpd%}；觉醒当场盗取一笔赏银并标记全场精英破绽",
+                "探囊取物", Eff.Coin, 32f, Eff.Aura, 0.45f, "神偷绝技大成\n每次合成 +{ov} 银两，赏银光环 +{ov2%}",
                 "「易容百搭」触发几率从 28% 提升至 40%",
                 "「顺手牵羊」收益 +15%，奥义「梁上君子」赏银再 +25%"));
 
             Put(K(HeroId.JiangJing,
                 "铁算金盘", "sk_trait_tactic", TraitKind.InterestCap, 60f, 0, "神算账房坐镇：单次神机妙算利息上限提高 +{tv} 银两",
                 "精打细算", "sk_sig_merge", SigKind.OnMerge, 0, 0.12f, 35f, "蒋敬参与合成升星时，当场按当前银两结算一次 {sv%} 活期红利（保底 {sv2} 银两）",
-                "sk_aoyi_aid", "利息光环与红利效果 +{awkAura%}，攻速 +{awkSpd%}；觉醒当场派发一笔丰厚银两并鼓舞全军攻速 6 秒",
-                "日进斗金", Eff.Aura, 0.55f, Eff.Coin, 20f, "利滚利生财有道\n利息光环 +{ov%}，每次合成 +{ov2} 银两",
+                "sk_aoyi_aid", "利息光环与红利效力 +{awkAura%}，号令回转 +{awkSpd%}；觉醒当场派发一笔丰厚银两并鼓舞全军攻速 6 秒",
+                "日进斗金", Eff.Aura, 0.55f, Eff.Coin, 32f, "利滚利生财有道\n利息光环 +{ov%}，每次合成 +{ov2} 银两",
                 "释放「神机妙算」鼓舞全军攻速的持续时间延长至 7 秒",
                 "「神机妙算」收益 +15%，奥义「铁算通神」红利再 +25%"));
 

@@ -888,11 +888,17 @@ namespace Liangshan
             _battle.Speed = 3f;
             bool boss = false, elite = false;
             float last = 0;
-            int n = 0;
+            int n = 0, crowd = 14;
             while (true)
             {
                 var b = _battle.B;
                 var hud = _battle.Hud;
+                if (hud.ModalKind == null && b.Wave >= 6)
+                {
+                    int alive = 0;
+                    foreach (var e in b.Enemies) if (!e.Dead && e.Pos.Y < Layout.SpawnY - 0.5f) alive++;
+                    if (alive >= crowd + 4) { crowd = alive; Shot($"{prefix}_crowd{alive}_w{b.Wave}"); }
+                }
                 if (!elite && hud.ModalKind == null)
                     foreach (var e in b.Enemies)
                         if (e.Def.Rank == EnemyRank.Elite && e.Pos.Y < 4f) { elite = true; Shot(prefix + "_elite"); break; }
@@ -1416,6 +1422,15 @@ namespace Liangshan
                 yield return WaitReal(0.7f);
                 Shot("ui_roster");
                 yield return WaitReal(0.35f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-crowdshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                yield return AutoBattle(12, "crowd_L12");
+                yield return AutoBattle(28, "crowd_L28");
                 Application.Quit(0);
                 yield break;
             }

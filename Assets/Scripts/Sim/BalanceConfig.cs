@@ -81,10 +81,10 @@ namespace Liangshan.Sim
         public float PerkSpeedBoost = 1.38f;
         public float PerkCritBoost = 1.25f;
 
-        /// <summary>取舍卡【齐射】（数量+2）的单发伤害折减比例（负值）与【大开大合】的范围加成/攻速代价。</summary>
-        public float WideMultiDmgPenalty = -0.24f;
+        /// <summary>取舍卡【齐射/连斩】（数量+2）的单发伤害折减比例（负值）与【大开大合】的范围加成/频率代价。</summary>
+        public float WideMultiDmgPenalty = -0.28f;
         public float WideAreaBonus = 0.65f;
-        public float WideAreaSpeedPenalty = -0.12f;
+        public float WideAreaSpeedPenalty = -0.15f;
 
         /// <summary>5 级「爆发」、15 级「爆发进阶」、20 级「最强一击」参数。</summary>
         public float SurgeChance = 0.40f;

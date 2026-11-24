@@ -368,8 +368,8 @@ namespace Liangshan
             _mpb.SetFloat("_CorePower", -1.0f);
             _mpb.SetFloat("_Dissolve", dissolve);
             _mpb.SetFloat("_Distort", distort);
-            _mpb.SetFloat("_Reveal", 1f);
-            _mpb.SetFloat("_Tail", 0f);
+            _mpb.SetFloat("_Reveal", 2f);
+            _mpb.SetFloat("_Tail", -1f);
             _mpb.SetFloat("_EdgeBoost", edgeBoost);
             _mpb.SetVector("_Scroll", scroll);
             _mpb.SetVector("_NoiseScale", new Vector4(noiseScale.x, noiseScale.y, 0f, 0f));
@@ -838,11 +838,11 @@ namespace Liangshan
         public static readonly Color QiIce = new Color(0.78f, 0.97f, 1f), QiCyan = new Color(0.30f, 0.80f, 1f), QiDeep = new Color(0.08f, 0.36f, 0.95f), QiShade = new Color(0.03f, 0.10f, 0.36f);
 
         /// <summary>
-        /// 寨主剑气（对标《永远的蔚蓝星球》动态皇冠流光剑气）：
-        /// 1) 顶冠：28FPS 四帧逐帧跃动的白金锯齿浪冠 + 正中天罡青钻印记（◇），前缘位置严格对齐 Layout.LordHitDelay；
-        /// 2) 剑身：饱满抛物线弹头流光瀑布（亮电青 -> 宝石蔚蓝 -> 皇家靛紫），经 FxUber 双层噪波实时向尾部梳状湍流翻涌，中段半透微露石砖；
-        /// 3) 视差电丝 + 暖金破空气浪弓弧：1.7 倍速内部电光流丝叠加外圈暖金马赫激波与尾部紫电横裂隙；
-        /// 4) 动态伴生粒子：两侧悬浮电青等离子光珠、修长竖向十字星尘闪烁与破地剑痕。
+        /// 寨主剑气（1:1 像素级对标《永远的蔚蓝星球》动态圆拱三叉皇冠水幕剑气）：
+        /// 1) 顶冠：象牙白渐变浅柠香槟金三叉皇冠浪冠 + 正中镂空天青菱形纹章（◇），首帧同步初始化零跳变，1倍速沉稳顺滑推进；
+        /// 2) 剑身：天蔚蓝咬合口 -> 清透亮青绿松石 -> 孔雀深海青蓝宽幅水瀑笔触（纵向层流滚动，零果冻扭曲，中腹微透石砖）；
+        /// 3) 4帧逐帧倾泻拉丝流带 + 暖杏香槟破空肩纱 + 底部紫晶横裂隙；
+        /// 4) 层级压在 9480..9494，让 9620+ 的敌军受击绯红弯月斩痕与横向白炽镜头十字闪清脆绽放在剑气正上方！
         /// </summary>
         public void SwordWave(Vector2 from, Vector2 to)
         {
@@ -852,214 +852,206 @@ namespace Liangshan
             float speed = Defs.LordWaveSpeed;
             float reach = Layout.HalfW;
             float fly = Layout.LordFlightTime;
-            const float tail = 0.34f, domeW = 3.75f, domeH = 4.45f;
+            const float tail = 0.48f, domeW = 3.82f, domeH = 4.65f;
             float dur = fly + tail;
             float deg = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
             var rot = Quaternion.Euler(0, 0, deg - 90f);
 
             var crestFrames = Sheet("fx_qi_crest_sheet", 4, 1);
             var crestSpr0 = crestFrames.Length > 0 ? crestFrames[0] : Art.Img("fx_qi_edge");
+            var streakFrames = Sheet("fx_qi_dome_streaks", 4, 1);
+            var streakSpr0 = streakFrames.Length > 0 ? streakFrames[0] : Art.Img("fx_qi_dome_streaks");
 
-            var sonic = Take(Art.Img("fx_qi_dome_sonic"), from, 1f, 9588, Color.white.A(0));
-            var body = Take(Art.Img("fx_qi_dome_body"), from, 1f, 9590, Color.white);
+            var underGlow = Take(Art.Img("fx_qi_glow"), from, 1f, 9480, QiCyan.A(0), true);
+            var sonic = Take(Art.Img("fx_qi_dome_sonic"), from, 1f, 9484, Color.white.A(0));
+            // 注意：FxUber 片元输出 alpha = mask * alive * _Color.a * i.color.a，顶点色 sr.color 必须保持 Color.white(alpha=1)，透明度统一由 SetUberRaw 的 _Color.a 控制！
+            var body = Take(Art.Img("fx_qi_dome_body"), from, 1f, 9486, Color.white);
             body.sharedMaterial = UberMat(false);
-            var streaks = Take(Art.Img("fx_qi_dome_streaks"), from, 1f, 9591, Color.white);
+            var streaks = Take(streakSpr0, from, 1f, 9488, Color.white);
             streaks.sharedMaterial = UberMat(true);
-            var crest = Take(crestSpr0, from, 1f, 9592, Color.white.A(0));
-            var crestGlow = Take(crestSpr0, from, 1f, 9593, Color.white.A(0), true);
-            var underGlow = Take(Art.Img("fx_qi_glow"), from, 1f, 9586, QiDeep.A(0), true);
+            var crest = Take(crestSpr0, from, 1f, 9490, Color.white.A(0));
+            var crestGlow = Take(crestSpr0, from, 1f, 9491, Color.white.A(0), true);
 
             sonic.transform.localRotation = body.transform.localRotation = streaks.transform.localRotation = rot;
             crest.transform.localRotation = crestGlow.transform.localRotation = underGlow.transform.localRotation = rot;
 
-            float lastGlint = 0f, lastOrb = -0.06f, lastGhost = 0f;
+            float lastGlint = 0.04f, lastGhost = 0.06f;
             int winds = 0;
 
             float Scale(float t) =>
-                Mathf.Lerp(0.54f, 1f, Tween.OutCubic(Mathf.Clamp01(t / 0.085f)))
-                * Mathf.Lerp(1f, 1.12f, Mathf.Clamp01(t / fly))
-                * (t > fly ? 1f + 0.14f * Tween.OutCubic((t - fly) / tail) : 1f);
+                Mathf.Lerp(0.78f, 1f, Tween.OutCubic(Mathf.Clamp01(t / 0.16f)))
+                * Mathf.Lerp(1f, 1.08f, Mathf.Clamp01(t / fly))
+                * (t > fly ? 1f + 0.08f * Tween.OutCubic((t - fly) / tail) : 1f);
 
-            // t <= fly 阶段前缘精确等于 speed * t（与 Battle.UpdateLord 伤害延迟完全同步），越过 reach 后继续顺滑前掠并从尾部噪波消散
-            float Lead(float t) => t <= fly
-                ? speed * t
-                : reach + speed * 0.42f * Tween.OutCubic((t - fly) / tail) * tail;
+            // 前缘无跳变顺滑起手，fly 阶段匀速推进与 StepLordSlash 波前严格对齐，越阵后保持约 70% 惯性继续前掠并丝滑消散
+            float Lead(float t)
+            {
+                if (t <= fly) return 0.16f + speed * t;
+                float tk = Mathf.Clamp01((t - fly) / tail);
+                return 0.16f + reach + speed * 0.72f * tail * (tk * (2f - tk) * 0.65f + tk * 0.35f);
+            }
 
-            Anim(body.gameObject, dur, k =>
+            void StepWave(float k, bool allowSpawn)
             {
                 float t = k * dur;
                 float s = Scale(t);
                 float w = domeW * s;
-                float h = domeH * s * Mathf.Lerp(0.76f, 1f, Tween.OutCubic(Mathf.Clamp01(t / 0.11f)));
+                float h = domeH * s * Mathf.Lerp(0.84f, 1f, Tween.OutCubic(Mathf.Clamp01(t / 0.16f)));
                 var lead = from + dir * Lead(t);
-                // 贴图中皇冠抛物线顶点位于 y_top=0.092（即精灵中心往上 +0.408 * h），将中心反推使冠顶严格压在 lead 上
-                var c = lead - dir * (0.408f * h);
+                // 贴图中圆拱冠顶点位于 y_top=0.105（精灵中心往上 +0.395 * h），将中心反推使冠顶严格落在 lead 上
+                var c = lead - dir * (0.395f * h);
 
-                float fadeIn = Mathf.Clamp01(t / 0.035f);
+                float fadeIn = Tween.OutCubic(Mathf.Clamp01(t / 0.08f));
                 float tailK = t > fly ? Mathf.Clamp01((t - fly) / tail) : 0f;
-                float a = fadeIn * (1f - Tween.InCubic(tailK));
-                float dissolve = Mathf.Lerp(0f, 0.74f, tailK * tailK);
+                float fadeOut = tailK < 0.22f ? 1f : 1f - Tween.InCubic((tailK - 0.22f) / 0.78f);
+                float a = fadeIn * fadeOut;
+                float dissolve = tailK < 0.18f ? 0f : Mathf.SmoothStep(0f, 0.76f, (tailK - 0.18f) / 0.82f);
 
-                // 1) 主体瀑布流光（Alpha 混合保饱和度，正值 Scroll.y 让流光从顶冠向紫尾高速倾泻）
+                // 1) 主体圆拱水瀑幕（保持 body.color = Color.white 以防顶点 alpha 归零导致整层隐身！）
+                body.color = Color.white;
                 body.transform.localPosition = c;
                 body.transform.localScale = new Vector3(w, h, 1f);
-                SetUberRaw(body, Color.white.A(a * 0.94f), dissolve, 0.036f,
-                    new Vector4(0.08f, 3.9f, -0.12f, 5.6f), new Vector2(1.35f, 1.85f), 1.7f);
+                SetUberRaw(body, Color.white.A(a * 0.96f), dissolve, 0.008f,
+                    new Vector4(0.02f, 2.8f, -0.03f, 4.2f), new Vector2(4.6f, 0.72f), 1.45f);
 
-                // 2) 高速视差电光流丝（Additive 叠加，1.7 倍速错层冲刷产生真实内部能量湍流）
+                // 2) 20FPS 四帧逐帧倾泻拉丝流带 + 纵向层流高光冲刷（同样保持 streaks.color = Color.white）
+                streaks.color = Color.white;
+                if (streakFrames.Length > 0)
+                    streaks.sprite = streakFrames[(int)(t * 20f) % streakFrames.Length];
                 streaks.transform.localPosition = c;
-                streaks.transform.localScale = new Vector3(w * 0.98f, h, 1f);
-                SetUberRaw(streaks, Color.white.A(a * 0.86f), dissolve * 1.08f, 0.048f,
-                    new Vector4(-0.15f, 6.6f, 0.20f, 9.2f), new Vector2(1.8f, 2.3f), 2.1f);
+                streaks.transform.localScale = new Vector3(w * 0.99f, h, 1f);
+                SetUberRaw(streaks, Color.white.A(a * 0.65f), dissolve * 1.08f, 0.010f,
+                    new Vector4(-0.03f, 4.5f, 0.04f, 6.6f), new Vector2(5.2f, 0.65f), 1.75f);
 
-                // 3) 外圈暖金破空气浪弓弧 + 尾部亮紫横裂隙
-                float sonicPulse = 1.03f + 0.028f * Mathf.Sin(t * 58f);
+                // 3) 轻盈暖杏香槟破空气浪肩纱
+                float sonicBreath = 1.02f + 0.016f * Mathf.Sin(t * 36f);
                 sonic.transform.localPosition = c;
-                sonic.transform.localScale = new Vector3(w * sonicPulse, h * 1.01f, 1f);
+                sonic.transform.localScale = new Vector3(w * sonicBreath, h * 1.01f, 1f);
                 sonic.color = Color.white.A(a * 0.92f);
 
-                // 4) 28FPS 四帧逐帧跃动的白金皇冠锯齿锋刃 + 天罡青钻印记
+                // 4) 18FPS 四帧象牙白+浅柠香槟皇冠浪冠 + 正中镂空天青菱形纹章
                 if (crestFrames.Length > 0)
                 {
-                    var cf = crestFrames[(int)(t * 28f) % crestFrames.Length];
+                    var cf = crestFrames[(int)(t * 18f) % crestFrames.Length];
                     crest.sprite = cf;
                     crestGlow.sprite = cf;
                 }
-                float crestBreath = 1f + 0.022f * Mathf.Sin(t * 72f);
+                float crestBreath = 1f + 0.014f * Mathf.Sin(t * 42f);
                 crest.transform.localPosition = c;
                 crest.transform.localScale = new Vector3(w * crestBreath, h, 1f);
-                crest.color = Color.white.A(a * 0.98f);
+                crest.color = Color.white.A(a * 0.99f);
 
-                crestGlow.transform.localPosition = c + dir * (0.008f * h);
-                crestGlow.transform.localScale = new Vector3(w * crestBreath * 1.03f, h * 1.02f, 1f);
-                crestGlow.color = Pal.Hex("FFEFA8").A(a * (0.34f + 0.14f * Mathf.Sin(t * 86f)));
+                crestGlow.transform.localPosition = c + dir * (0.005f * h);
+                crestGlow.transform.localScale = new Vector3(w * crestBreath * 1.02f, h * 1.015f, 1f);
+                crestGlow.color = Pal.Hex("FFF9D2").A(a * (0.20f + 0.06f * Mathf.Sin(t * 48f)));
 
-                underGlow.transform.localPosition = c + dir * (0.06f * h);
-                underGlow.transform.localScale = new Vector3(w * 1.18f, h * 0.95f, 1f);
-                underGlow.color = QiCyan.A(a * 0.26f);
+                underGlow.transform.localPosition = c + dir * (0.05f * h);
+                underGlow.transform.localScale = new Vector3(w * 1.12f, h * 0.90f, 1f);
+                underGlow.color = QiCyan.A(a * 0.18f);
 
-                // 5) 动态伴生：竖向修长十字星芒（✦）+ 悬浮电青等离子光珠 + 残影风痕
-                if (t - lastGlint >= 0.036f && tailK < 0.55f)
+                if (!allowSpawn) return;
+
+                // 5) 水幕尾摆内的纤细竖向电青针芒星（✦）+ 柔和冠弧余影
+                if (t - lastGlint >= 0.075f && tailK < 0.58f && t > 0.10f)
                 {
                     lastGlint = t;
-                    float lat = UnityEngine.Random.Range(-0.34f, 0.34f) * w;
-                    float back = UnityEngine.Random.Range(0.08f, 0.42f) * h;
-                    WakeStarGlint(c - dir * back + side * lat, dir, UnityEngine.Random.Range(0.46f, 0.82f) * s);
+                    float sideBias = UnityEngine.Random.value < 0.68f ? -1f : 1f;
+                    float lat = (sideBias * UnityEngine.Random.Range(0.16f, 0.30f) + UnityEngine.Random.Range(-0.04f, 0.04f)) * w;
+                    float back = UnityEngine.Random.Range(0.08f, 0.36f) * h;
+                    WakeStarGlint(c - dir * back + side * lat, dir, UnityEngine.Random.Range(0.46f, 0.78f) * s);
                 }
-                if (t - lastOrb >= 0.085f && t < fly)
-                {
-                    lastOrb = t;
-                    float sideSign = ((int)(t * 20f) & 1) == 0 ? -1f : 1f;
-                    var orbPos = c - dir * UnityEngine.Random.Range(-0.02f, 0.16f) * h + side * (sideSign * UnityEngine.Random.Range(0.26f, 0.35f) * w);
-                    WakePlasmaOrb(orbPos, dir, side * sideSign, UnityEngine.Random.Range(0.24f, 0.34f) * s);
-                }
-                if (t - lastGhost >= 0.048f && t < fly)
+                if (t - lastGhost >= 0.08f && t < fly)
                 {
                     lastGhost = t;
                     Ghost(c, w, h, rot, crest.sprite);
                 }
-                if (winds < 7 && t >= winds * fly / 7f)
+                if (winds < 7 && t >= (winds + 1) * fly / 8f)
                 {
                     winds++;
-                    float off = UnityEngine.Random.Range(-0.42f, 0.42f) * w;
-                    WindStreak(lead - dir * 0.28f + side * off, dir, UnityEngine.Random.Range(1.2f, 2.1f));
+                    float off = UnityEngine.Random.Range(-0.35f, 0.35f) * w;
+                    WindStreak(lead - dir * 0.32f + side * off, dir, UnityEngine.Random.Range(1.0f, 1.7f));
                 }
-            });
+            }
+
+            // 创建当帧立刻完成第 0 帧坐标、缩放与 FxUber 属性块写入，彻底根除首帧位置/缩放跳闪！
+            StepWave(0f, false);
+
+            Anim(body.gameObject, dur, k => StepWave(k, true));
             Anim(streaks.gameObject, dur, _ => { });
             Anim(sonic.gameObject, dur, _ => { });
             Anim(crest.gameObject, dur, _ => { });
             Anim(crestGlow.gameObject, dur, _ => { });
             Anim(underGlow.gameObject, dur, _ => { });
 
-            Scar(from, dir, reach);
-            HalfShock(from, reach, fly);
-
-            CutLine(from + dir * 0.7f, deg + 90f, 3.4f, Pal.Hex("FFF2B2"), 0.24f, 0.13f, 9594);
-            Flash(from + dir * 0.5f, 3.2f, QiCyan.A(0.75f), 0.28f, 9585);
-            LightPool(from + dir * 0.6f, 4.2f, QiCyan.A(0.65f), 0.45f, 94);
-            GroundWave(from, 1.8f, Pal.Hex("FFE89E"), 0.4f, 95, 0.45f);
-            Sparks(Art.Img("fx_star"), from + dir * 0.6f, 8, 0.2f, 4.5f, QiIce, 0.4f, 9595, 1f, true);
+            // 干净起手柔光与贴地气浪（彻底移除旧版全屏白半圆环 HalfShock 与直线蓝杆 Scar 杂乱干扰！）
+            Flash(from + dir * 0.35f, 2.2f, QiCyan.A(0.42f), 0.24f, 9478);
+            LightPool(from + dir * 0.45f, 3.2f, QiCyan.A(0.42f), 0.45f, 94);
+            GroundWave(from, 1.5f, Pal.Hex("F5F2B8"), 0.38f, 95, 0.45f);
         }
 
         /// <summary>顶冠残影：沿推进轨迹留下一掠即逝的青金冠弧。</summary>
         void Ghost(Vector2 pos, float w, float h, Quaternion rot, Sprite spr)
         {
-            var g = Take(spr, pos, 1f, 9587, QiCyan.A(0.36f), true);
+            var g = Take(spr, pos, 1f, 9482, QiCyan.A(0.26f), true);
             g.transform.localRotation = rot;
-            Anim(g.gameObject, 0.14f, k =>
+            g.transform.localScale = new Vector3(w, h, 1f);
+            Anim(g.gameObject, 0.18f, k =>
             {
-                g.transform.localScale = new Vector3(w * (1f + 0.04f * k), h * (1f - 0.10f * k), 1f);
-                g.color = QiCyan.A(0.36f * (1f - k) * (1f - k));
+                g.transform.localScale = new Vector3(w * (1f + 0.03f * k), h * (1f - 0.08f * k), 1f);
+                g.color = QiCyan.A(0.26f * (1f - k) * (1f - k));
             });
         }
 
-        /// <summary>剑气尾流中的竖向修长十字星芒（✦），闪烁拉伸后消散。</summary>
+        /// <summary>剑气尾流中的竖向修长针芒四芒星（✦），闪烁拉伸后消散。</summary>
         void WakeStarGlint(Vector2 pos, Vector2 dir, float size)
         {
-            var sr = Take(Art.Img("fx_qi_flare_v"), pos, 1f, 9594, Color.white.A(0), true);
+            var sr = Take(Art.Img("fx_qi_flare_v"), pos, 1f, 9494, Color.white.A(0), true);
             sr.transform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f);
+            sr.transform.localScale = Vector3.zero;
             var start = pos;
-            Anim(sr.gameObject, 0.24f, k =>
+            Anim(sr.gameObject, 0.32f, k =>
             {
-                float pop = k < 0.28f ? Tween.OutCubic(k / 0.28f) : 1f - (k - 0.28f) / 0.72f;
-                sr.transform.localPosition = start + dir * (0.45f * k);
-                sr.transform.localScale = new Vector3(size * 0.72f * pop, size * 1.25f * (0.6f + 0.5f * pop), 1f);
-                sr.color = Color.Lerp(Color.white, QiCyan, k * 0.65f).A(0.92f * pop);
+                float pop = k < 0.26f ? Tween.OutCubic(k / 0.26f) : 1f - (k - 0.26f) / 0.74f;
+                sr.transform.localPosition = start + dir * (Defs.LordWaveSpeed * 0.22f * k);
+                sr.transform.localScale = new Vector3(size * 0.62f * pop, size * 1.38f * (0.65f + 0.45f * pop), 1f);
+                sr.color = Color.Lerp(Color.white, Pal.Hex("5CD8FF"), k * 0.65f).A(0.95f * pop);
             });
         }
 
-        /// <summary>剑气侧翼伴生的亮青等离子光珠（实心电青圆核 + 柔光外晕）。</summary>
-        void WakePlasmaOrb(Vector2 pos, Vector2 dir, Vector2 outSide, float size)
-        {
-            var halo = Take(Art.SoftDot, pos, size * 2.1f, 9593, Pal.Hex("22E8FF").A(0.55f), true);
-            var core = Take(Art.Circle, pos, size, 9594, Pal.Hex("5CFAFF"));
-            var start = pos;
-            Anim(core.gameObject, 0.28f, k =>
-            {
-                var p = start + dir * (Defs.LordWaveSpeed * 0.36f * k) + outSide * (0.14f * Mathf.Sin(k * Mathf.PI));
-                float sc = size * (k < 0.2f ? Tween.OutBack(k / 0.2f) : 1f - 0.75f * Tween.InCubic((k - 0.2f) / 0.8f));
-                float fade = k < 0.65f ? 1f : 1f - (k - 0.65f) / 0.35f;
-                core.transform.localPosition = halo.transform.localPosition = p;
-                core.transform.localScale = Vector3.one * Mathf.Max(0.01f, sc);
-                halo.transform.localScale = Vector3.one * Mathf.Max(0.02f, sc * 2.2f);
-                core.color = Pal.Hex("68FCFF").A(0.95f * fade);
-                halo.color = Pal.Hex("1ED8FF").A(0.52f * fade);
-            });
-            Anim(halo.gameObject, 0.28f, _ => { });
-        }
-
-        /// <summary>剑气命中敌军时的横向白炽镜头十字闪（对标参考图受击点横拉亮白星芒）。</summary>
+        /// <summary>剑气命中敌军时的横向白炽镜头十字闪（层级 9632 置于剑气正上方，绝不被剑气遮挡！）。</summary>
         public void SlashHitFlare(Vector2 pos, bool crit)
         {
-            var sr = Take(Art.Img("fx_qi_flare_v"), pos, 1f, 9565, Color.white, true);
-            // 旋转 90° 让长主芒水平横拉，还原镜头耀斑感
+            var sr = Take(Art.Img("fx_qi_flare_v"), pos, 1f, 9632, Color.white, true);
             sr.transform.localRotation = Quaternion.Euler(0, 0, 90f);
-            float w = crit ? 2.25f : 1.75f;
-            float h = crit ? 1.25f : 0.96f;
-            Anim(sr.gameObject, 0.20f, k =>
+            float w = crit ? 2.45f : 1.92f;
+            float h = crit ? 1.32f : 1.04f;
+            sr.transform.localScale = new Vector3(h * 0.65f, w * 0.75f, 1f);
+            Anim(sr.gameObject, 0.28f, k =>
             {
-                float pop = k < 0.22f ? Tween.OutCubic(k / 0.22f) : 1f;
-                float fade = 1f - Tween.InCubic(k);
-                sr.transform.localScale = new Vector3(h * (0.65f + 0.45f * pop) * fade, w * (0.75f + 0.45f * k), 1f);
-                sr.color = Color.white.A(0.98f * fade);
+                float pop = k < 0.20f ? Tween.OutCubic(k / 0.20f) : 1f;
+                float fade = k < 0.30f ? 1f : 1f - Tween.InCubic((k - 0.30f) / 0.70f);
+                sr.transform.localScale = new Vector3(h * (0.68f + 0.42f * pop) * Mathf.Lerp(1f, 0.45f, k), w * (0.78f + 0.42f * k), 1f);
+                sr.color = Color.white.A(0.99f * fade);
             });
         }
 
-        /// <summary>剑气命中敌军时的绯红弯月破甲斩痕（对标参考图怪物身上的鲜红弯月刀痕）。</summary>
+        /// <summary>剑气命中敌军时的绯红弯月破甲斩痕（层级 9626 置于剑气正上方，凌厉挥砍可见！）。</summary>
         public void CrimsonCrescent(Vector2 pos, Vector2 flyDir, bool crit)
         {
-            float baseDeg = Mathf.Atan2(flyDir.y, flyDir.x) * Mathf.Rad2Deg - 90f + UnityEngine.Random.Range(-28f, 28f);
-            var sr = Take(Art.Img("fx_qi_slash_red"), pos - flyDir * 0.06f, 1f, 9562, Color.white);
-            float sz = crit ? 1.55f : 1.22f;
+            float baseDeg = Mathf.Atan2(flyDir.y, flyDir.x) * Mathf.Rad2Deg - 90f + UnityEngine.Random.Range(-26f, 26f);
+            var sr = Take(Art.Img("fx_qi_slash_red"), pos - flyDir * 0.05f, 1f, 9626, Color.white);
+            float sz = crit ? 1.72f : 1.38f;
             float flip = UnityEngine.Random.value < 0.5f ? -1f : 1f;
-            Anim(sr.gameObject, 0.22f, k =>
+            sr.transform.localRotation = Quaternion.Euler(0, 0, baseDeg);
+            sr.transform.localScale = new Vector3(sz * flip * 0.82f, sz * 0.85f, 1f);
+            Anim(sr.gameObject, 0.30f, k =>
             {
                 float sweep = Tween.OutCubic(k);
-                float fade = k < 0.45f ? 1f : 1f - Tween.InCubic((k - 0.45f) / 0.55f);
-                sr.transform.localPosition = pos + flyDir * (0.18f * sweep);
-                sr.transform.localRotation = Quaternion.Euler(0, 0, baseDeg + flip * 18f * sweep);
-                sr.transform.localScale = new Vector3(sz * flip * (0.82f + 0.28f * sweep), sz * (0.85f + 0.22f * sweep), 1f);
-                sr.color = Color.white.A(0.96f * fade);
+                float fade = k < 0.48f ? 1f : 1f - Tween.InCubic((k - 0.48f) / 0.52f);
+                sr.transform.localPosition = pos + flyDir * (0.22f * sweep);
+                sr.transform.localRotation = Quaternion.Euler(0, 0, baseDeg + flip * 22f * sweep);
+                sr.transform.localScale = new Vector3(sz * flip * (0.82f + 0.32f * sweep), sz * (0.85f + 0.25f * sweep), 1f);
+                sr.color = Color.white.A(0.98f * fade);
             });
         }
 

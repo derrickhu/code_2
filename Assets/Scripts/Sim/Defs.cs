@@ -14,7 +14,7 @@ namespace Liangshan.Sim
     public enum Role { Archer, Bomber, Mage, Fighter, Support, Control }
 
     /// <summary>强化、被动的效果种类。数值含义见 Defs.EffText。</summary>
-    public enum Eff { Dmg, Speed, Count, Area, Chain, Crit, Stun, Slow, Elite, UltCd, UltPow, Range, Split, Aura, Coin, Fly, Cav, Surge, Top, Blast, Burn, Vuln, Reach, Shatter, Exec, Resonance }
+    public enum Eff { Dmg, Speed, Count, Area, Chain, Crit, Stun, Slow, Elite, UltCd, UltPow, Range, Split, Aura, Coin, Fly, Cav, Surge, Top, Blast, Burn, Vuln, Reach, Shatter, Exec, Resonance, Conduct, Refract }
 
     /// <summary>强化卡的类型：数值（纯加成）、取舍（有代价，同组互斥）、质变（改变攻击方式）、进阶（要先有对应质变）。</summary>
     public enum PerkKind { Value, Trade, Morph, Adv }
@@ -240,10 +240,10 @@ namespace Liangshan.Sim
                 Shot = ShotKind.Bomb, Coef = 2.85f, Interval = 4.6f, Radius = 1.25f, Knock = 0.32f, AtkName = "霹雳重炮", AtkIcon = "wp_cannon_shell", Proj = "wp_cannon_shell", ProjSize = 1.08f, Tint = "FF7828", Noun = "重炮",
                 PassiveName = "火药精通", PassiveEff = Eff.Area, PassiveV = 0.25f, Desc = "重型轰天巨炮，大口径震退敌潮" },
             new HeroDef { Id = HeroId.GongSun, Name = "公孙胜", Nick = "入云龙", Kind = Sim.Role.Mage, Rarity = 4, Art = "hero_gongsun", Element = "雷系",
-                Shot = ShotKind.Lightning, Coef = 2.60f, Interval = 8.5f, Radius = 0.8f, Chain = 4, AtkName = "天罡雷链", AtkIcon = "fx_zap", Tint = "9AB8FF", Noun = "落雷",
+                Shot = ShotKind.Lightning, Coef = 2.60f, Interval = 8.5f, Radius = 0.8f, Chain = 1, AtkName = "天罡雷链", AtkIcon = "fx_zap", Tint = "9AB8FF", Noun = "落雷",
                 Ult = UltKind.Thunder, UltName = "五雷天罡", UltIcon = "fx_lightning", UltCoef = 2.8f, UltCd = 30, UltN = 8, UltStun = 1f, UltRadius = 1.15f,
                 UltTip = "8道天雷劈向敌群\n每道麻痹1秒",
-                PassiveName = "入云龙", PassiveEff = Eff.Chain, PassiveV = 2, Desc = "引一道天雷在敌群间连环弹射，克制重甲" },
+                PassiveName = "入云龙", PassiveEff = Eff.Chain, PassiveV = 2, Desc = "引一道天雷劈敌并跃迁传导，随强化进化连环雷网" },
             new HeroDef { Id = HeroId.WuSong, Name = "武松", Nick = "行者", Kind = Sim.Role.Fighter, Rarity = 3, Art = "hero_wusong",
                 Shot = ShotKind.Punch, Coef = 2.95f, Interval = 2.7f, Range = 4.8f, Radius = 0.92f, Knock = 0.65f, AtkName = "打虎铁拳", AtkIcon = "wp_ironfist", Proj = "wp_ironfist", Tint = "FFB438", Noun = "铁拳",
                 PassiveName = "景阳冈打虎", PassiveEff = Eff.Elite, PassiveV = 0.6f, Desc = "势大力沉一记重拳，震退贴墙敌军" },
@@ -452,27 +452,51 @@ namespace Liangshan.Sim
 
         public static PerkDef[] Perks { get; private set; } = BuildPerks();
 
+        struct PerkSpec
+        {
+            public string Name;
+            public Eff Eff, Eff2;
+            public float V, V2;
+            public int Max;
+            public bool Has2, Raw;
+        }
+
+        static PerkSpec S(string name, Eff e, float v, int max = 1) =>
+            new PerkSpec { Name = name, Eff = e, V = v, Max = max };
+
+        static PerkSpec C(string name, Eff e, float v, Eff e2, float v2, int max = 1) =>
+            new PerkSpec { Name = name, Eff = e, V = v, Has2 = true, Eff2 = e2, V2 = v2, Max = max, Raw = true };
+
         /// <summary>
-        /// 每位好汉 7 条：前 4 条进强化三选一（同一条可叠 Max 级），后 3 条是满星额外技能，合成满星时三选一、只给一次。
-        /// 传说好汉再多一张「大招」卡，和普通强化一起随机出。
+        /// 每位好汉 7 条核心专属（前 4 条进局内强化三选一，后 3 条为 4 星合成免费大奖）+ 等级解锁专属 + 职业定制取舍/流派质变链。
+        /// 全职业严格遵循「同档等值预算（常规卡 ~+62%、取舍税后 ~+76%、满星 ~+105%）+ 职业特性本味（法师修法术连锁/折射/回气，辅助修扩格/加持/破绽）」。
         /// </summary>
         static PerkDef[] BuildPerks()
         {
             var list = new List<PerkDef>();
-            void Add(HeroId h, params (string name, Eff e, float v, int max)[] ps)
+            void Add(HeroId h, params PerkSpec[] ps)
             {
                 var d = Hero(h);
                 string key = d.Art.Substring(5);
                 for (int i = 0; i < ps.Length; i++)
                 {
-                    var (name, e, v, max) = ps[i];
+                    var sp = ps[i];
                     bool star = i >= 4;
-                    (e, v) = Adapt(d, e, v);
-                    if (!star) v *= Boost(e);
+                    var (e, v) = sp.Raw ? (sp.Eff, sp.V) : Adapt(d, sp.Eff, sp.V);
+                    if (!star && !sp.Raw) v *= Boost(e);
+                    Eff e2 = sp.Eff2;
+                    float v2 = sp.V2;
+                    string desc = sp.Has2
+                        ? $"{SingleLineEff(h, e, v)}\n{SingleLineEff(h, e2, v2)}"
+                        : EffText(h, e, v);
                     list.Add(new PerkDef
                     {
-                        Id = key + "_" + i, Hero = h, Name = name, Eff = e, V = v, Max = star ? 1 : max, Star = star,
-                        Desc = EffText(h, e, v),
+                        Id = key + "_" + i, Hero = h, Name = sp.Name, Eff = e, V = v,
+                        Has2 = sp.Has2, Eff2 = e2, V2 = v2,
+                        Max = star ? 1 : sp.Max, Star = star,
+                        Group = !star && e == Eff.Count && !sp.Has2 && d.Kind != Sim.Role.Support && d.Chan <= 0 ? "volley" : null,
+                        Weight = !star && e == Eff.Count && !sp.Has2 ? 0.80f : 1f,
+                        Desc = desc,
                     });
                 }
                 bool sup = d.Kind == Sim.Role.Support;
@@ -481,16 +505,16 @@ namespace Liangshan.Sim
                 list.Add(new PerkDef
                 {
                     Id = key + "_surge", Hero = h, Name = surge, Opt = 1, Weight = 1.3f,
-                    Eff = sup ? Eff.UltPow : Eff.Surge, V = sup ? 0.45f : SurgeChance,
-                    Has2 = sup, Eff2 = Eff.Speed, V2 = sup ? 0.30f : 0f,
-                    Desc = sup ? $"「{d.AtkName}」效果 +45%\n施放攻速 +30%" : $"{Pct(SurgeChance)}几率爆发成巨型{d.Noun ?? "攻击"}\n伤害 +{Pct(SurgeDmg - 1f)}",
+                    Eff = sup ? Eff.UltPow : Eff.Surge, V = sup ? 0.50f : SurgeChance,
+                    Has2 = sup, Eff2 = Eff.UltCd, V2 = sup ? 0.22f : 0f,
+                    Desc = sup ? $"「{d.AtkName}」效力 +50%\n技能冷却 -22%" : $"{Pct(SurgeChance)}几率爆发成巨型{d.Noun ?? "攻击"}\n伤害 +{Pct(SurgeDmg - 1f)}",
                 });
                 list.Add(new PerkDef
                 {
-                    Id = key + "_top", Hero = h, Name = "最强" + (d.Noun ?? "一击"), Opt = 2, Weight = 1.3f,
-                    Eff = sup ? Eff.Aura : Eff.Top, V = sup ? 0.45f : TopDmg,
-                    Has2 = sup, Eff2 = Eff.UltCd, V2 = sup ? 0.22f : 0f,
-                    Desc = sup ? $"在场光环 +45%\n「{d.AtkName}」冷却 -22%" : $"场上最高星的{d.Name}\n伤害 +{Pct(TopDmg)}，体积 +20%",
+                    Id = key + "_top", Hero = h, Name = sup ? "首席军师" : "最强" + (d.Noun ?? "一击"), Opt = 2, Weight = 1.3f,
+                    Eff = sup ? Eff.Aura : Eff.Top, V = sup ? 0.55f : TopDmg,
+                    Has2 = sup, Eff2 = Eff.UltPow, V2 = sup ? 0.35f : 0f,
+                    Desc = sup ? $"在场光环 +55%\n「{d.AtkName}」效力 +35%" : $"场上最高星的{d.Name}\n伤害 +{Pct(TopDmg)}，体积 +20%",
                 });
                 list.Add(new PerkDef
                 {
@@ -511,185 +535,314 @@ namespace Liangshan.Sim
                         Id = key + "_aoyi", Hero = h, Name = AwakenName(h), Eff = sup ? Eff.Aura : Eff.Dmg, V = 0f,
                         Finisher = true, Weight = 2.4f,
                         Desc = sup
-                            ? $"当场觉醒本命奥义\n光环与技能 +{Pct(AwakenAuraBonus)} · 攻速 +{Pct(AwakenSpeedBonus)}"
-                            : $"当场觉醒本命奥义\n终伤 +{Pct(AwakenDmgBonus)} · 攻速 +{Pct(AwakenSpeedBonus)} · 每3轮弹幕",
+                            ? $"当场觉醒本命奥义\n光环与加持 +{Pct(AwakenAuraBonus)} · 号令回转 +{Pct(AwakenSpeedBonus)}"
+                            : d.Kind == Sim.Role.Mage
+                                ? $"当场觉醒本命奥义\n法术终伤 +{Pct(AwakenDmgBonus)} · 回气速率 +{Pct(AwakenSpeedBonus)} · 法象追击"
+                                : $"当场觉醒本命奥义\n终伤 +{Pct(AwakenDmgBonus)} · {SpeedLabel(d.Kind)} +{Pct(AwakenSpeedBonus)} · 每3轮弹幕",
                     });
                 AddPlays(list, d, key);
             }
-            Add(HeroId.HuaRong, ("连珠箭", Eff.Count, 1, 2), ("一箭双穿", Eff.Chain, 1, 2), ("鹰眼", Eff.Crit, 0.2f, 1), ("强弓", Eff.Dmg, 0.35f, 2),
-                ("箭神", Eff.Dmg, 1f, 1), ("疾风连射", Eff.Speed, 0.55f, 1), ("箭如雨下", Eff.Count, 2, 1));
-            Add(HeroId.LingZhen, ("双联重炮", Eff.Count, 1, 2), ("火药加倍", Eff.Area, 0.35f, 2), ("子母巨弹", Eff.Split, 1, 1), ("火炮改良", Eff.Dmg, 0.35f, 2),
-                ("子母连环", Eff.Count, 2, 1), ("震天雷", Eff.Dmg, 1f, 1), ("炮火连天", Eff.Speed, 0.55f, 1));
-            Add(HeroId.GongSun, ("双道天雷", Eff.Count, 1, 2), ("雷链增幅", Eff.Chain, 2, 2), ("掌心麻痹", Eff.Stun, 0.3f, 1), ("天雷", Eff.Dmg, 0.35f, 2),
-                ("九天雷劫", Eff.Chain, 4, 1), ("雷霆万钧", Eff.Dmg, 1f, 1), ("五雷正法", Eff.UltPow, 1f, 1));
-            Add(HeroId.WuSong, ("连环铁拳", Eff.Count, 1, 2), ("三碗不过冈", Eff.Speed, 0.4f, 2), ("打虎", Eff.Elite, 1f, 1), ("铁臂", Eff.Dmg, 0.35f, 2),
-                ("醉拳", Eff.Speed, 0.6f, 1), ("天伤星", Eff.Dmg, 1f, 1), ("醉打蒋门神", Eff.Count, 2, 1));
-            Add(HeroId.ZhangQing, ("连环飞石", Eff.Chain, 2, 2), ("石破天惊", Eff.Stun, 0.3f, 1), ("飞蝗石", Eff.Dmg, 0.3f, 2), ("快手", Eff.Speed, 0.3f, 1),
-                ("漫天花雨", Eff.Chain, 4, 1), ("金石为开", Eff.Dmg, 1f, 1), ("连珠不绝", Eff.Count, 2, 1));
-            Add(HeroId.LinChong, ("枪及百步", Eff.Range, 1.5f, 2), ("豹子头", Eff.Crit, 0.25f, 1), ("林教头", Eff.Slow, 1.6f, 1), ("枪出如龙", Eff.Dmg, 0.35f, 2),
-                ("雪夜上梁山", Eff.Dmg, 1f, 1), ("风雪", Eff.UltPow, 1f, 1), ("枪挑", Eff.Speed, 0.5f, 1));
-            Add(HeroId.LuZhiShen, ("禅杖横扫", Eff.Area, 0.4f, 2), ("大闹野猪林", Eff.Speed, 0.4f, 2), ("拳打镇关西", Eff.Elite, 1f, 1), ("金刚", Eff.Dmg, 0.35f, 1),
-                ("倒拔杨柳", Eff.Speed, 0.55f, 1), ("怒目金刚", Eff.Dmg, 1f, 1), ("坐化", Eff.Area, 0.65f, 1));
-            Add(HeroId.WuYong, ("运筹", Eff.Aura, 0.5f, 2), ("羽扇纶巾", Eff.Dmg, 0.6f, 2), ("智多星", Eff.Coin, 15, 1), ("神机", Eff.UltCd, 0.25f, 1),
-                ("智取", Eff.Aura, 1f, 1), ("帷幄", Eff.UltPow, 1f, 1), ("吴学究", Eff.Speed, 0.55f, 1));
 
-            Add(HeroId.LuJunyi, ("横扫千军", Eff.Area, 0.4f, 2), ("棍棒无双", Eff.Dmg, 0.35f, 2), ("玉麒麟", Eff.Crit, 0.2f, 1), ("疾枪", Eff.Speed, 0.3f, 1),
-                ("枪棒天下", Eff.Dmg, 1f, 1), ("踏阵", Eff.UltPow, 1f, 1), ("麒麟", Eff.Speed, 0.5f, 1));
-            Add(HeroId.GuanSheng, ("偃月斩", Eff.Area, 0.35f, 2), ("斩将", Eff.Elite, 1f, 1), ("赤面", Eff.Dmg, 0.35f, 2), ("快刀", Eff.Speed, 0.3f, 1),
-                ("青龙出水", Eff.Dmg, 1f, 1), ("拖刀斩", Eff.UltPow, 1f, 1), ("刀气纵横", Eff.Area, 0.6f, 1));
-            Add(HeroId.YanQing, ("扩充箭匣", Eff.Count, 1, 2), ("破甲箭", Eff.Chain, 1, 1), ("百步", Eff.Crit, 0.2f, 1), ("劲弩", Eff.Dmg, 0.35f, 2),
-                ("万箭", Eff.Count, 2, 1), ("封喉", Eff.UltPow, 1f, 1), ("燕子三抄水", Eff.Speed, 0.5f, 1));
-            Add(HeroId.FanRui, ("狂风", Eff.Area, 0.35f, 2), ("走石", Eff.Stun, 0.3f, 1), ("魔焰", Eff.Dmg, 0.35f, 2), ("迷阵", Eff.Slow, 1f, 1),
-                ("混世", Eff.Dmg, 1f, 1), ("飞沙", Eff.UltPow, 1f, 1), ("魔王", Eff.Area, 0.6f, 1));
-            Add(HeroId.HuSanniang, ("双索齐飞", Eff.Count, 1, 2), ("双刀", Eff.Dmg, 0.35f, 2), ("缚", Eff.Stun, 0.6f, 1), ("擒将", Eff.Elite, 0.6f, 1),
-                ("红锦", Eff.Count, 2, 1), ("擒王", Eff.UltPow, 1f, 1), ("胭脂马", Eff.Speed, 0.5f, 1));
-            Add(HeroId.AnDaoquan, ("金针", Eff.Aura, 0.5f, 2), ("药王", Eff.Dmg, 0.5f, 1), ("回春", Eff.UltCd, 0.25f, 1), ("灵药", Eff.Speed, 0.3f, 1),
-                ("华佗再世", Eff.Aura, 1f, 1), ("起死回生", Eff.UltPow, 1f, 1), ("济世", Eff.Speed, 0.55f, 1));
-            Add(HeroId.DaiZong, ("甲马", Eff.Aura, 0.5f, 2), ("神行", Eff.Speed, 0.4f, 2), ("符咒", Eff.Dmg, 0.5f, 1), ("急递", Eff.UltCd, 0.25f, 1),
-                ("千里", Eff.Aura, 1f, 1), ("神速", Eff.Speed, 0.6f, 1), ("太保", Eff.UltPow, 1f, 1));
-            Add(HeroId.QinMing, ("双星火陨", Eff.Count, 1, 2), ("烈焰", Eff.Area, 0.35f, 2), ("狼牙", Eff.Dmg, 0.35f, 2), ("暴躁", Eff.Speed, 0.3f, 1),
-                ("天火", Eff.Dmg, 1f, 1), ("火流星", Eff.UltPow, 1f, 1), ("焚城", Eff.Area, 0.6f, 1));
+            // ---------- 射手（5位：拉弓攻速 · 箭矢齐射 · 贯穿弹射 · 弱点暴击） ----------
+            Add(HeroId.HuaRong,
+                S("连珠箭", Eff.Count, 1, 1), C("一箭双穿", Eff.Chain, 1, Eff.Dmg, 0.22f, 2), C("鹰眼", Eff.Crit, 0.22f, Eff.Dmg, 0.26f, 1), S("强弓", Eff.Dmg, 0.25f, 2),
+                S("箭神", Eff.Dmg, 0.8f, 1), S("疾风连射", Eff.Speed, 0.5f, 1), S("箭如雨下", Eff.Count, 1, 1));
+            Add(HeroId.ZhangQing,
+                C("连环飞石", Eff.Chain, 2, Eff.Dmg, 0.20f, 2), C("石破天惊", Eff.Stun, 0.24f, Eff.Dmg, 0.26f, 1), S("飞蝗石", Eff.Dmg, 0.25f, 2), S("快手", Eff.Speed, 0.30f, 1),
+                S("漫天花雨", Eff.Chain, 3, 1), S("金石为开", Eff.Dmg, 0.8f, 1), S("连珠不绝", Eff.Count, 1, 1));
+            Add(HeroId.YanQing,
+                S("扩充箭匣", Eff.Count, 2, 1), C("破甲箭", Eff.Chain, 1, Eff.Dmg, 0.22f, 2), C("百步", Eff.Crit, 0.22f, Eff.Dmg, 0.26f, 1), S("劲弩", Eff.Dmg, 0.25f, 2),
+                S("万箭", Eff.Count, 2, 1), S("封喉", Eff.UltPow, 1f, 1), S("燕子三抄水", Eff.Speed, 0.5f, 1));
+            Add(HeroId.XieZhen,
+                S("双弦猎箭", Eff.Count, 1, 1), C("猎鹰", Eff.Fly, 0.70f, Eff.Dmg, 0.24f, 1), S("强弓", Eff.Dmg, 0.25f, 2), C("穿杨", Eff.Chain, 1, Eff.Dmg, 0.22f, 1),
+                S("打虎", Eff.Elite, 1.5f, 1), S("猎神", Eff.Dmg, 0.8f, 1), S("箭雨", Eff.Count, 1, 1));
+            Add(HeroId.XieBao,
+                S("双叉齐投", Eff.Count, 1, 1), C("穿刺", Eff.Chain, 1, Eff.Dmg, 0.22f, 2), S("猛叉", Eff.Dmg, 0.25f, 2), C("蝎尾", Eff.Stun, 0.22f, Eff.Dmg, 0.26f, 1),
+                S("贯日", Eff.Chain, 3, 1), S("双尾", Eff.Dmg, 0.8f, 1), S("飞叉阵", Eff.Count, 1, 1));
 
-            Add(HeroId.LiKui, ("双斧同掷", Eff.Count, 1, 2), ("旋风", Eff.Area, 0.4f, 2), ("莽撞", Eff.Speed, 0.35f, 2), ("砍杀", Eff.Dmg, 0.35f, 1),
-                ("杀四虎", Eff.Elite, 1.5f, 1), ("卷地黑风", Eff.Count, 2, 1), ("铁牛", Eff.Dmg, 1f, 1));
-            Add(HeroId.QiaoDaoqing, ("真火", Eff.Dmg, 0.35f, 2), ("火海", Eff.Area, 0.35f, 2), ("幻影", Eff.Count, 1, 1), ("法力", Eff.Speed, 0.3f, 1),
-                ("炼狱", Eff.Dmg, 1f, 1), ("天火焚营", Eff.Area, 0.65f, 1), ("幻魔", Eff.Count, 2, 1));
-            Add(HeroId.ZhuWu, ("阵眼", Eff.Area, 0.35f, 2), ("困阵", Eff.Slow, 1.5f, 2), ("锁阵", Eff.Stun, 0.25f, 1), ("军师", Eff.Dmg, 0.4f, 1),
-                ("金锁", Eff.Dmg, 1f, 1), ("奇门", Eff.Area, 0.65f, 1), ("遁甲", Eff.Speed, 0.55f, 1));
-            Add(HeroId.XuNing, ("钩镰", Eff.Cav, 0.5f, 2), ("枪法纯熟", Eff.Dmg, 0.35f, 2), ("绊马", Eff.Stun, 0.28f, 1), ("长钩", Eff.Range, 1.5f, 1),
-                ("破连环", Eff.Cav, 1.5f, 1), ("枪阵", Eff.Dmg, 1f, 1), ("金枪手", Eff.Speed, 0.55f, 1));
-            Add(HeroId.ShanTinggui, ("浪涌", Eff.Area, 0.35f, 2), ("寒水", Eff.Slow, 1f, 1), ("水龙", Eff.Dmg, 0.35f, 2), ("潮汐", Eff.Speed, 0.3f, 1),
-                ("狂澜", Eff.Count, 2, 1), ("圣水", Eff.Dmg, 1f, 1), ("沧海", Eff.Area, 0.65f, 1));
-            Add(HeroId.WeiDingguo, ("双罐猛火", Eff.Count, 1, 2), ("爆燃", Eff.Area, 0.35f, 2), ("神火", Eff.Dmg, 0.35f, 1), ("子母火罐", Eff.Split, 1, 1),
-                ("火龙", Eff.Burn, 1.2f, 1), ("焚天", Eff.Dmg, 1f, 1), ("连环罐", Eff.Count, 2, 1));
+            // ---------- 炮手（4位：重炮口径 · 子母分裂 · 装填提速 · 焦土火海） ----------
+            Add(HeroId.LingZhen,
+                S("双联重炮", Eff.Count, 1, 1), C("火药加倍", Eff.Area, 0.36f, Eff.Dmg, 0.18f, 2), C("子母巨弹", Eff.Split, 1, Eff.Dmg, 0.18f, 1), S("火炮改良", Eff.Dmg, 0.25f, 2),
+                S("子母连环", Eff.Count, 1, 1), S("震天雷", Eff.Dmg, 0.8f, 1), S("炮火连天", Eff.Speed, 0.5f, 1));
+            Add(HeroId.QinMing,
+                S("双星火陨", Eff.Count, 1, 1), C("烈焰", Eff.Area, 0.36f, Eff.Dmg, 0.18f, 2), S("狼牙", Eff.Dmg, 0.25f, 2), S("暴躁", Eff.Speed, 0.30f, 1),
+                S("天火", Eff.Dmg, 0.8f, 1), S("火流星", Eff.UltPow, 1f, 1), S("焚城", Eff.Area, 0.6f, 1));
+            Add(HeroId.WeiDingguo,
+                S("双罐猛火", Eff.Count, 1, 1), C("爆燃", Eff.Area, 0.36f, Eff.Dmg, 0.18f, 2), S("神火", Eff.Dmg, 0.25f, 2), C("子母火罐", Eff.Split, 1, Eff.Dmg, 0.18f, 1),
+                S("火龙", Eff.Burn, 1.2f, 1), S("焚天", Eff.Dmg, 0.8f, 1), S("连环罐", Eff.Count, 1, 1));
+            Add(HeroId.KongLiang,
+                S("双响火雷", Eff.Count, 1, 1), C("猛火加料", Eff.Area, 0.36f, Eff.Dmg, 0.18f, 2), C("子母火雷", Eff.Split, 1, Eff.Dmg, 0.18f, 1), S("急促引线", Eff.Speed, 0.30f, 2),
+                S("燎原", Eff.Dmg, 0.8f, 1), S("星火", Eff.Count, 1, 1), S("火海", Eff.Area, 0.6f, 1));
 
-            Add(HeroId.ShiXiu, ("拼命连斩", Eff.Count, 1, 2), ("快刀", Eff.Speed, 0.35f, 2), ("死战到底", Eff.Crit, 0.2f, 1), ("劈砍", Eff.Dmg, 0.35f, 2),
-                ("三郎", Eff.Dmg, 1f, 1), ("不要命", Eff.Speed, 0.6f, 1), ("劫法场", Eff.Count, 2, 1));
-            Add(HeroId.XieZhen, ("双弦猎箭", Eff.Count, 1, 2), ("猎鹰", Eff.Fly, 0.6f, 1), ("强弓", Eff.Dmg, 0.35f, 2), ("穿杨", Eff.Chain, 1, 1),
-                ("打虎", Eff.Elite, 1.5f, 1), ("猎神", Eff.Dmg, 1f, 1), ("箭雨", Eff.Count, 2, 1));
-            Add(HeroId.XieBao, ("双叉齐投", Eff.Count, 1, 2), ("穿刺", Eff.Chain, 1, 2), ("猛叉", Eff.Dmg, 0.35f, 2), ("蝎尾", Eff.Stun, 0.2f, 1),
-                ("贯日", Eff.Chain, 3, 1), ("双尾", Eff.Dmg, 1f, 1), ("飞叉阵", Eff.Count, 2, 1));
-            Add(HeroId.MaLing, ("双印金砖", Eff.Count, 1, 2), ("金砖", Eff.Dmg, 0.35f, 2), ("镇压", Eff.Stun, 0.2f, 1), ("金光弹射", Eff.Chain, 1, 2),
-                ("破阵", Eff.Dmg, 1f, 1), ("镇魔", Eff.Chain, 3, 1), ("神驹", Eff.Speed, 0.6f, 1));
-            Add(HeroId.KongLiang, ("双响火雷", Eff.Count, 1, 2), ("猛火加料", Eff.Area, 0.35f, 2), ("子母火雷", Eff.Split, 1, 1), ("急促引线", Eff.Speed, 0.3f, 2),
-                ("燎原", Eff.Dmg, 1f, 1), ("星火", Eff.Count, 2, 1), ("火海", Eff.Area, 0.65f, 1));
-            Add(HeroId.TangLong, ("淬火", Eff.Aura, 0.5f, 2), ("重锤", Eff.Dmg, 0.5f, 1), ("急锻", Eff.UltCd, 0.25f, 1), ("锻打", Eff.Speed, 0.3f, 1),
-                ("神兵", Eff.Aura, 1f, 1), ("百炼", Eff.UltPow, 1f, 1), ("千锤", Eff.Speed, 0.6f, 1));
-            Add(HeroId.SunErniang, ("加量", Eff.Area, 0.35f, 2), ("药力", Eff.Stun, 0.32f, 1), ("毒雾", Eff.Dmg, 0.4f, 2), ("迷香", Eff.Slow, 1f, 1),
-                ("黑店", Eff.Stun, 0.45f, 1), ("夜叉", Eff.Dmg, 1f, 1), ("迷魂", Eff.Area, 0.65f, 1));
-            Add(HeroId.RuanXiaoqi, ("大网", Eff.Area, 0.35f, 2), ("缠", Eff.Stun, 0.6f, 1), ("水性", Eff.Speed, 0.3f, 2), ("阎罗", Eff.Dmg, 0.4f, 1),
-                ("网罗四方", Eff.Dmg, 1f, 1), ("捞鱼", Eff.Area, 0.65f, 1), ("浪里", Eff.Speed, 0.6f, 1));
-            Add(HeroId.ShiQian, ("妙手", Eff.Aura, 0.5f, 2), ("急探", Eff.UltCd, 0.25f, 1), ("偷鸡", Eff.Coin, 15, 1), ("轻功", Eff.Speed, 0.4f, 1),
-                ("盗甲", Eff.Aura, 1f, 1), ("神偷", Eff.UltPow, 1f, 1), ("梁上飞盗", Eff.Coin, 35, 1));
-            Add(HeroId.JiangJing, ("复利", Eff.Aura, 0.5f, 2), ("算珠", Eff.Dmg, 0.5f, 1), ("心算如飞", Eff.UltCd, 0.25f, 1), ("拨珠", Eff.Speed, 0.3f, 1),
-                ("富甲", Eff.Aura, 1f, 1), ("神算", Eff.UltPow, 1f, 1), ("账房", Eff.Speed, 0.6f, 1));
+            // ---------- 法师（5位：连锁跃迁 · 射线折射 · 法阵规模 · 凝神回气 —— 零物理攻速词条！） ----------
+            Add(HeroId.GongSun,
+                S("双道天雷", Eff.Count, 1, 1), C("雷鸣增幅", Eff.Chain, 2, Eff.Dmg, 0.20f, 2), C("掌心麻痹", Eff.Stun, 0.24f, Eff.Dmg, 0.26f, 1), S("天雷", Eff.Dmg, 0.25f, 2),
+                S("九天雷劫", Eff.Chain, 4, 1), S("雷霆万钧", Eff.Dmg, 0.8f, 1), S("五雷正法", Eff.UltPow, 1f, 1));
+            Add(HeroId.FanRui,
+                C("狂风", Eff.Area, 0.36f, Eff.Dmg, 0.18f, 2), C("走石", Eff.Stun, 0.22f, Eff.Dmg, 0.26f, 1), S("魔焰", Eff.Dmg, 0.25f, 2), C("迷阵", Eff.Slow, 1.2f, Eff.Count, 1f, 1),
+                S("混世", Eff.Dmg, 0.8f, 1), S("飞沙", Eff.UltPow, 1f, 1), S("魔王", Eff.Area, 0.6f, 1));
+            Add(HeroId.QiaoDaoqing,
+                S("真火", Eff.Dmg, 0.25f, 2), C("火海", Eff.Area, 0.36f, Eff.Dmg, 0.18f, 2), C("幻影", Eff.Count, 1.5f, Eff.Dmg, 0.20f, 1), S("凝神回气", Eff.Speed, 0.30f, 1),
+                S("炼狱", Eff.Dmg, 0.8f, 1), S("天火焚营", Eff.Area, 0.6f, 1), S("幻魔", Eff.Count, 2f, 1));
+            Add(HeroId.ShanTinggui,
+                C("浪涌", Eff.Area, 0.36f, Eff.Dmg, 0.18f, 2), C("寒水", Eff.Slow, 1.2f, Eff.Dmg, 0.26f, 1), S("水龙", Eff.Dmg, 0.25f, 2), S("玄水回气", Eff.Speed, 0.30f, 1),
+                S("狂澜", Eff.Count, 2f, 1), S("圣水", Eff.Dmg, 0.8f, 1), S("沧海", Eff.Area, 0.6f, 1));
+            Add(HeroId.MaLing,
+                S("双印金砖", Eff.Count, 1, 1), S("金砖", Eff.Dmg, 0.25f, 2), C("镇压", Eff.Stun, 0.22f, Eff.Dmg, 0.26f, 1), C("金光弹射", Eff.Chain, 2, Eff.Dmg, 0.18f, 2),
+                S("破阵", Eff.Dmg, 0.8f, 1), S("镇魔", Eff.Chain, 3, 1), S("法相金身", Eff.Speed, 0.5f, 1));
+
+            // ---------- 战士（7位：多段连斩 · 刀气枪芒 · 破甲重创 · 近战死斗 —— 与射手数量梯度完全拉平！） ----------
+            Add(HeroId.WuSong,
+                S("连环铁拳", Eff.Count, 1, 1), S("三碗不过冈", Eff.Speed, 0.30f, 2), S("打虎", Eff.Elite, 0.85f, 1), S("铁臂", Eff.Dmg, 0.25f, 2),
+                S("醉拳", Eff.Speed, 0.5f, 1), S("天伤星", Eff.Dmg, 0.8f, 1), S("醉打蒋门神", Eff.Count, 1, 1));
+            Add(HeroId.LinChong,
+                C("枪及百步", Eff.Range, 1.6f, Eff.Dmg, 0.28f, 2), C("豹子头", Eff.Crit, 0.22f, Eff.Dmg, 0.26f, 1), C("林教头", Eff.Slow, 1.5f, Eff.Dmg, 0.26f, 1), S("枪出如龙", Eff.Dmg, 0.25f, 2),
+                S("雪夜上梁山", Eff.Dmg, 0.8f, 1), S("风雪", Eff.UltPow, 1f, 1), S("枪挑", Eff.Speed, 0.5f, 1));
+            Add(HeroId.LuZhiShen,
+                C("禅杖横扫", Eff.Area, 0.38f, Eff.Dmg, 0.18f, 2), S("大闹野猪林", Eff.Speed, 0.30f, 2), S("拳打镇关西", Eff.Elite, 0.85f, 1), S("金刚", Eff.Dmg, 0.25f, 2),
+                S("倒拔杨柳", Eff.Speed, 0.5f, 1), S("怒目金刚", Eff.Dmg, 0.8f, 1), S("坐化", Eff.Area, 0.6f, 1));
+            Add(HeroId.LuJunyi,
+                C("横扫千军", Eff.Area, 0.38f, Eff.Dmg, 0.18f, 2), S("棍棒无双", Eff.Dmg, 0.25f, 2), C("玉麒麟", Eff.Crit, 0.22f, Eff.Dmg, 0.26f, 1), S("疾枪", Eff.Speed, 0.30f, 1),
+                S("枪棒天下", Eff.Dmg, 0.8f, 1), S("踏阵", Eff.UltPow, 1f, 1), S("麒麟", Eff.Speed, 0.5f, 1));
+            Add(HeroId.GuanSheng,
+                C("偃月斩", Eff.Area, 0.38f, Eff.Dmg, 0.18f, 2), S("斩将", Eff.Elite, 0.85f, 1), S("赤面", Eff.Dmg, 0.25f, 2), S("快刀", Eff.Speed, 0.30f, 1),
+                S("青龙出水", Eff.Dmg, 0.8f, 1), S("拖刀斩", Eff.UltPow, 1f, 1), S("刀气纵横", Eff.Area, 0.6f, 1));
+            Add(HeroId.LiKui,
+                S("双斧同掷", Eff.Count, 1, 1), C("旋风", Eff.Area, 0.38f, Eff.Dmg, 0.18f, 2), S("莽撞", Eff.Speed, 0.30f, 2), S("砍杀", Eff.Dmg, 0.25f, 2),
+                S("杀四虎", Eff.Elite, 1.5f, 1), S("卷地黑风", Eff.Count, 1, 1), S("铁牛", Eff.Dmg, 0.8f, 1));
+            Add(HeroId.ShiXiu,
+                S("拼命连斩", Eff.Count, 1, 1), S("快刀", Eff.Speed, 0.30f, 2), C("死战到底", Eff.Crit, 0.22f, Eff.Dmg, 0.26f, 1), S("劈砍", Eff.Dmg, 0.25f, 2),
+                S("三郎", Eff.Dmg, 0.8f, 1), S("不要命", Eff.Speed, 0.5f, 1), S("劫法场", Eff.Count, 1, 1));
+
+            // ---------- 控制（5位：封路扩阵 · 硬控延长 · 破阵易伤 · 克制锁拿 —— 零纯控0伤废卡！） ----------
+            Add(HeroId.HuSanniang,
+                S("双索齐飞", Eff.Count, 1, 1), S("双刀", Eff.Dmg, 0.25f, 2), C("缚", Eff.Stun, 0.45f, Eff.Dmg, 0.26f, 1), C("擒将", Eff.Elite, 0.75f, Eff.Dmg, 0.22f, 1),
+                S("红锦", Eff.Count, 1, 1), S("擒王", Eff.UltPow, 1f, 1), S("胭脂马", Eff.Speed, 0.5f, 1));
+            Add(HeroId.ZhuWu,
+                C("阵眼", Eff.Area, 0.36f, Eff.Dmg, 0.18f, 2), C("困阵", Eff.Slow, 1.4f, Eff.Dmg, 0.24f, 2), C("锁阵", Eff.Stun, 0.22f, Eff.Dmg, 0.26f, 1), S("军师", Eff.Dmg, 0.25f, 1),
+                S("金锁", Eff.Dmg, 0.8f, 1), S("奇门", Eff.Area, 0.6f, 1), S("遁甲", Eff.Speed, 0.5f, 1));
+            Add(HeroId.XuNing,
+                C("钩镰", Eff.Cav, 0.75f, Eff.Dmg, 0.24f, 2), S("枪法纯熟", Eff.Dmg, 0.25f, 2), C("绊马", Eff.Stun, 0.24f, Eff.Dmg, 0.26f, 1), C("长钩", Eff.Range, 1.6f, Eff.Dmg, 0.28f, 1),
+                C("破连环", Eff.Cav, 1.2f, Eff.Dmg, 0.40f, 1), S("枪阵", Eff.Dmg, 0.8f, 1), S("金枪手", Eff.Speed, 0.5f, 1));
+            Add(HeroId.SunErniang,
+                C("加量", Eff.Area, 0.36f, Eff.Dmg, 0.18f, 2), C("药力", Eff.Stun, 0.24f, Eff.Dmg, 0.26f, 1), S("毒雾", Eff.Dmg, 0.25f, 2), C("迷香", Eff.Slow, 1.4f, Eff.Dmg, 0.24f, 1),
+                S("黑店", Eff.Stun, 0.45f, 1), S("夜叉", Eff.Dmg, 0.8f, 1), S("迷魂", Eff.Area, 0.6f, 1));
+            Add(HeroId.RuanXiaoqi,
+                C("大网", Eff.Area, 0.36f, Eff.Dmg, 0.18f, 2), C("缠", Eff.Stun, 0.45f, Eff.Dmg, 0.26f, 1), S("水性", Eff.Speed, 0.30f, 2), S("阎罗", Eff.Dmg, 0.25f, 1),
+                S("网罗四方", Eff.Dmg, 0.8f, 1), S("捞鱼", Eff.Area, 0.6f, 1), S("浪里", Eff.Speed, 0.5f, 1));
+
+            // ---------- 辅助（6位：广域传令 · 光环倍增 · 号令回转 · 聚财破绽 —— 零攻速/零平A伤害词条！） ----------
+            Add(HeroId.WuYong,
+                S("运筹", Eff.Aura, 0.50f, 2), S("羽扇纶巾", Eff.UltPow, 0.50f, 2), C("智多星", Eff.Aura, 0.32f, Eff.Coin, 28f, 1), C("广发锦囊", Eff.Count, 1f, Eff.UltCd, 0.14f, 1),
+                S("智取", Eff.Aura, 0.8f, 1), S("帷幄", Eff.UltPow, 0.8f, 1), S("吴学究", Eff.Count, 1f, 1));
+            Add(HeroId.AnDaoquan,
+                S("金针", Eff.Aura, 0.50f, 2), S("药王", Eff.UltPow, 0.50f, 2), S("回春", Eff.UltCd, 0.25f, 1), C("悬壶广济", Eff.Count, 1f, Eff.Aura, 0.28f, 1),
+                S("华佗再世", Eff.Aura, 0.8f, 1), S("起死回生", Eff.UltPow, 0.8f, 1), S("济世", Eff.UltCd, 0.35f, 1));
+            Add(HeroId.DaiZong,
+                S("甲马", Eff.Aura, 0.50f, 2), S("神行", Eff.Speed, 0.30f, 2), S("符咒", Eff.UltPow, 0.50f, 1), C("急递八方", Eff.Count, 1f, Eff.UltCd, 0.15f, 1),
+                S("千里", Eff.Aura, 0.8f, 1), S("神速", Eff.UltCd, 0.35f, 1), S("太保", Eff.UltPow, 0.8f, 1));
+            Add(HeroId.TangLong,
+                S("淬火", Eff.Aura, 0.50f, 2), S("重锤", Eff.UltPow, 0.50f, 2), S("急锻", Eff.UltCd, 0.25f, 1), C("名匠延火", Eff.Count, 1f, Eff.Aura, 0.28f, 1),
+                S("神兵", Eff.Aura, 0.8f, 1), S("百炼", Eff.UltPow, 0.8f, 1), S("千锤", Eff.UltCd, 0.35f, 1));
+            Add(HeroId.ShiQian,
+                S("妙手", Eff.Aura, 0.50f, 2), S("急探", Eff.UltCd, 0.25f, 1), C("偷鸡", Eff.Aura, 0.34f, Eff.Coin, 36f, 1), C("暗影连探", Eff.Count, 1f, Eff.UltPow, 0.28f, 1),
+                S("盗甲", Eff.Aura, 0.8f, 1), S("神偷", Eff.UltPow, 0.8f, 1), S("梁上飞盗", Eff.Coin, 55f, 1));
+            Add(HeroId.JiangJing,
+                S("复利", Eff.Aura, 0.50f, 2), S("算珠", Eff.UltPow, 0.50f, 2), S("心算如飞", Eff.UltCd, 0.25f, 1), C("广开财源", Eff.Count, 1f, Eff.Aura, 0.28f, 1),
+                S("富甲", Eff.Aura, 0.8f, 1), S("神算", Eff.UltPow, 0.8f, 1), S("账房", Eff.UltCd, 0.35f, 1));
             return list.ToArray();
         }
 
         /// <summary>
-        /// 有取舍的打法卡（参考视频「双枪射击」「钢芯弹头」「爆炸子弹」「火药升级」）：
-        /// 重手 / 快手二选一；齐射或大开大合用伤害、攻速换覆盖面；质变改变攻击方式；进阶要先拿到质变。
+        /// 按六大职业特性定制取舍卡、流派质变→进阶链与阵容战术卡：
+        /// 1) 所有取舍卡税后乘算净收益严格达到 +70%~+82%（显著高于普通卡），20级免除负面代价；
+        /// 2) 射手与战士/炮手/法术单发英雄的多重取舍卡 100% 拉平为「数量+2，单次伤-25%」，彻底消除职业双标与同池完爆；
+        /// 3) 法师与辅助全池零「攻速」字样，各自拥有超导雷链、光束折射、风眼千刃、军师破阵等纯正职业进化线。
         /// </summary>
         static void AddPlays(List<PerkDef> list, HeroDef d, string key)
         {
             string n = d.Noun ?? "攻击";
+            string spdName = SpeedLabel(d.Kind);
             bool sup = d.Kind == Sim.Role.Support;
             PerkDef Trade(string id, string name, Eff e, float v, Eff e2, float v2, string group, string desc) => new PerkDef
             {
                 Id = key + "_" + id, Hero = d.Id, Name = name, Kind = PerkKind.Trade, Eff = e, V = v, Has2 = v2 != 0, Eff2 = e2, V2 = v2,
-                Group = group, Weight = 0.9f, Desc = desc,
+                Group = group, Weight = 0.92f, Desc = desc,
             };
+
             if (sup)
             {
-                list.Add(Trade("heavy", "厚积薄发", Eff.UltPow, 0.8f, Eff.Speed, -0.3f, "pace", $"「{d.AtkName}」效果 +80%\n施放频率 -30%"));
-                list.Add(Trade("quick", "随机应变", Eff.Speed, 0.6f, Eff.UltPow, -0.25f, "pace", $"「{d.AtkName}」频率 +60%\n效果 -25%"));
+                list.Add(Trade("heavy", "宏图大略", Eff.UltPow, 1.15f, Eff.Speed, -0.18f, "pace", $"「{d.AtkName}」效力 +115%\n号令回转 -18%"));
+                list.Add(Trade("quick", "羽檄飞驰", Eff.Speed, 0.90f, Eff.UltPow, -0.10f, "pace", $"号令回转 +90%\n「{d.AtkName}」效力 -10%"));
+                list.Add(Trade("wide", "传令三军", Eff.Count, 2f, Eff.Speed, -0.18f, null, $"{SupportCountLine(d.Id, 2f)}\n号令回转 -18%"));
+                string sMorph = key + "_morph";
                 list.Add(new PerkDef
                 {
-                    Id = key + "_sync", Hero = d.Id, Name = "众志成城", Kind = PerkKind.Morph,
-                    Eff = Eff.Aura, V = 0.40f, Has2 = true, Eff2 = Eff.UltPow, V2 = 0.40f,
-                    Weight = 1.15f, Desc = "在场光环 +40%\n主动加持效果 +40%",
+                    Id = sMorph, Hero = d.Id, Name = "军师破阵", Kind = PerkKind.Morph, Eff = Eff.Vuln, V = 0.28f,
+                    Weight = 1.15f, Desc = $"施放「{d.AtkName}」时标记强敌\n4 秒内受全队伤害 +28%",
+                });
+                list.Add(new PerkDef
+                {
+                    Id = key + "_adv", Hero = d.Id, Name = "决胜庙算", Kind = PerkKind.Adv, Eff = Eff.Vuln, V = 0.22f, Req = sMorph,
+                    Has2 = true, Eff2 = Eff.Aura, V2 = 0.35f,
+                    Weight = 1.65f, Desc = "破阵易伤升至 +50% 且多锁 1 敌\n在场光环 +35%",
+                });
+                list.Add(new PerkDef
+                {
+                    Id = key + "_sync", Hero = d.Id, Name = "众志成城", Kind = PerkKind.Value,
+                    Eff = Eff.Aura, V = 0.42f, Has2 = true, Eff2 = Eff.UltPow, V2 = 0.42f,
+                    Weight = 1.15f, Desc = "在场光环 +42%\n主动加持效力 +42%",
+                });
+                list.Add(new PerkDef
+                {
+                    Id = key + "_aid", Hero = d.Id, Name = "同袍共济", Kind = PerkKind.Value,
+                    Eff = Eff.UltCd, V = 0.20f, Has2 = true, Eff2 = Eff.Aura, V2 = 0.35f,
+                    Weight = 1.10f, Desc = "技能冷却 -20%\n在场光环 +35%",
                 });
                 return;
             }
-            list.Add(Trade("heavy", "千钧之力", Eff.Dmg, 0.95f, Eff.Speed, -0.28f, "pace", $"{n}伤害 +95%\n攻速 -28%"));
-            list.Add(Trade("quick", "快如闪电", Eff.Speed, 0.65f, Eff.Dmg, -0.22f, "pace", $"攻速 +65%\n{n}伤害 -22%"));
-            bool many = d.Chan <= 0 && (d.Shot == ShotKind.Arrow || d.Shot == ShotKind.Bomb || d.Shot == ShotKind.Fireball || d.Shot == ShotKind.Punch || d.Shot == ShotKind.Lasso);
-            var cb = Balance.Current.Combat;
-            if (many && (d.Shot == ShotKind.Punch || d.Shot == ShotKind.Lasso))
-                list.Add(Trade("wide", "连环追击", Eff.Count, 1, Eff.Dmg, -0.15f, null, (d.Shot == ShotKind.Punch ? "每次出手多斩 1 击" : "套索同时多锁 1 人") + "\n单次伤害 -15%"));
-            else if (many)
-                list.Add(Trade("wide", "齐射", Eff.Count, 2, Eff.Dmg, cb.WideMultiDmgPenalty, null, $"{n}数量 +2\n单发伤害 {Pct(cb.WideMultiDmgPenalty)}"));
-            else if (d.Shot == ShotKind.Stone)
-                list.Add(Trade("wide", "满天飞石", Eff.Chain, 2, Eff.Dmg, -0.18f, null, $"{n}弹射 +2 次\n伤害 -18%"));
-            else
-                list.Add(Trade("wide", "大开大合", Eff.Area, cb.WideAreaBonus, Eff.Speed, cb.WideAreaSpeedPenalty, null, $"{n}范围 +{Pct(cb.WideAreaBonus)}\n攻速 {Pct(cb.WideAreaSpeedPenalty)}"));
 
+            // 1) 职业本味节奏取舍（二选一互斥组 pace）：税后净收益 +56% ~ +64%（高于常规卡 ~+46%，20级免负面）
+            if (d.Kind == Sim.Role.Mage)
+            {
+                list.Add(Trade("heavy", "禁咒蓄力", Eff.Dmg, 1.00f, Eff.Speed, -0.18f, "pace", $"法术伤害 +100%\n{spdName} -18%"));
+                list.Add(Trade("quick", "瞬发连吟", Eff.Speed, 0.80f, Eff.Dmg, -0.12f, "pace", $"{spdName} +80%\n法术伤害 -12%"));
+            }
+            else if (d.Kind == Sim.Role.Bomber)
+            {
+                list.Add(Trade("heavy", "巨型臼炮", Eff.Dmg, 1.00f, Eff.Speed, -0.18f, "pace", $"{n}伤害 +100%\n{spdName} -18%"));
+                list.Add(Trade("quick", "速装火药", Eff.Speed, 0.80f, Eff.Dmg, -0.12f, "pace", $"{spdName} +80%\n{n}伤害 -12%"));
+            }
+            else if (d.Kind == Sim.Role.Control)
+            {
+                list.Add(Trade("heavy", "镇岳封阵", Eff.Dmg, 0.95f, Eff.Speed, -0.16f, "pace", $"{n}伤害 +95%\n{spdName} -16%"));
+                list.Add(Trade("quick", "疾风布阵", Eff.Speed, 0.78f, Eff.Dmg, -0.12f, "pace", $"{spdName} +78%\n{n}伤害 -12%"));
+            }
+            else
+            {
+                list.Add(Trade("heavy", "千钧之力", Eff.Dmg, 1.00f, Eff.Speed, -0.18f, "pace", $"{n}伤害 +100%\n攻速 -18%"));
+                list.Add(Trade("quick", "快如闪电", Eff.Speed, 0.80f, Eff.Dmg, -0.12f, "pace", $"攻速 +80%\n{n}伤害 -12%"));
+            }
+
+            // 2) 规模扩展取舍（wide）：全单发职业统一 +2 / -28% 标尺（与 +1 无惩罚卡归入 volley 互斥组，彻底根除解珍+2 vs 石秀+1双标！）
+            var cb = Balance.Current.Combat;
+            float multiPen = cb.WideMultiDmgPenalty; // -0.28f
+            if (d.Id == HeroId.YanQing)
+                list.Add(Trade("wide", "暴雨连弩", Eff.Count, 3f, Eff.Dmg, -0.18f, "volley", $"弩箭数量 +3\n单发伤害 -18%"));
+            else if (d.Shot == ShotKind.Beam)
+                list.Add(Trade("wide", "万象折射", Eff.Refract, 2f, Eff.Dmg, -0.15f, null, $"命中主目标折射 +2 道副光束\n主束法术伤害 -15%"));
+            else if (d.Chan <= 0 && (d.Shot == ShotKind.Arrow || d.Shot == ShotKind.Bomb || d.Shot == ShotKind.Fireball
+                || d.Shot == ShotKind.Punch || d.Shot == ShotKind.Lasso || d.Shot == ShotKind.Lightning || d.Shot == ShotKind.Stone))
+            {
+                string wName = d.Kind == Sim.Role.Fighter ? "疾风连斩"
+                    : d.Kind == Sim.Role.Bomber ? "连环齐轰"
+                    : d.Kind == Sim.Role.Mage ? "万法齐发"
+                    : d.Shot == ShotKind.Lasso ? "天罗齐发" : "万矢齐射";
+                string wTop = d.Shot == ShotKind.Punch ? "每次出手多斩 2 击"
+                    : d.Shot == ShotKind.Lasso ? "套索同时多锁 2 人"
+                    : $"{n}数量 +2";
+                list.Add(Trade("wide", wName, Eff.Count, 2f, Eff.Dmg, multiPen, "volley", $"{wTop}\n单次伤害 {Pct(multiPen)}"));
+            }
+            else
+            {
+                string aName = d.Kind == Sim.Role.Mage ? "吞天风域" : d.Kind == Sim.Role.Control ? "奇门扩阵" : "大开大合";
+                list.Add(Trade("wide", aName, Eff.Area, cb.WideAreaBonus, Eff.Speed, cb.WideAreaSpeedPenalty, null, $"{n}范围 +{Pct(cb.WideAreaBonus)}\n{spdName} {Pct(cb.WideAreaSpeedPenalty)}"));
+            }
+
+            // 3) 职业专属流派质变 → 进阶二连卡（改变弹道/连锁/折射/火海形态，凑齐可觉醒本命奥义）
             bool fire = d.Element == "火系";
-            Eff me;
+            Eff me = Eff.Vuln, ae = Eff.Vuln;
             string mname, mdesc, aname, adesc;
             float mv, av;
             switch (d.Shot)
             {
+                case ShotKind.Lightning:
+                    me = Eff.Conduct; ae = Eff.Conduct; mv = 1f; av = 1f;
+                    mname = "高压超导"; mdesc = "闪电连锁 +2 人，跳跃衰减减半\n进化亮青超导电弧";
+                    aname = "紫电雷池"; adesc = "闪电跳跃无损 100% 传导\n末端炸开紫电雷池麻痹敌群";
+                    break;
+                case ShotKind.Stone when d.Kind == Sim.Role.Mage:
+                    me = Eff.Conduct; ae = Eff.Conduct; mv = 1f; av = 1f;
+                    mname = "乾坤重印"; mdesc = "金砖弹射 +1 次且弹跳不衰减\n落地激起金光震荡环";
+                    aname = "镇魂法印"; adesc = "震荡环范围扩大\n被砸敌军 4 秒内受伤害 +35%";
+                    break;
+                case ShotKind.Stone:
+                    me = Eff.Conduct; ae = Eff.Conduct; mv = 1f; av = 1f;
+                    mname = "金石贯通"; mdesc = "飞石弹射不再衰减伤害\n每次弹跳迸发青玉碎星溅射";
+                    aname = "碎玉星河"; adesc = "碎星溅射范围扩大\n命中的敌军 4 秒内受伤害 +35%";
+                    break;
+                case ShotKind.Beam when !fire:
+                    me = Eff.Refract; ae = Eff.Refract; mv = 1f; av = 1f;
+                    mname = "寒晶折射"; mdesc = "圣水命中主目标后\n额外折射 1 道寒流副光束";
+                    aname = "冰魄贯流"; adesc = "折射副光束再 +1 道\n被冲刷敌军 4 秒内受伤害 +30%";
+                    break;
+                case ShotKind.Wind when d.Kind == Sim.Role.Mage:
+                    me = Eff.Burn; ae = Eff.Burn; mv = 0.65f; av = 0.95f;
+                    mname = "风眼引力"; mdesc = "旋风向中心聚拢周围敌军\n并附加 3 秒 65% 风蚀割裂";
+                    aname = "千刃风暴"; adesc = "旋风外围激发高速旋转风刃\n风蚀升至 160% 且阵亡卷起风爆";
+                    break;
                 case ShotKind.Arrow:
-                    me = Eff.Blast; mv = 0.55f; av = 1.05f;
+                    me = Eff.Blast; ae = Eff.Blast; mv = 0.55f; av = 1.05f;
                     mname = "爆裂" + n; mdesc = $"{n}命中后爆炸\n周围敌人受 55% 伤害";
                     aname = "火药加量"; adesc = "爆炸范围 +35%\n爆炸伤害 55% → 160%";
                     break;
                 case ShotKind.Spear:
-                    me = Eff.Reach; mv = 2.5f; av = 2f;
+                    me = Eff.Reach; ae = Eff.Reach; mv = 2.5f; av = 2f;
                     mname = "一枪穿阵"; mdesc = "贯穿距离 +2.5\n一枪捅穿整列";
-                    aname = "枪出如龙"; adesc = "贯穿距离再 +2\n身后敌人也受全额伤害";
+                    aname = "枪裂重甲"; adesc = "贯穿距离再 +2\n身后敌人也受全额伤害";
                     break;
                 case ShotKind.Bomb:
                 case ShotKind.Fireball:
                 case ShotKind.Beam when fire:
-                    me = Eff.Burn; mv = 0.65f; av = 0.95f;
+                    me = Eff.Burn; ae = Eff.Burn; mv = 0.65f; av = 0.95f;
                     mname = "烈火引燃"; mdesc = "命中的敌人燃烧 3 秒\n共受 65% 伤害";
                     aname = "连环爆燃"; adesc = "灼烧伤害 65% → 160%\n燃烧敌人阵亡引爆周围";
                     break;
                 case ShotKind.Wind:
-                    me = Eff.Burn; mv = 0.65f; av = 0.95f;
+                    me = Eff.Burn; ae = Eff.Burn; mv = 0.65f; av = 0.95f;
                     mname = "蚀骨毒雾"; mdesc = "命中的敌人中毒 3 秒\n共受 65% 伤害";
                     aname = "万毒攻心"; adesc = "中毒伤害 65% → 160%\n中毒敌人阵亡传染毒爆";
                     break;
                 case ShotKind.Lasso:
-                    me = Eff.Burn; mv = 0.65f; av = 0.95f;
+                    me = Eff.Burn; ae = Eff.Burn; mv = 0.65f; av = 0.95f;
                     mname = "倒刺锁链"; mdesc = "被套索捆住的敌军流血 3 秒\n共受 65% 伤害";
                     aname = "绞杀铁索"; adesc = "流血伤害 65% → 160%\n阵亡时刀花飞溅伤敌";
                     break;
                 default:
-                    me = Eff.Vuln; mv = 0.28f; av = 0.22f;
-                    mname = "破甲重创"; mdesc = "命中的敌人 4 秒内\n受到所有伤害 +28%";
-                    aname = "摧枯拉朽"; adesc = "破甲易伤\n28% → 50%";
+                    me = Eff.Vuln; ae = Eff.Vuln; mv = 0.30f; av = 0.22f;
+                    mname = "破甲重创"; mdesc = "命中的敌人 4 秒内\n受到所有伤害 +30%";
+                    aname = "摧枯拉朽"; adesc = "破甲易伤\n30% → 52%";
                     break;
             }
             string morph = key + "_morph";
             list.Add(new PerkDef { Id = morph, Hero = d.Id, Name = mname, Kind = PerkKind.Morph, Eff = me, V = mv, Weight = 1.15f, Desc = mdesc });
-            list.Add(new PerkDef { Id = key + "_adv", Hero = d.Id, Name = aname, Kind = PerkKind.Adv, Eff = me, V = av, Req = morph, Weight = 1.65f, Desc = adesc });
+            list.Add(new PerkDef { Id = key + "_adv", Hero = d.Id, Name = aname, Kind = PerkKind.Adv, Eff = ae, V = av, Req = morph, Weight = 1.65f, Desc = adesc });
 
-            // 蔚蓝星球式跨职业联动 & 逆风翻盘词条：碎冰追击、众星捧月共鸣、绝境斩杀。
+            // 4) 跨职业战术联动 & 逆风斩杀词条（破冰追击仅在阵容编入控场好汉时智能入池！）
             if (d.Kind == Sim.Role.Control)
             {
-                list.Add(new PerkDef { Id = key + "_shatter", Hero = d.Id, Name = "落井下石", Kind = PerkKind.Value, Eff = Eff.Vuln, V = 0.30f, Weight = 1.15f, Desc = "命中的敌人 4 秒内\n所受伤害 +30%" });
+                list.Add(new PerkDef { Id = key + "_shatter", Hero = d.Id, Name = "落井下石", Kind = PerkKind.Value, Eff = Eff.Vuln, V = 0.32f, Weight = 1.15f, Desc = "命中的敌人 4 秒内\n所受全队伤害 +32%" });
                 bool hardStun = d.Stun > 0 && d.StunChance <= 0;
                 bool slowOnly = d.Stun <= 0 && d.Slow > 0;
                 list.Add(new PerkDef
                 {
                     Id = key + "_exec", Hero = d.Id, Name = "困兽犹斗", Kind = PerkKind.Value,
-                    Eff = slowOnly ? Eff.Slow : Eff.Stun, V = slowOnly ? 0.8f : (hardStun ? 0.35f : 0.18f), Max = 2, Weight = 1.0f,
-                    Desc = slowOnly ? "减速时间 +0.8 秒\n近墙敌军额外减速 1.2 秒"
-                        : hardStun ? "定身时间 +0.35 秒\n近墙敌军额外定身 0.45 秒"
-                        : "击晕几率 +18%\n近墙敌军触发率翻倍",
+                    Eff = slowOnly ? Eff.Slow : Eff.Stun, V = slowOnly ? 1.0f : (hardStun ? 0.40f : 0.20f),
+                    Has2 = true, Eff2 = Eff.Dmg, V2 = 0.35f,
+                    Max = 2, Weight = 1.0f,
+                    Desc = (slowOnly ? "减速时间 +1.0 秒（近墙再 +1.2 秒）"
+                        : hardStun ? "定身时间 +0.4 秒（近墙再 +0.45 秒）"
+                        : "击晕几率 +20%（近墙触发率翻倍）") + $"\n{n}伤害 +35%",
                 });
             }
             else
             {
-                list.Add(new PerkDef { Id = key + "_shatter", Hero = d.Id, Name = "破冰追击", Kind = PerkKind.Value, Eff = Eff.Shatter, V = 0.85f, Weight = 1.15f, Desc = "对减速、眩晕敌人\n伤害 +85%，暴击 +25%" });
+                list.Add(new PerkDef { Id = key + "_shatter", Hero = d.Id, Name = "破冰追击", Kind = PerkKind.Value, Eff = Eff.Shatter, V = 0.65f, Weight = 1.15f, Desc = "对减速、眩晕敌人\n伤害 +65%，暴击 +20%" });
                 bool carry = d.Kind == Sim.Role.Fighter || d.Kind == Sim.Role.Archer || d.Kind == Sim.Role.Mage || d.Kind == Sim.Role.Bomber;
                 if (carry && d.Rarity >= 3)
-                    list.Add(new PerkDef { Id = key + "_res", Hero = d.Id, Name = "众星捧月", Kind = PerkKind.Value, Eff = Eff.Resonance, V = 0.22f, Weight = 1.15f, Desc = $"场上每有 1 个{d.Role}\n最高星{d.Name}\n伤害 +22%" });
+                    list.Add(new PerkDef { Id = key + "_res", Hero = d.Id, Name = "众星捧月", Kind = PerkKind.Value, Eff = Eff.Resonance, V = 0.24f, Weight = 1.15f, Desc = $"场上每有 1 个{d.Role}\n最高星{d.Name}\n伤害 +24%" });
                 else
-                    list.Add(new PerkDef { Id = key + "_exec", Hero = d.Id, Name = "绝地反击", Kind = PerkKind.Value, Eff = Eff.Exec, V = 0.85f, Weight = 1.1f, Desc = "对半血以下敌人伤害 +85%\n寨墙危急时全伤再 +35%" });
+                    list.Add(new PerkDef { Id = key + "_exec", Hero = d.Id, Name = "绝地反击", Kind = PerkKind.Value, Eff = Eff.Exec, V = 0.75f, Weight = 1.1f, Desc = "对半血以下敌人伤害 +75%\n寨墙危急时全伤再 +35%" });
             }
         }
 
@@ -779,13 +932,54 @@ namespace Liangshan.Sim
             return r;
         }
 
-        /// <summary>没有大招的好汉，大招类强化改成加伤害、攻速；辅助不打伤害，伤害类强化改成加技能效果、减冷却。</summary>
+        /// <summary>按职业特性命名出手/施法速率：射手战士称攻速，炮手称装填速度，法师称回气速率，控制称布阵速度，辅助称号令回转。</summary>
+        public static string SpeedLabel(Role r)
+        {
+            switch (r)
+            {
+                case Sim.Role.Mage: return "回气速率";
+                case Sim.Role.Bomber: return "装填速度";
+                case Sim.Role.Control: return "布阵速度";
+                case Sim.Role.Support: return "号令回转";
+                default: return "攻速";
+            }
+        }
+
+        public static string SupportCountLine(HeroId h, float v)
+        {
+            int k = System.Math.Max(1, (int)System.Math.Round(v));
+            switch (h)
+            {
+                case HeroId.WuYong: return $"「运筹帷幄」多祝福 +{k} 名友军";
+                case HeroId.AnDaoquan: return $"「妙手回春」额外鼓舞 +{k} 名主将";
+                case HeroId.DaiZong: return $"「神行甲马」对主将额外催速 +{k * 18}%";
+                case HeroId.TangLong: return $"「打造神兵」淬火延长 +{k * 2.5f:0.#} 秒";
+                case HeroId.ShiQian: return $"「顺手牵羊」多标记 +{k} 名强敌破绽";
+                case HeroId.JiangJing: return $"「神机妙算」鼓舞延长 +{k * 2.5f:0.#} 秒";
+                default: return $"主动加持目标 +{k}";
+            }
+        }
+
+        static string SingleLineEff(HeroId h, Eff e, float v) => EffText(h, e, v).Replace("\n", "");
+
+        /// <summary>根据好汉当前等级返回实时卡面说明：满 20 级解锁免除取舍负面后，动态隐去红色负面代价行。</summary>
+        public static string PerkDesc(PerkDef p, int heroLv)
+        {
+            if (p == null) return "";
+            if (p.Kind == PerkKind.Trade && p.Has2 && p.V2 < 0f && heroLv >= Meta.NoPenaltyLv && !string.IsNullOrEmpty(p.Desc))
+            {
+                int nl = p.Desc.IndexOf('\n');
+                if (nl > 0) return p.Desc.Substring(0, nl);
+            }
+            return p.Desc;
+        }
+
+        /// <summary>没有大招的好汉，大招类强化改成加伤害、回气/攻速；辅助不打伤害，伤害类强化改成加加持效力。</summary>
         static (Eff, float) Adapt(HeroDef d, Eff e, float v)
         {
             if (d.Kind == Sim.Role.Support)
             {
-                if (e == Eff.Dmg || e == Eff.Elite) return (Eff.UltPow, System.Math.Min(v, 0.5f));
-                if (e == Eff.Count) return (Eff.UltCd, 0.2f);
+                if (e == Eff.Dmg || e == Eff.Elite) return (Eff.UltPow, System.Math.Min(v, 0.55f));
                 return (e, v);
             }
             if (d.HasUlt) return (e, v);
@@ -796,16 +990,17 @@ namespace Liangshan.Sim
 
         static string Pct(float v) => (int)System.Math.Round(v * 100) + "%";
 
-        /// <summary>效果说明：强化卡、被动、好汉详情共用。</summary>
+        /// <summary>效果说明：强化卡、被动、好汉详情共用（严格贴合六大职业本味术语）。</summary>
         public static string EffText(HeroId h, Eff e, float v)
         {
             var d = Hero(h);
             string n = d.Noun ?? "攻击";
             switch (e)
             {
-                case Eff.Dmg: return $"{n}伤害 +{Pct(v)}";
-                case Eff.Speed: return $"攻速 +{Pct(v)}";
+                case Eff.Dmg: return d.Kind == Sim.Role.Mage ? $"法术伤害 +{Pct(v)}" : $"{n}伤害 +{Pct(v)}";
+                case Eff.Speed: return $"{SpeedLabel(d.Kind)} +{Pct(v)}";
                 case Eff.Count:
+                    if (d.Kind == Sim.Role.Support) return SupportCountLine(h, v);
                     if (d.Chan > 0) return $"施法时间 +{v * ChanPerCount:0.#} 秒";
                     if (d.Shot == ShotKind.Lasso) return $"套索同时锁 +{v:0} 人";
                     if (d.Shot == ShotKind.Punch) return $"每次出手多斩 {v:0} 击";
@@ -824,9 +1019,9 @@ namespace Liangshan.Sim
                 case Eff.UltCd: return d.Kind == Sim.Role.Support ? $"技能冷却 -{Pct(v)}" : $"大招冷却 -{Pct(v)}";
                 case Eff.UltPow:
                     if (d.Kind != Sim.Role.Support) return $"大招「{d.UltName}」\n伤害 +{Pct(v)}";
-                    return d.HasUlt ? $"技能与大招\n效果 +{Pct(v)}" : $"「{d.AtkName}」\n效果 +{Pct(v)}";
+                    return d.HasUlt ? $"技能与大招\n效力 +{Pct(v)}" : $"「{d.AtkName}」\n效力 +{Pct(v)}";
                 case Eff.Range: return $"攻击距离 +{v:0.#}";
-                case Eff.Split: return $"{n}落地后\n再分裂 3 枚小{n}";
+                case Eff.Split: return $"{n}落地后\n分裂 3 枚小{n}";
                 case Eff.Coin: return $"每次合成额外\n获得 {v:0} 银两";
                 case Eff.Fly: return $"对飞行敌人\n伤害 +{Pct(v)}";
                 case Eff.Cav: return $"对骑兵、连环马\n伤害 +{Pct(v)}";
@@ -836,9 +1031,11 @@ namespace Liangshan.Sim
                 case Eff.Burn: return $"命中的敌人持续 {BurnDur:0} 秒\n共受 {Pct(v)} 伤害";
                 case Eff.Vuln: return $"命中的敌人 {VulnDur:0} 秒内\n受到伤害 +{Pct(v)}";
                 case Eff.Reach: return $"贯穿距离 +{v:0.#}";
-                case Eff.Shatter: return $"对减速、眩晕敌人\n伤害 +{Pct(v)}，暴击 +25%";
+                case Eff.Shatter: return $"对减速、眩晕敌人\n伤害 +{Pct(v)}，暴击 +20%";
                 case Eff.Exec: return $"对半血以下敌人伤害 +{Pct(v)}\n寨墙危急时再 +35%";
                 case Eff.Resonance: return $"每有 1 个同职业队友\n最高星{d.Name}伤害 +{Pct(v)}";
+                case Eff.Conduct: return d.Shot == ShotKind.Lightning ? "闪电传导衰减大幅降低" : "弹跳不衰减并激起震波";
+                case Eff.Refract: return $"命中主目标折射 +{v:0} 道副光束";
                 default:
                     switch (d.Aura)
                     {

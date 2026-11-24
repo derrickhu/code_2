@@ -309,14 +309,16 @@ namespace Liangshan.Tests
             {
                 var regular = Defs.PerksOf(d.Id, false);
                 Assert.AreEqual(2, regular.Count(p => p.Kind == PerkKind.Trade && p.Group == "pace"), d.Name + " 重手/快手");
-                if (d.Kind != Role.Support)
-                {
-                    var morph = regular.Single(p => p.Kind == PerkKind.Morph);
-                    Assert.AreEqual(morph.Id, regular.Single(p => p.Kind == PerkKind.Adv).Req, d.Name + " 进阶接在质变后面");
-                    Assert.AreEqual(14, regular.Count, d.Name);
-                }
-                else Assert.AreEqual(10, regular.Count, d.Name);
+                var morph = regular.Single(p => p.Kind == PerkKind.Morph);
+                Assert.AreEqual(morph.Id, regular.Single(p => p.Kind == PerkKind.Adv).Req, d.Name + " 全职业皆具备质变→进阶进化链");
+                Assert.AreEqual(14, regular.Count, d.Name);
                 foreach (var p in regular.Where(p => p.Kind == PerkKind.Trade && p.Has2)) Assert.Less(p.V2, 0f, p.Name + " 取舍的代价是负的");
+                if (d.Kind == Role.Mage || d.Kind == Role.Support || d.Kind == Role.Bomber || d.Kind == Role.Control)
+                {
+                    foreach (var p in Defs.Perks.Where(p => p.Hero == d.Id))
+                        Assert.IsFalse(p.Desc != null && p.Desc.Contains("攻速 +") || (p.Desc != null && p.Desc.Contains("攻速 -")),
+                            $"{d.Name}({d.Role}) 强化卡「{p.Name}」出现了违和的物理攻速词条：{p.Desc}");
+                }
                 Assert.IsNotNull(Meta.OptPerk(d.Id, 1), d.Name);
                 Assert.IsNotNull(Meta.OptPerk(d.Id, 3), d.Name);
                 Assert.IsNotNull(Defs.FinisherPerk(d.Id), d.Name + " 全员皆有第4终结技卡（大招或奥义）");
@@ -361,7 +363,7 @@ namespace Liangshan.Tests
             Assert.IsFalse(Meta.Talent(HeroId.GuanSheng, 1).Contains("青龙偃月"), "青龙偃月刀开局就会，5 级不该再解锁");
         }
 
-        /// <summary>同一卡池里，两条单属性强化不能一条完全盖过另一条；双属性卡按同一对属性比较。</summary>
+        /// <summary>同一卡池里（含普通 Value 与重装取舍 Trade 跨类对比），任何词条绝不能在同属性维度上完全完爆另一条；且单发职业数量卡严格拉平。</summary>
         [Test]
         public void EnhancementCardsAreNotStrictlyDominated()
         {
@@ -370,7 +372,7 @@ namespace Liangshan.Tests
                 foreach (bool star in new[] { false, true })
                 {
                     var pool = Defs.PerksOf(d.Id, star)
-                        .Where(p => p.Kind == PerkKind.Value && string.IsNullOrEmpty(p.Req) && !p.Id.EndsWith("_exec"))
+                        .Where(p => (p.Kind == PerkKind.Value || p.Kind == PerkKind.Trade) && string.IsNullOrEmpty(p.Req) && !p.Id.EndsWith("_exec"))
                         .ToList();
                     for (int i = 0; i < pool.Count; i++)
                         for (int j = i + 1; j < pool.Count; j++)
@@ -385,6 +387,19 @@ namespace Liangshan.Tests
                         }
                 }
             }
+            // 跨职业单发数量强化严格对标：解珍（射手）与石秀（战士）、公孙胜（法师）、凌振（炮手）全部对称
+            foreach (var h in new[] { HeroId.XieZhen, HeroId.ShiXiu, HeroId.GongSun, HeroId.LingZhen, HeroId.HuSanniang })
+            {
+                var reg = Defs.PerksOf(h, false);
+                var purePlus1 = reg.Single(p => p.Kind == PerkKind.Value && p.Opt == 0 && p.Eff == Eff.Count && !p.Has2);
+                var widePlus2 = reg.Single(p => p.Kind == PerkKind.Trade && p.Id.EndsWith("_wide"));
+                Assert.AreEqual(1f, purePlus1.V, 0.001f, Defs.Hero(h).Name + " 普通珍稀数量卡统一 +1 无惩罚");
+                Assert.AreEqual(1, purePlus1.Max);
+                Assert.AreEqual(2f, widePlus2.V, 0.001f, Defs.Hero(h).Name + " 重装齐发卡统一 +2");
+                Assert.AreEqual(-0.28f, widePlus2.V2, 0.001f, Defs.Hero(h).Name + " 重装齐发卡统一 -28% 单发修正");
+                Assert.AreEqual("volley", purePlus1.Group);
+                Assert.AreEqual("volley", widePlus2.Group);
+            }
             var rain = Defs.PerksOf(HeroId.XieZhen, true).Single(p => p.Name == "箭雨");
             var god = Defs.PerksOf(HeroId.XieZhen, true).Single(p => p.Name == "猎神");
             Assert.AreEqual(Eff.Count, rain.Eff, "解珍满星「箭雨」应改成多射箭，不再和「猎神」抢同一条箭伤害");
@@ -393,26 +408,38 @@ namespace Liangshan.Tests
 
         static bool SameOffer(PerkDef a, PerkDef b)
         {
-            if (a.Has2 != b.Has2) return false;
-            if (!a.Has2) return a.Eff == b.Eff;
-            return (a.Eff == b.Eff && a.Eff2 == b.Eff2) || (a.Eff == b.Eff2 && a.Eff2 == b.Eff);
+            var setA = a.Has2 ? new[] { a.Eff, a.Eff2 } : new[] { a.Eff };
+            var setB = b.Has2 ? new[] { b.Eff, b.Eff2 } : new[] { b.Eff };
+            if (a.Eff == b.Eff && !a.Has2 && !b.Has2) return true;
+            if (a.Has2 && b.Has2) return (a.Eff == b.Eff && a.Eff2 == b.Eff2) || (a.Eff == b.Eff2 && a.Eff2 == b.Eff);
+            // 跨单双词条检查：若单属性卡与带负面双属性卡共享同一主属性（如 +2 无惩罚 vs +1/-15%），也必须比对！
+            var negCard = a.Has2 && a.V2 < 0 ? a : (b.Has2 && b.V2 < 0 ? b : null);
+            var posCard = negCard == a ? b : (negCard == b ? a : null);
+            return negCard != null && !posCard.Has2 && posCard.Eff == negCard.Eff;
         }
 
         static bool Dominates(PerkDef better, PerkDef worse)
         {
             if (better.Max < worse.Max) return false;
-            if (!better.Has2)
-                return better.V >= worse.V && (better.V > worse.V || better.Max > worse.Max || better.V == worse.V);
-            float bv = StatOf(better, worse.Eff);
-            float bv2 = StatOf(better, worse.Eff2);
-            return bv >= worse.V && bv2 >= worse.V2 && (bv > worse.V || bv2 > worse.V2 || better.Max > worse.Max || (bv == worse.V && bv2 == worse.V2));
+            var allEffs = new System.Collections.Generic.HashSet<Eff> { better.Eff, worse.Eff };
+            if (better.Has2) allEffs.Add(better.Eff2);
+            if (worse.Has2) allEffs.Add(worse.Eff2);
+            bool anyStrict = better.Max > worse.Max;
+            foreach (var e in allEffs)
+            {
+                float bv = StatOf(better, e);
+                float wv = StatOf(worse, e);
+                if (bv < wv - 1e-5f) return false;
+                if (bv > wv + 1e-5f) anyStrict = true;
+            }
+            return anyStrict || (better.Has2 == worse.Has2 && Math.Abs(StatOf(better, worse.Eff) - worse.V) < 1e-5f);
         }
 
         static float StatOf(PerkDef p, Eff e)
         {
             if (p.Eff == e) return p.V;
             if (p.Has2 && p.Eff2 == e) return p.V2;
-            return float.NegativeInfinity;
+            return 0f;
         }
 
         /// <summary>完全同名、只差一个字，或只少一个字的简称，都会被读成同一招。</summary>
