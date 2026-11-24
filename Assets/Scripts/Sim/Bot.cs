@@ -26,8 +26,7 @@ namespace Liangshan.Sim
                         else if (c.Kind == PerkKind.Morph) score += 12f;
                         if (c.Eff == Eff.Count || c.Eff == Eff.Conduct || c.Eff == Eff.Refract) score += 11f;
                         if (c.Eff == Eff.Surge || c.Eff == Eff.Top || c.Eff == Eff.Resonance) score += 9f;
-                        if (c.Eff == Eff.Shatter) score += 7f;
-                        if (c.Eff == Eff.Exec && b.Wall < b.WallMax * 0.7f) score += 9f;
+                        if (c.Eff == Eff.Shatter || c.Eff == Eff.Exec) score += 7f;
                         if (c.Eff == Eff.Dmg || c.Eff == Eff.Area) score += 5f;
                         if (score > best) { best = score; pick = i; }
                     }

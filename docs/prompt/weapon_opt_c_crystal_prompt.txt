@@ -1,0 +1,15 @@
+Create a clean 2 columns x 2 rows 2D mobile tower-defense projectile asset sheet (4 items) in **OPTION C: Luminous Crystal-Core Enchanted Bullet Style (晶曜流光高对比弹幕风 — benchmarked against "Forever Blue Planet" 永远的蔚蓝星球 high-visibility bullet-hell projectiles like Rocket, Storm & Sword Immortal)**.
+
+STRICT VISUAL RULES FOR OPTION C:
+1. HIGH-CONTRAST LUMINOUS CORE + THICK DARK OUTLINE: Designed specifically for maximum bullet-hell readability on bright tan stone boards! Every projectile has a **thick dark obsidian-indigo outer outline (#1B192E)** that encloses a **vivid, high-saturation luminous crystal/energy-infused blade core** (bright white inner spine -> electric neon cyan / blazing gold / radiant冰银 facets), with NO blurry semi-transparent outer fog — the glow is 100% contained INSIDE the crisp dark outline!
+2. COMPLETE FULL-LENGTH CHIBI SILHOUETTE: Show the COMPLETE weapon from top tip -> sturdy middle shaft -> bottom tail fletching/butt cap (NEVER crop off the shaft or attach feathers directly to the arrowhead!). Compact, punchy 1:2.6 chibi ratio built to fly in volleys of 5-15 on mobile screens.
+3. ZERO MUDDY EARTH TONES: Even the basic arrow uses high-clarity bright silver-ice steel, rich royal crimson-gold accents, and crisp contrast — zero dull grey-brown that blends into sand or stone!
+4. LAYOUT: Strictly VERTICAL (pointing straight UP), isolated in each cell with generous margin on a flat solid pale grey-blue background (#D8E0E8). No characters, no grid lines, no frames, no soft outer glow bleeding into the background.
+
+The 4 cells:
+- Top-Left (1,1) Basic Hunter Arrow (普通猎箭): High-clarity enchanted iron arrow pointing UP. Wide faceted radiant ice-white & sky-silver arrowhead with a bright white diamond core line, polished gold collar, rich dark-ebony shaft (high contrast!), and vibrant bright-white & scarlet-orange tail fins, all locked inside a thick dark #1B192E outline.
+- Top-Right (1,2) Cloud-Piercing Arrow (穿云银箭): Luminous jade-wind arrow pointing UP. Crystalline neon-mint & pure-white winged arrowhead with glowing white center vein, golden cloud collar, vibrant turquoise-emerald shaft, radiant white-and-aqua crystal feather fins, thick dark outline.
+- Bottom-Left (2,1) Serpent Spear (丈八蛇矛): Luminous frost-silver dragon spear pointing UP. Wavy crystalline ice-cyan & brilliant white serpent spearhead with glowing white core ridge, silver-gold beast collar, vivid flame-red tassel, dark obsidian-blue shaft with glowing cyan ring accents, thick dark outline.
+- Bottom-Right (2,2) Heavy Cannon Bomb (霹雳重炮): High-contrast magma-core iron shell pointing UP. Dark obsidian-iron chunky shell with glowing molten-orange crack seams and thick bright gold bands, blazing white-hot yellow-orange star flame on the top fuse, all cleanly outlined in thick dark ink.
+
+NO TEXT, no labels, no captions, no Chinese characters, no letters, no numbers, no watermarks anywhere in the image.

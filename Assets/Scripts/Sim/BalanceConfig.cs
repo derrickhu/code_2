@@ -192,7 +192,7 @@ namespace Liangshan.Sim
 
         /// <summary>50 关血量微调折线锚点与关间保底递增率（适度放宽约 8%~10% 容错，标准养成顺畅通关，跳过养成仍在第 4~5 关及各章受阻）。</summary>
         public float[] HpTuneStages = { 1f, 4f, 5f, 10f, 25f, 40f, 50f };
-        public float[] HpTuneValues = { 1.44f, 1.96f, 1.64f, 1.57f, 1.76f, 1.65f, 1.98f };
+        public float[] HpTuneValues = { 1.46f, 2.02f, 2.14f, 2.64f, 2.08f, 2.44f, 2.50f };
         public float StageMinStep1To5 = 1.18f;
         public float StageMinStep6To15 = 1.12f;
         public float StageMinStep16Plus = 1.075f;

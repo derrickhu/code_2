@@ -1,0 +1,15 @@
+Create a clean 2 columns x 2 rows 2D mobile strategy game weapon projectile sheet (4 items) in **OPTION D: Glossy 2.5D Heavy-Metal Painted Style (厚涂重金属立体质感风 — benchmarked against Supercell / Clash Royale & premium Forever Blue Planet weapon skin icons)**.
+
+STRICT VISUAL RULES FOR OPTION D:
+1. RICH 2.5D SCULPTED VOLUME & WEIGHT: Every weapon looks like a solid, heavy, touchable 3D-rendered miniature painted in crisp stylized 2D! Strong directional top-left key light, rich metallic gradients, chunky beveled edges, warm rim bounce light, and deep dark outer silhouette edge (#201612) so it never looks flat or ghostly.
+2. COMPLETE FULL-LENGTH CHUNKY PROPORTIONS: Show the COMPLETE weapon from top blade/arrowhead -> thick sturdy middle shaft -> bottom tail fletching/pommel cap (1:2.8 chibi weapon ratio, NEVER crop to just an arrowhead!). Thick forged steel plates with visible side bevels, chunky bolted gold collars, plump cylindrical hardwood shafts.
+3. CRISP CONTAINED SILHOUETTE: 100% opaque solid pixels from edge to edge, zero semi-transparent hatching, zero motion blur, zero misty aura.
+4. LAYOUT: Strictly VERTICAL (pointing straight UP), isolated in each cell with generous margin on a flat solid pale grey-blue background (#D8E0E8). No characters, no grid lines, no frames, no cast ground shadows.
+
+The 4 cells:
+- Top-Left (1,1) Basic Hunter Arrow (普通猎箭): Heavy forged-steel broadhead arrow pointing UP. Thick 3D-beveled polished steel triangular head showing chunky side thickness and bright specular gleam, heavy brass ring, thick lacquered chestnut shaft, sculpted layered cream-and-crimson stiff feather vanes.
+- Top-Right (1,2) Cloud-Piercing Arrow (穿云银箭): Ornate heavy silver-and-jade arrow pointing UP. Thick sculpted silver wing-blade head with inlaid glowing emerald cabochon gem on a chunky gold collar, polished deep-jade shaft, sculpted white feather vanes.
+- Bottom-Left (2,1) Serpent Spear (丈八蛇矛): Heavy sculpted serpent polearm pointing UP. Thick 3D-beveled wavy forged-steel blade, chunky relief-sculpted silver leopard head biting the blade, thick crimson silk tassel, heavy dark-iron pole with thick silver rings.
+- Bottom-Right (2,2) Heavy Cannon Bomb (霹雳重炮): Heavy cast-iron spherical-barrel mortar bomb pointing UP, thick riveted golden-bronze straps with rich metallic sheen, sculpted golden flame medallion, thick rope fuse with a bright sculpted cartoon flame tip.
+
+NO TEXT, no labels, no captions, no Chinese characters, no letters, no numbers, no watermarks anywhere in the image.

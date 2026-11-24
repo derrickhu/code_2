@@ -1,0 +1,17 @@
+Use the attached reference image strictly as context for a cute top-down 2D mobile tower-defense game inspired by "Forever Blue Planet" (永远的蔚蓝星球). Do NOT draw any characters, hands, or faces.
+
+Create a clean 2 columns x 2 rows weapon projectile sheet (4 items) in **OPTION A: Cute Chubby Soft-Vinyl Toy Style (呆萌圆润软胶潮玩风 — matching our chubby round-armored minions)**.
+
+STRICT VISUAL RULES FOR OPTION A:
+1. ROUNDED, PLUMP, STUBBY TOY PROPORTIONS: Super cute 2-head-tall chibi world proportions! Arrowheads and spearheads are oversized (45% of total length) with slightly rounded safe toy-like corners, stubby thick cylindrical shafts, and chubby rounded feather shapes.
+2. ZERO TINY DETAILS ("Three No's"): NO scratches, NO nicks, NO rivets, NO wood grain lines, NO rope strands, NO complex dragon scales! Pure large smooth geometric color blocks (like high-end Pop-Mart vinyl figures or Clash Mini / Forever Blue Planet early-tier projectiles).
+3. UNIFORM THICK WARM DARK-PLUM OUTLINE (#2B2338): Every weapon has a thick, smooth, continuous dark #2B2338 outer contour line and bright pill-shaped white gloss highlights. 100% solid opaque fill, zero aura, zero transparency.
+4. LAYOUT: Strictly VERTICAL (pointing straight UP), centered in each cell with wide margin on a flat solid pale grey-blue background (#D8E0E8). No grid lines, no frames, no shadows.
+
+The 4 cells:
+- Top-Left (1,1) Basic Hunter Arrow (普通猎箭): Cute stubby arrow pointing UP. Big plump bright ice-silver (#F4F7FC) triangular head with rounded corners and a pill-shaped white gloss dot, simple warm-gold ring collar, thick short warm-orange-brown smooth shaft, and two chubby rounded cream-white tail feathers with bold tangerine-red (#FF6A4D) tips.
+- Top-Right (1,2) Cloud-Piercing Arrow (穿云银箭): Cute stubbywinged arrow pointing UP. Plump snow-white & mint-cyan (#58F2C8) winged arrowhead, simple round gold collar, short thick jade-green smooth shaft, chubby pure-white rounded feathers.
+- Bottom-Left (2,1) Serpent Spear (丈八蛇矛): Cute stubby chibi spear pointing UP. Large smooth S-wavy ice-silver blade (48% of height) with clean two-tone cel shading, cute simplified round silver cat-like leopard collar, plump rounded red pom-pom tassel, short thick dark-slate pole with a round silver end cap.
+- Bottom-Right (2,2) Heavy Cannon Bomb (霹雳重炮): Cute round-chubby dark-navy iron bomb shell pointing UP, wrapped in one thick smooth sunny-gold (#FFD15C) waist band with a simple round orange flame badge, topped with a short stubby fuse and a cute 4-point cartoon star spark.
+
+NO TEXT, no labels, no captions, no Chinese characters, no letters, no numbers, no watermarks anywhere in the image.

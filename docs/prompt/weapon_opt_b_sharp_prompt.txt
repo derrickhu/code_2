@@ -1,0 +1,17 @@
+Use the attached reference image strictly for the crisp 2D cel-shaded anime-chibi heroic weapon style (matching Lin Chong, Hua Rong, and Hu Sanniang's held weapons in the reference image). Do NOT draw any characters, hands, or bodies.
+
+Create a clean 2 columns x 2 rows weapon projectile sheet (4 items) in **OPTION B: Crisp Sharp Cel-Shaded Heroic Style (利落硬朗国漫切面风 — benchmarked against Forever Blue Planet's Zhao Yun & Blademaster)**.
+
+STRICT VISUAL RULES FOR OPTION B:
+1. RAZOR-SHARP DIAMOND FACETS + STURDY CHIBI WEIGHT: Unlike soft rounded toys, every blade and arrowhead has needle-sharp points, crisp angular geometric facets, and a razor-straight central ridge splitting a bright pure-white lit bevel on the left from a cool steel-blue shaded bevel on the right! Yet shafts remain sturdy and bold (3x thicker than realistic sticks) so they read rock-solid at 70px.
+2. BOLD DARK ESPRESSO INK OUTLINE (#1E1512): Crisp, confident, thick outer ink contour with sharp corner miters, locking the silhouette against light tan stone roads.
+3. CLEAN 2-TONE ANIME CEL-SHADING: 100% solid opaque flat color zones with hard-edged anime specular slashes across the metal. Zero sketchy hatching, zero blur, zero outer glow.
+4. LAYOUT: Strictly VERTICAL (pointing straight UP), centered in each cell with wide margin on a flat solid pale grey-blue background (#D8E0E8). No grid lines, no frames, no shadows.
+
+The 4 cells:
+- Top-Left (1,1) Basic Hunter Arrow (普通猎箭): Sharp sturdy war-hunting arrow pointing UP. Broad, angular diamond-faceted bright silver-white steel broadhead with a crisp central ridge and razor tip, brass-gold ferrule ring, sturdy dark-walnut shaft, and crisp angular snow-white & crimson-red striped fletching vanes.
+- Top-Right (1,2) Cloud-Piercing Arrow (穿云银箭): Sharp heroic arrow pointing UP. Sleek barbed twin-wing cold-silver arrowhead with teal-jade bevel reflection, gold-and-emerald collar, sturdy deep-emerald shaft, sharp layered white & cyan eagle feathers.
+- Bottom-Left (2,1) Serpent Spear (丈八蛇矛): Sharp heroic chibi polearm pointing UP. Aggressive wavy flame-curved cold-silver serpent blade with razor central ridge, fierce angular silver leopard-head guard, dynamic windswept crimson tassel, sturdy dark gunmetal pole with silver ring bands and sharp butt spike.
+- Bottom-Right (2,2) Heavy Cannon Bomb (霹雳重炮): Sturdy cylindrical-ogive black-steel siege shell pointing UP, angular brass-gold armor bands, sharp stylized vermilion flame crest on the front, braided fuse with crisp jagged orange-white spark at the tip.
+
+NO TEXT, no labels, no captions, no Chinese characters, no letters, no numbers, no watermarks anywhere in the image.

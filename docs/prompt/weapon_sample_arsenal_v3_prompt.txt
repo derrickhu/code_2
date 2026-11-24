@@ -1,0 +1,21 @@
+Use the attached reference image strictly for 2D art style, line weight, chibi weapon proportions, and cel-shading rendering language ONLY. Do NOT draw any characters, hands, faces, or bodies.
+
+Create a clean 3 columns x 2 rows weapon asset sheet showing 6 standalone signature weapons for the same cute chunky 2D Chinese Water Margin (水浒) chibi mobile game.
+
+CRITICAL ART STYLE RULES (must match the weapons held by the chibi characters in the reference image):
+1. BOLD CHUNKY DARK ESPRESSO-BROWN OUTER OUTLINES (#221610): Thick, crisp, continuous vector-clean outer ink outlines around every weapon so they read clearly on mobile screens.
+2. CHUNKY Q-VERSION (CHIBI) HEROIC PROPORTIONS: Match the oversized toy-like heroic weapons in the reference sheet! Polearms have large, wide, impactful blades/spearheads (about 42%-48% of total height) and thick, sturdy shafts (never hair-thin or overly elongated). Blades are broad and weighty with thick spines.
+3. SOLID OPAQUE CEL-SHADING: Clean flat cel-shaded color blocks, bold chunky metallic white highlights, rich saturated colors, zero vertical line-hatching, zero photorealistic noise, zero floating aura or motion blur.
+4. ORIENTATION & LAYOUT: Every item is strictly VERTICAL (pointing straight UP), isolated in the center of its cell with generous empty margin on a uniform flat solid pale cool-grey background (#D8E0E8). No grid lines, no frames, no ground shadows.
+
+Row 1 (Polearms & Blades):
+- Cell (1,1) Serpent Spear (丈八蛇矛 - Legendary): Chunky chibi full-length serpent spear pointing UP. Large wavy S-curved gleaming silver-steel spearhead with bold central ridge, cute-fierce sculpted silver leopard-head collar, fluffy bright crimson-red tassel, thick dark ironwood shaft with silver bands and silver butt cap.
+- Cell (1,2) Green Dragon Crescent Halberd (青龙偃月刀 - Legendary): Chunky chibi Guan Dao polearm pointing UP. Wide, heavy curved emerald-green and bright-silver crescent blade with 3 bold notches on the spine, sculpted golden dragon-head collar biting the blade, green tassel, thick vermilion-red lacquered shaft with golden pointed end cap.
+- Cell (1,3) Swift Disc-Guard Sabre (拼命快刀 - Rare): Chunky Song-dynasty martial arts single-edged sabre pointing UP. Broad slightly curved bright silver-steel blade with bold white edge highlight, chunky round brass-gold disc handguard, red cord-wrapped grip, and brass ring pommel with a small red cord knot.
+
+Row 2 (Blunt, Melee & Heavy Ordnance):
+- Cell (2,1) Black Whirlwind Battle Axe (旋风精铁板斧 - Epic): Chunky heavy single-handed war axe upright. Massive wide crescent silver-edged dark-iron axe blade with a golden cloud motif on the cheek, thick sturdy red-brown wooden handle wrapped in leather grip bands, brass pommel cap.
+- Cell (2,2) Tiger-Mortar Heavy Cannon Shell (霹雳重炮弹 - Epic): Plump chunky black-iron siege bomb shell upright, bound with thick gleaming brass-gold reinforcement bands and a raised golden flame badge in the center, with a thick braided rope fuse sparking a crisp cartoon orange-yellow star flame at the top.
+- Cell (2,3) Blazing Fire-Oil Clay Jar (猛火油罐 - Epic): Plump round glazed crimson-terracotta oil jar bound in thick tan hemp rope net with a gold-and-red diamond emblem (pure geometric flame shape, NO text) on the belly, and chunky stylized orange-gold cartoon flames crowning the open jar mouth at the top.
+
+NO TEXT, no labels, no captions, no Chinese characters, no letters, no numbers, no watermarks anywhere in the image.

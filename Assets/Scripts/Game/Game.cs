@@ -1338,17 +1338,27 @@ namespace Liangshan
                 while (_battle == null) yield return null;
                 var b = _battle.B;
                 var soldier = Defs.Enemy(EnemyKind.Soldier);
+                b.Enemies.Add(new Enemy { Id = 900, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[0].Pos.X, 1.5f) });
                 b.Enemies.Add(new Enemy { Id = 901, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[1].Pos.X, 1.2f) });
                 b.Enemies.Add(new Enemy { Id = 902, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[2].Pos.X, 0.8f) });
+                b.Enemies.Add(new Enemy { Id = 906, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[3].Pos.X, 1.6f) });
                 b.Enemies.Add(new Enemy { Id = 903, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[4].Pos.X, 0.6f) });
                 b.Enemies.Add(new Enemy { Id = 904, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[5].Pos.X, 1.4f) });
                 b.Enemies.Add(new Enemy { Id = 905, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[5].Pos.X + 0.06f, 3.0f) });
+                b.Enemies.Add(new Enemy { Id = 907, Def = soldier, Hp = 50000, MaxHp = 50000, Pos = new V2(b.Slots[6].Pos.X, 1.3f) });
+                b.Slots[0].Unit = new Unit { Id = 700, Hero = HeroId.XieZhen, Star = 3, Cd = 0.05f };
                 b.Slots[1].Unit = new Unit { Id = 701, Hero = HeroId.YanQing, Star = 2, Cd = 0.05f };
                 b.Slots[2].Unit = new Unit { Id = 702, Hero = HeroId.LinChong, Star = 2, Cd = 0.05f };
-                b.Slots[4].Unit = new Unit { Id = 703, Hero = HeroId.MaLing, Star = 2, Cd = 0.05f };
+                b.Slots[3].Unit = new Unit { Id = 705, Hero = HeroId.LingZhen, Star = 3, Cd = 0.05f };
+                b.Slots[4].Unit = new Unit { Id = 703, Hero = HeroId.MaLing, Star = 3, Cd = 0.05f };
                 b.Slots[5].Unit = new Unit { Id = 704, Hero = HeroId.HuaRong, Star = 2, Cd = 0.05f };
-                // 给花荣挂上「爆裂箭」词条，同屏对比爆裂箭清脆小火药花 vs 林冲枪罡随枪尖100%同步 vs 马灵法师金砖天降！
+                b.Slots[6].Unit = new Unit { Id = 706, Hero = HeroId.GuanSheng, Star = 2, Cd = 0.05f };
+                b.Perks["xiezhen_surge"] = 5;
+                b.Perks["xiezhen_top"] = 1;
+                b.Perks["lingzhen_surge"] = 5;
+                b.Perks["maling_surge"] = 5;
                 b.Perks["huarong_morph"] = 1;
+                b.RebuildStats();
                 yield return WaitReal(0.24f);
                 Shot("ui_weapon_midflight");
                 yield return WaitReal(0.18f);
@@ -1359,6 +1369,50 @@ namespace Liangshan
                     Shot("ui_weapon_impact" + i);
                 }
                 yield return WaitReal(0.25f);
+                Application.Quit(0);
+                yield break;
+            }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-giantshot") >= 0)
+            {
+                Sfx.On = false;
+                Sfx.Music = false;
+                var s = Meta.NewSave(20261125);
+                s.TutorialDone = 1;
+                s.HeroLv[(int)HeroId.XieZhen] = 15;
+                s.HeroLv[(int)HeroId.HuaRong] = 15;
+                s.HeroLv[(int)HeroId.LingZhen] = 15;
+                s.HeroLv[(int)HeroId.MaLing] = 15;
+                s.Lineup = new[] { (int)HeroId.XieZhen, (int)HeroId.HuaRong, (int)HeroId.LingZhen, (int)HeroId.MaLing };
+                Profile.Use(s);
+                Play(Defs.Level(5));
+                while (_battle == null) yield return null;
+                var b = _battle.B;
+                var soldier = Defs.Enemy(EnemyKind.Soldier);
+                var shield = Defs.Enemy(EnemyKind.Shield);
+                b.Enemies.Clear();
+                for (int i = 0; i < 14; i++)
+                {
+                    float ex = -1.55f + (i % 5) * 0.78f + (i / 5) * 0.12f;
+                    float ey = 2.0f + (i / 5) * 0.58f;
+                    b.Enemies.Add(new Enemy { Id = 950 + i, Def = i % 3 == 0 ? shield : soldier, Hp = 80000, MaxHp = 80000, Pos = new V2(ex, ey) });
+                }
+                // 还原用户截图布局：左一、左二、右三双侧边缘解珍射出连发巨箭，右侧凌振投炸弹，检验所有巨箭起点在弓弦、轨迹走路面、受击火花100%落在怪胸口！
+                b.Slots[1].Unit = new Unit { Id = 710, Hero = HeroId.XieZhen, Star = 3, Cd = 0.04f };
+                b.Slots[4].Unit = new Unit { Id = 711, Hero = HeroId.XieZhen, Star = 2, Cd = 0.06f };
+                b.Slots[5].Unit = new Unit { Id = 712, Hero = HeroId.HuaRong, Star = 2, Cd = 0.08f };
+                b.Slots[2].Unit = new Unit { Id = 713, Hero = HeroId.LingZhen, Star = 2, Cd = 0.05f };
+                b.Perks["xiezhen_surge"] = 5;
+                b.Perks["xiezhen_top"] = 1;
+                b.Perks["xiezhen_count"] = 2;
+                b.Perks["huarong_surge"] = 5;
+                b.RebuildStats();
+                yield return WaitReal(0.08f);
+                Shot("giant_arrow_launch");
+                yield return WaitReal(0.16f);
+                Shot("giant_arrow_midflight");
+                yield return WaitReal(0.18f);
+                Shot("giant_arrow_impact");
+                yield return WaitReal(0.15f);
                 Application.Quit(0);
                 yield break;
             }

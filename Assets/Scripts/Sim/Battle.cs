@@ -85,6 +85,7 @@ namespace Liangshan.Sim
         public int TargetId = -1;
         public int Pierce;
         public bool Crit, Ult, Split;
+        public float SpawnQiDmg;
         /// <summary>弹道显示放大倍数：「爆发」打出的巨型一击、「最强」那一位的攻击。</summary>
         public float Scale = 1;
         public float Stun, StunChance, Knock, Slow;
@@ -334,7 +335,7 @@ namespace Liangshan.Sim
         /// <summary>这位好汉身上某种效果的总量：已选强化 × 等级 + 10 级被动 + 15 级「爆发」加成（20 级起抹除取舍卡负面减损）。</summary>
         public float Stat(HeroId h, Eff e) => _stat[(int)h, (int)e];
 
-        void RebuildStats()
+        public void RebuildStats()
         {
             Array.Clear(_stat, 0, _stat.Length);
             foreach (var kv in Perks)
@@ -870,7 +871,6 @@ namespace Liangshan.Sim
             if (have >= 5) w *= 0.62f;
             if (p.Eff == Eff.Shatter && HasControlInLineup()) w *= 1.45f;
             if (p.Eff == Eff.Resonance && RoleUnitsOnField(Defs.Hero(p.Hero).Kind) >= 2) w *= 1.45f;
-            if (p.Eff == Eff.Exec && Wall < WallMax * 0.65f) w *= 1.6f;
             return w;
         }
 
@@ -1964,7 +1964,7 @@ namespace Liangshan.Sim
                     Shots.Add(new Shot
                     {
                         Id = _nextId++, Kind = ShotKind.Stone, Hero = h, From = s.Pos, To = t.Pos, TargetId = t.Id,
-                        Dur = ShotDur(ShotKind.Stone, V2.Dist(s.Pos, t.Pos), d.Kind == Role.Mage), Damage = v, Radius = d.Radius, Pierce = ChainOf(h) + fx.Pierce,
+                        Dur = ShotDur(ShotKind.Stone, V2.Dist(s.Pos, t.Pos), d.Kind == Role.Mage), Damage = v, Radius = r, Pierce = ChainOf(h) + fx.Pierce,
                         Stun = chance > 0 ? stun : 0, StunChance = chance, Crit = crit, Hit = new List<int>(),
                     });
                     break;
@@ -2153,7 +2153,7 @@ namespace Liangshan.Sim
             {
                 if (h == HeroId.LingZhen) { each *= kit.SigV; area *= 1f + kit.SigV2; if (HasLv20(h)) { stun = Math.Max(stun, 0.5f); chance = 1f; } }
                 else if (h == HeroId.ZhangQing) { chain += Math.Max(1, (int)Math.Round(kit.SigV)); stun = Math.Max(stun, kit.SigV2); chance = 1f; }
-                else if (h == HeroId.MaLing) { each *= kit.SigV; chain += 1; stun = Math.Max(stun, kit.SigV2); chance = 1f; }
+                else if (h == HeroId.MaLing) { each *= kit.SigV; area *= 1.25f; chain += 1; stun = Math.Max(stun, kit.SigV2); chance = 1f; }
                 else if (h == HeroId.XieZhen) { count += Math.Max(1, (int)Math.Round(kit.SigV)); _sureCrit = true; }
             }
             float slow = SlowOf(h);
@@ -2217,16 +2217,8 @@ namespace Liangshan.Sim
                             Id = _nextId++, Kind = d.Shot, Hero = h, From = s.Pos, To = target.Pos, TargetId = target.Id, T = -i * 0.15f,
                             Dur = dur, Damage = v, Radius = d.Radius * area, Knock = KnockOf(h, d.Knock * (1f + 0.5f * Stat(h, Eff.Area))), Crit = crit,
                             Stun = fx.StunP > 0 ? fx.Stun : 0, StunChance = fx.StunP,
+                            SpawnQiDmg = i == 0 && fx.Qi ? each * 0.65f : 0f,
                         });
-                        if (i == 0 && fx.Qi)
-                        {
-                            var at = Lead(target, dur);
-                            Shots.Add(new Shot
-                            {
-                                Id = _nextId++, Kind = ShotKind.Qi, Hero = h, From = at, To = new V2(at.X, Math.Min(Layout.SpawnY - 0.5f, at.Y + QiReach)),
-                                T = -dur, Dur = ShotDur(ShotKind.Qi, QiReach), Damage = each * 0.65f, Radius = 0.55f + d.Radius * 0.3f,
-                            });
-                        }
                         if (i == 0 && fx.After)
                             Shots.Add(new Shot
                             {
@@ -2263,10 +2255,12 @@ namespace Liangshan.Sim
                         used.Add(t.Id);
                         float v = each;
                         bool crit = RollCrit(h, ref v);
+                        float sDur = ShotDur(ShotKind.Stone, V2.Dist(s.Pos, t.Pos), d.Kind == Role.Mage);
+                        var sTo = d.Kind == Role.Mage ? Lead(t, sDur) : t.Pos;
                         Shots.Add(new Shot
                         {
-                            Id = _nextId++, Kind = ShotKind.Stone, Hero = h, From = s.Pos, To = t.Pos, TargetId = t.Id, T = -i * 0.11f,
-                            Dur = ShotDur(ShotKind.Stone, V2.Dist(s.Pos, t.Pos), d.Kind == Role.Mage), Damage = v, Radius = d.Radius, Pierce = chain,
+                            Id = _nextId++, Kind = ShotKind.Stone, Hero = h, From = s.Pos, To = sTo, TargetId = t.Id, T = -i * 0.11f,
+                            Dur = sDur, Damage = v, Radius = d.Radius * area, Pierce = chain,
                             Stun = chance > 0 ? stun : 0, StunChance = chance, Crit = crit, Hit = new List<int>(),
                         });
                     }
@@ -2294,7 +2288,8 @@ namespace Liangshan.Sim
                         Shots.Add(new Shot
                         {
                             Id = _nextId++, Kind = ShotKind.Lasso, Hero = h, From = s.Pos, To = t.Pos, TargetId = t.Id, T = -i * 0.09f,
-                            Dur = ShotDur(ShotKind.Lasso, V2.Dist(s.Pos, t.Pos)), Damage = v, Radius = fx.Area > 0 ? 1.15f : 0.4f, Stun = stun + fx.Stun, StunChance = 1f, Crit = crit, Knock = fx.Pull,
+                            Dur = ShotDur(ShotKind.Lasso, V2.Dist(s.Pos, t.Pos)), Damage = v, Radius = Math.Max(0.85f, d.Radius * area),
+                            Stun = stun + fx.Stun, StunChance = 1f, Crit = crit, Knock = fx.Pull, PiercedCount = fx.Area > 0 ? 1 : 0,
                         });
                     }
                     break;
@@ -2351,7 +2346,9 @@ namespace Liangshan.Sim
                     break;
                 case ShotKind.Lightning:
                 case ShotKind.Stone:
-                    for (int k = 0; k < 2; k++)
+                {
+                    int nVolley = d.Shot == ShotKind.Stone && d.Kind == Role.Mage ? 3 : 2;
+                    for (int k = 0; k < nVolley; k++)
                     {
                         var t = front.Count > 0 ? front[_rng.Int(Math.Min(front.Count, 10))] : target;
                         Shots.Add(new Shot
@@ -2359,10 +2356,11 @@ namespace Liangshan.Sim
                             Id = _nextId++, Kind = d.Shot, Hero = h, From = s.Pos, To = t.Pos, TargetId = t.Id,
                             T = -0.15f - k * 0.10f, Dur = ShotDur(d.Shot, V2.Dist(s.Pos, t.Pos), d.Kind == Role.Mage),
                             Damage = each * 0.7f * mul, Radius = Math.Max(0.45f, d.Radius * area),
-                            Pierce = 1 + chain, Hit = d.Shot == ShotKind.Stone ? new List<int>() : null,
+                            Pierce = (d.Shot == ShotKind.Stone ? 0 : 1) + chain, Hit = new List<int>(),
                         });
                     }
                     break;
+                }
                 default:
                     Shots.Add(new Shot
                     {
@@ -2468,9 +2466,35 @@ namespace Liangshan.Sim
                     StepPiercingArrow(s);
                 if (s.Kind == ShotKind.Slash)
                     StepLordSlash(s);
+                if (s.Kind == ShotKind.Qi)
+                    StepQi(s);
                 if (s.T < s.Dur) continue;
                 Shots.RemoveAt(i);
                 Land(s);
+            }
+        }
+
+        /// <summary>近战好汉「刀气」沿列推进实时判定：弯月刀罡实际切过敌人时当场掉血并触发刀光火星，不在空白路面悬空爆受击。</summary>
+        void StepQi(Shot s)
+        {
+            float k = M.Clamp01(s.T / Math.Max(0.0001f, s.Dur));
+            float curY = s.From.Y + (s.To.Y - s.From.Y) * k + 0.22f;
+            float minY = Math.Min(s.From.Y, s.To.Y) - 0.35f;
+            for (int j = 0; j < Enemies.Count; j++)
+            {
+                var e = Enemies[j];
+                if (e.Dead || e.Pos.Y > Layout.EngageY) continue;
+                if (s.Hit != null && s.Hit.Contains(e.Id)) continue;
+                float half = s.Radius + e.Def.Size * 0.2f;
+                if (Math.Abs(e.Pos.X - s.From.X) > half || e.Pos.Y < minY || e.Pos.Y > curY) continue;
+                if (s.Hit == null) s.Hit = new List<int>(8);
+                s.Hit.Add(e.Id);
+                Damage(e, s.Damage, s.Hero, false);
+                Events.Add(new BattleEvent
+                {
+                    Type = Ev.Hit, From = s.From, Pos = e.Pos, Hero = s.Hero,
+                    Shot = ShotKind.Qi, Radius = s.Radius, EnemyId = e.Id
+                });
             }
         }
 
@@ -2581,13 +2605,7 @@ namespace Liangshan.Sim
         void ApplySlow(Enemy e, Shot s)
         {
             if (s.Slow <= 0f) return;
-            float bonus = 0f;
-            if (e.Pos.Y <= Layout.StopY + 1.8f && Defs.Hero(s.Hero).Kind == Role.Control)
-            {
-                var p = Defs.Perk(Defs.Hero(s.Hero).Art.Substring(5) + "_exec");
-                if (p != null && p.Eff == Eff.Slow) bonus = 1.0f * Level(p.Id);
-            }
-            e.SlowT = Math.Max(e.SlowT, s.Slow + bonus);
+            e.SlowT = Math.Max(e.SlowT, s.Slow);
         }
 
         bool TryStun(Enemy e, Shot s, float bigMul = 0f)
@@ -2596,16 +2614,6 @@ namespace Liangshan.Sim
             if (e.Big && bigMul <= 0) return false;
             float chance = s.StunChance;
             float dur = s.Stun;
-            if (e.Pos.Y <= Layout.StopY + 1.8f && Defs.Hero(s.Hero).Kind == Role.Control)
-            {
-                int lv = Level(Defs.Hero(s.Hero).Art.Substring(5) + "_exec");
-                if (lv > 0)
-                {
-                    var d = Defs.Hero(s.Hero);
-                    if (d.Stun > 0 && d.StunChance <= 0) dur += 0.4f * lv;
-                    else if (chance < 1f) chance = Math.Min(1f, chance * 2f);
-                }
-            }
             if (chance < 1f && !_rng.Chance(chance)) return false;
             float applied = e.Big ? dur * bigMul : dur;
             if (s.Hero == HeroId.SunErniang && HasLv20(s.Hero)) applied += 0.4f;
@@ -2759,7 +2767,7 @@ namespace Liangshan.Sim
                         float rr = s.Radius + e.Def.Size * 0.2f;
                         if ((e.Pos - (a + ab * k)).Len2 > rr * rr) continue;
                         bool main = e.Id == s.TargetId;
-                        Damage(e, main ? s.Damage : s.Damage * 0.6f, s.Hero, s.Crit && main);
+                        Damage(e, main ? s.Damage : s.Damage * 0.8f, s.Hero, s.Crit && main);
                         ApplySlow(e, s);
                         TryStun(e, s);
                         if (addIceVuln)
@@ -2791,7 +2799,17 @@ namespace Liangshan.Sim
                 {
                     if (s.Hit == null) s.Hit = new List<int>(4);
                     if (s.TargetId >= 0 && !s.Hit.Contains(s.TargetId)) s.Hit.Add(s.TargetId);
-                    Splash(s, s.To, s.Radius, s.Damage, 0);
+                    for (int i = 0; i < Enemies.Count; i++)
+                    {
+                        var e = Enemies[i];
+                        if (e.Dead) continue;
+                        if (s.PiercedCount > 0 && e.Id != s.TargetId && s.Hit.Contains(e.Id)) continue;
+                        float rr = s.Radius + e.Def.Size * 0.25f;
+                        if ((e.Pos - s.To).Len2 > rr * rr) continue;
+                        Damage(e, s.Damage, s.Hero, s.Crit);
+                        TryStun(e, s, s.Ult ? 0.4f : 0f);
+                        ApplySlow(e, s);
+                    }
                     float cond = Stat(s.Hero, Eff.Conduct);
                     Enemy next = null;
                     if (s.Pierce > 1)
@@ -2812,7 +2830,7 @@ namespace Liangshan.Sim
                         Shots.Add(new Shot
                         {
                             Id = _nextId++, Kind = ShotKind.Lightning, Hero = s.Hero, From = s.To, To = next.Pos, TargetId = next.Id,
-                            T = -hopGap * 0.32f, Dur = hopGap * 0.72f, Damage = s.Damage * keep, Radius = 0.45f,
+                            T = -hopGap * 0.32f, Dur = hopGap * 0.72f, Damage = s.Damage * keep, Radius = Math.Min(0.68f, s.Radius * 0.8f),
                             Pierce = s.Pierce - 1, PiercedCount = s.PiercedCount + 1,
                             Stun = s.Stun, StunChance = s.StunChance, Slow = s.Slow, Hit = s.Hit,
                         });
@@ -2838,6 +2856,16 @@ namespace Liangshan.Sim
                 case ShotKind.Slam:
                     Splash(s, s.To, s.Radius, s.Damage, s.Knock, true);
                     EmitHit(s, s.Radius);
+                    if (s.SpawnQiDmg > 0f)
+                    {
+                        var hd = Defs.Hero(s.Hero);
+                        Shots.Add(new Shot
+                        {
+                            Id = _nextId++, Kind = ShotKind.Qi, Hero = s.Hero,
+                            From = s.To, To = new V2(s.To.X, Math.Min(Layout.SpawnY - 0.5f, s.To.Y + QiReach)),
+                            Dur = ShotDur(ShotKind.Qi, QiReach), Damage = s.SpawnQiDmg, Radius = 0.55f + hd.Radius * 0.3f,
+                        });
+                    }
                     return;
                 case ShotKind.Spear:
                 {
@@ -2858,27 +2886,52 @@ namespace Liangshan.Sim
                 }
                 case ShotKind.Stone:
                 {
-                    var t = Find(s.TargetId) ?? Nearest(s.To, 0.6f);
+                    if (s.Hit == null) s.Hit = new List<int>(4);
+                    var t = Find(s.TargetId) ?? Nearest(s.To, 0.7f);
+                    var center = t != null ? t.Pos : s.To;
                     float cond = Stat(s.Hero, Eff.Conduct);
+                    bool mageSeal = Defs.Hero(s.Hero).Kind == Role.Mage;
                     if (t != null)
                     {
                         Damage(t, s.Damage, s.Hero, s.Crit);
                         TryStun(t, s, s.Ult ? 0.5f : 0f);
-                        if (cond >= 1.8f)
+                        if (cond >= 1.8f && !t.Dead)
                         {
                             t.Vuln = t.VulnT > 0 ? Math.Max(t.Vuln, 0.35f) : 0.35f;
                             t.VulnT = Math.Max(t.VulnT, Defs.VulnDur);
                         }
-                        s.Hit.Add(t.Id);
+                        if (!s.Hit.Contains(t.Id)) s.Hit.Add(t.Id);
                     }
-                    if (cond >= 0.8f)
+                    if (mageSeal)
+                    {
+                        // 马灵「金砖镇魔」：1星起天生带道门金光震波范围法伤（随范围词条/升星/乾坤重印扩张），绝不沦为纯单体飞石！
+                        float sr = Math.Max(0.75f, s.Radius) * (cond >= 1.8f ? 1.30f : cond >= 0.8f ? 1.15f : 1.0f);
+                        float splashMul = cond >= 1.8f ? 1.0f : cond >= 0.8f ? 0.88f : 0.75f;
+                        var splashStun = new Shot { Hero = s.Hero, Stun = s.Stun * 0.75f, StunChance = s.StunChance * 0.5f };
+                        for (int i = 0; i < Enemies.Count; i++)
+                        {
+                            var e = Enemies[i];
+                            if (e.Dead || (t != null && e.Id == t.Id)) continue;
+                            float rr = sr + e.Def.Size * 0.25f;
+                            if ((e.Pos - center).Len2 > rr * rr) continue;
+                            Damage(e, s.Damage * splashMul, s.Hero, s.Crit);
+                            TryStun(e, splashStun);
+                            if (cond >= 1.8f && !e.Dead)
+                            {
+                                e.Vuln = e.VulnT > 0 ? Math.Max(e.Vuln, 0.35f) : 0.35f;
+                                e.VulnT = Math.Max(e.VulnT, Defs.VulnDur);
+                            }
+                        }
+                        EmitHit(s, sr, cond >= 1.8f ? 2 : cond >= 0.8f ? 1 : 0);
+                    }
+                    else if (cond >= 0.8f)
                     {
                         float sr = cond >= 1.8f ? 1.25f : 0.90f;
                         foreach (var e in Enemies)
                         {
-                            if (e.Dead || (t != null && e.Id == t.Id) || (e.Pos - s.To).Len2 > sr * sr) continue;
-                            Damage(e, s.Damage * 0.42f, s.Hero, false);
-                            if (cond >= 1.8f)
+                            if (e.Dead || (t != null && e.Id == t.Id) || (e.Pos - center).Len2 > sr * sr) continue;
+                            Damage(e, s.Damage * 0.45f, s.Hero, false);
+                            if (cond >= 1.8f && !e.Dead)
                             {
                                 e.Vuln = e.VulnT > 0 ? Math.Max(e.Vuln, 0.35f) : 0.35f;
                                 e.VulnT = Math.Max(e.VulnT, Defs.VulnDur);
@@ -2893,20 +2946,22 @@ namespace Liangshan.Sim
                     if (s.Pierce > 0)
                     {
                         Enemy next = null;
-                        float bd = 2.8f * 2.8f;
+                        float maxHop = mageSeal ? 3.1f : 2.8f;
+                        float bd = maxHop * maxHop;
                         foreach (var e in Enemies)
                         {
                             if (e.Dead || s.Hit.Contains(e.Id) || e.Pos.Y > Layout.EngageY) continue;
-                            float d = (e.Pos - s.To).Len2;
+                            float d = (e.Pos - center).Len2;
                             if (d < bd) { bd = d; next = e; }
                         }
                         if (next != null)
                         {
-                            float keep = cond >= 0.8f ? 1.0f : 0.80f;
+                            float keep = cond >= 0.8f ? 1.0f : (mageSeal ? 0.85f : 0.80f);
+                            float nextRad = mageSeal ? s.Radius * (cond >= 0.8f ? 1.0f : 0.90f) : s.Radius;
                             Shots.Add(new Shot
                             {
-                                Id = _nextId++, Kind = ShotKind.Stone, Hero = s.Hero, From = s.To, To = next.Pos, TargetId = next.Id,
-                                Dur = ShotDur(ShotKind.Stone, V2.Dist(s.To, next.Pos)) * 0.85f, Damage = s.Damage * keep, Radius = s.Radius,
+                                Id = _nextId++, Kind = ShotKind.Stone, Hero = s.Hero, From = center, To = next.Pos, TargetId = next.Id,
+                                Dur = ShotDur(ShotKind.Stone, V2.Dist(center, next.Pos), mageSeal) * 0.85f, Damage = s.Damage * keep, Radius = nextRad,
                                 Pierce = s.Pierce - 1, PiercedCount = s.PiercedCount + 1, Stun = s.Stun, StunChance = s.StunChance,
                                 Hit = s.Hit, Ult = s.Ult,
                             });
@@ -2919,6 +2974,7 @@ namespace Liangshan.Sim
                     Enemy center = null;
                     float bestD = float.MaxValue;
                     bool pullEye = s.Hero == HeroId.FanRui && s.PiercedCount >= 1;
+                    float windSub = Defs.Hero(s.Hero).Kind == Role.Mage ? 0.80f : 0.55f;
                     foreach (var e in Enemies)
                     {
                         if (e.Dead) continue;
@@ -2926,7 +2982,7 @@ namespace Liangshan.Sim
                         float d2 = (e.Pos - s.To).Len2;
                         if (d2 > rr * rr) continue;
                         if (d2 < bestD) { bestD = d2; center = e; }
-                        Damage(e, e.Id == s.TargetId || s.Ult ? s.Damage : s.Damage * 0.5f, s.Hero, s.Crit && e.Id == s.TargetId);
+                        Damage(e, e.Id == s.TargetId || s.Ult ? s.Damage : s.Damage * windSub, s.Hero, s.Crit && e.Id == s.TargetId);
                         ApplySlow(e, s);
                         TryStun(e, s);
                         if (pullEye && !e.Def.IsBoss && d2 > 0.04f)
@@ -2963,8 +3019,8 @@ namespace Liangshan.Sim
                                 if (e.Dead || e == t) continue;
                                 float rr = s.Radius + e.Def.Size * 0.2f;
                                 if ((e.Pos - t.Pos).Len2 > rr * rr) continue;
-                                Damage(e, s.Damage * 0.5f, s.Hero, false);
-                                if (!e.Big) e.Stun = Math.Max(e.Stun, 0.6f);
+                                Damage(e, s.Damage * 0.65f, s.Hero, false);
+                                if (s.PiercedCount > 0 && !e.Big) e.Stun = Math.Max(e.Stun, 0.6f);
                             }
                         }
                     }
@@ -2972,15 +3028,8 @@ namespace Liangshan.Sim
                     return;
                 }
                 case ShotKind.Qi:
-                    // 刀气从落刀处沿整列往敌阵飞，路上碰到的都挨一下。
-                    foreach (var e in Enemies)
-                    {
-                        if (e.Dead || e.Pos.Y > Layout.EngageY) continue;
-                        float half = s.Radius + e.Def.Size * 0.2f;
-                        if (Math.Abs(e.Pos.X - s.From.X) > half || e.Pos.Y < s.From.Y - 0.4f || e.Pos.Y > s.To.Y + 0.4f) continue;
-                        Damage(e, s.Damage, s.Hero, false);
-                    }
-                    Events.Add(new BattleEvent { Type = Ev.Hit, Pos = s.To, Hero = s.Hero, Shot = s.Kind, Radius = s.Radius });
+                    // 兜底扫过终点前尚未结算的同列敌人；不再往空白终点发悬空受击事件。
+                    StepQi(s);
                     return;
                 case ShotKind.Frost:
                     foreach (var e in Enemies)
@@ -3023,8 +3072,16 @@ namespace Liangshan.Sim
             var line = LineBehind(from, first.Pos, first.Id, pierce);
             if (line.Count == 0)
             {
-                // 即使发射瞬间身后暂时没扫到第二个怪，穿透箭也向前多飞穿 1.85 格，飞抵瞬间若有后排怪踏入箭路照样贯穿！
-                float probe = dist + 1.85f;
+                // 身后暂时无怪时向前轻穿 0.85 格破风收束，且不冲出石板路两侧河道，杜绝斜射箭飞进河里或远处空地乱爆特效
+                float probe = dist + 0.85f;
+                var end = from + dir * probe;
+                if (Math.Abs(end.X) > Layout.RoadHalfW + 0.15f && Math.Abs(dir.X) > 1e-4f)
+                {
+                    float boundX = end.X > 0 ? Layout.RoadHalfW + 0.15f : -(Layout.RoadHalfW + 0.15f);
+                    float maxReach = (boundX - from.X) / dir.X;
+                    if (maxReach > dist + 0.15f) probe = Math.Min(probe, maxReach);
+                    else probe = dist + 0.15f;
+                }
                 shot.To = from + dir * probe;
                 shot.Dur = ShotDur(ShotKind.Arrow, probe);
                 return;
@@ -3095,6 +3152,29 @@ namespace Liangshan.Sim
 
         void Splash(Shot s, V2 p, float r, float dmg, float knock, bool ground = false)
         {
+            if (ground && !s.Ult)
+            {
+                // 近战顺劈与重砸：前 3 名贴脸敌军受 100% 全额重创，第 4 名起受 55% 顺劈余威（把密集海量清潮生态位留给法师与炮手！）
+                var hits = new List<Enemy>();
+                for (int i = 0; i < Enemies.Count; i++)
+                {
+                    var e = Enemies[i];
+                    if (e.Dead || e.Def.Flying) continue;
+                    float rr = r + e.Def.Size * 0.25f;
+                    if ((e.Pos - p).Len2 <= rr * rr) hits.Add(e);
+                }
+                hits.Sort((a, b) => (a.Pos - p).Len2.CompareTo((b.Pos - p).Len2));
+                for (int i = 0; i < hits.Count; i++)
+                {
+                    var e = hits[i];
+                    if (e.Dead) continue;
+                    Damage(e, i < 3 ? dmg : dmg * 0.55f, s.Hero, s.Crit);
+                    TryStun(e, s, 0f);
+                    ApplySlow(e, s);
+                    ApplyKnock(e, knock);
+                }
+                return;
+            }
             for (int i = 0; i < Enemies.Count; i++)
             {
                 var e = Enemies[i];
@@ -3148,11 +3228,7 @@ namespace Liangshan.Sim
                 if (!crit && sh > 0 && _rng.Chance(0.20f)) { dmg *= Lo.CritDmg; crit = true; }
             }
             float exec = Stat(h, Eff.Exec);
-            if (exec > 0)
-            {
-                if (e.Hp < e.MaxHp * 0.5f) dmg *= 1f + exec;
-                if (Wall < WallMax * 0.5f) dmg *= 1.35f;
-            }
+            if (exec > 0 && e.Hp < e.MaxHp * 0.5f) dmg *= 1f + exec;
             if (Wave <= 3 && Lo.EarlyWaveDmg > 0) dmg *= 1f + Lo.EarlyWaveDmg;
             dmg *= MetaMul(e);
             // 汤隆在场特性「百炼锋芒」：暴击时全军暴击伤害小幅提升（纯白板 100% 暴击断言局无汤隆在场时不干扰）

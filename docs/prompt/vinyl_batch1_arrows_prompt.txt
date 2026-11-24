@@ -1,0 +1,15 @@
+Use the attached reference image strictly as the exact art-style master template (Option A: Cute Chubby Soft-Vinyl Toy Style, thick uniform #2B2338 dark-plum outlines, smooth flat cel-shaded pastel-vivid color blocks, rounded corners, pill-shaped white gloss dots, ZERO tiny scratches/rivets/hatching).
+
+Create a clean 3 columns x 2 rows weapon projectile sheet (6 items) on a uniform flat solid pale grey-blue background (#D8E0E8). Every item is isolated in the center of its cell with generous margin. No grid lines, no frames, no ground shadows.
+
+Row 1:
+- Cell (1,1) Legendary Golden Swallow Bolt (燕青·鎏金燕翎弩矢 - STRICTLY VERTICAL pointing straight UP): Cute chubby mechanical crossbow bolt. Big rounded diamond-shaped sunny-gold (#FFD15C) arrowhead with pill white gloss, short plump royal-blue (#5C6CE8) barrel with two cute rounded golden swallow-wing side fins, and a round glowing tangerine-amber bead at the tail.
+- Cell (1,2) Venomous Three-Pronged Fork (解宝·倒钩毒叉 - STRICTLY VERTICAL pointing straight UP): Cute chubby throwing trident. Plump wide 3-pronged bright ice-silver (#F4F7FC) fork head with rounded safe barbs dipped in cute bright lime-green (#5AE868) rounded venom droplets, purple-and-gold round ring collar, short thick dark-brown smooth wooden shaft with silver round end ring.
+- Cell (1,3) Classic Red-White Arrow (通用基础箭 - STRICTLY VERTICAL pointing straight UP): Cute stubby arrow. Big rounded-corner ice-silver (#F4F7FC) triangular head with pill white gloss, simple gold ring collar, short thick warm-brown smooth shaft, and two chubby asymmetrical rounded tail feathers (left feather bright tangerine-red #FF6A4D, right feather pure cream-white).
+
+Row 2:
+- Cell (2,1) Ultimate Blazing Gold Arrow (一箭封喉大招金箭 - STRICTLY VERTICAL pointing straight UP): Cute chubby ultimate golden arrow. Big wide sunny-gold (#FFD15C) winged arrowhead with bright white core shine, thick golden shaft wrapped in cute rounded orange-yellow cartoon flame fins at the tail, all enclosed in the same thick #2B2338 dark outline (100% solid opaque, no blurry fog).
+- Cell (2,2) Arrow Stuck in Cute Dirt Clumps (插地残留箭): A cute stubby wooden arrow shaft tilted slightly (about 20 degrees) with its tip buried into 3 cute chubby round brown cartoon dirt balls at the bottom, showing the thick brown shaft and plump red-and-white rounded tail feathers sticking up. Thick #2B2338 outline.
+- Cell (2,3) Diagonal Golden Archer Icon Arrow (射手图标/弩箭 - TILTED 45 DEGREES POINTING TO TOP-RIGHT CORNER): Cute super-chunky stubby golden-and-silver arrow pointing diagonally toward the upper-right (45 degrees), oversized rounded triangle tip, short thick gold shaft, plump rounded golden-orange tail fins, pill white highlight, thick #2B2338 outline.
+
+NO TEXT, no labels, no captions, no Chinese characters, no letters, no numbers, no watermarks anywhere in the image.

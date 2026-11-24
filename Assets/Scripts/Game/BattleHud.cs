@@ -1537,13 +1537,11 @@ namespace Liangshan
                     Ui.Outlined(tag.transform, p.Ult ? "大招" : p.Finisher ? "奥义" : "满星", 21, Color.white, Vector2.zero, new Vector2(76, 34), Pal.Ink, 1.4f);
                 }
                 int lv = B.Level(p.Id);
-                float descY = -ch * 0.29f;
+                int heroLv = B.Lo.Lv[(int)h];
+                float bodyCenterY = -ch * 0.27f + (lv > 1 ? 10f : 0f);
                 if (lv > 1)
-                {
-                    Ui.Label(card, "Lv." + lv, 22, Pal.Hex("5E7286"), new Vector2(0, -ch * 0.5f + 28), new Vector2(cw - 36, 28), TextAnchor.MiddleCenter, Fonts.Heavy);
-                    descY += 8;
-                }
-                Ui.Label(card, Colorize(p.Desc), descSize, Pal.Hex("243240"), new Vector2(0, descY), new Vector2(cw - 36, ch * 0.34f), TextAnchor.UpperCenter);
+                    Ui.Label(card, "Lv." + lv, 21, Pal.Hex("5E7286"), new Vector2(0, -ch * 0.5f + 26), new Vector2(cw - 36, 28), TextAnchor.MiddleCenter, Fonts.Heavy);
+                RenderPerkRows(card, Defs.PerkDesc(p, heroLv), bodyCenterY, cw - 28f, ch * 0.34f, descSize, false);
             }
             var btn = _perkDock != null ? _perkDock.Find("perk" + (int)h) as RectTransform : null;
             if (btn != null)
@@ -1574,6 +1572,33 @@ namespace Liangshan
         static string Colorize(string s) => NumRx.Replace(s, m => m.Value.StartsWith("-")
             ? $"<color=#D63B2F>{m.Value}</color>"
             : $"<color=#1E9438>{m.Value}</color>");
+
+        /// <summary>
+        /// 按行结构化排布强化词条（1 行 1 效果、垂直居中、双行细瓷分隔线、单行自适应防断词），彻底消除数字与单位被挤断跨行。
+        /// </summary>
+        static void RenderPerkRows(RectTransform card, string rawDesc, float centerY, float rowW, float zoneH, int baseFont, bool showDividers)
+        {
+            if (string.IsNullOrEmpty(rawDesc)) return;
+            string[] lines = rawDesc.Split('\n');
+            int n = lines.Length;
+            int font = n <= 1 ? baseFont + 2 : n == 2 ? baseFont : Mathf.Max(20, baseFont - 2);
+            int minFont = Mathf.Max(16, font - 7);
+            float step = n <= 1 ? 0f : Mathf.Min(zoneH / n, n == 2 ? font * 1.92f : font * 1.66f);
+            float rowH = n <= 1 ? font * 1.48f : Mathf.Min(step - 4f, font * 1.38f);
+            for (int i = 0; i < n; i++)
+            {
+                float y = centerY + ((n - 1) * 0.5f - i) * step;
+                var row = Ui.Label(card, Colorize(lines[i].Trim()), font, Pal.Hex("243240"), new Vector2(0, y), new Vector2(rowW, rowH), TextAnchor.MiddleCenter);
+                row.fontSize = font;
+                row.resizeTextForBestFit = true;
+                row.resizeTextMinSize = minFont;
+                row.resizeTextMaxSize = font;
+                row.horizontalOverflow = HorizontalWrapMode.Wrap;
+                row.verticalOverflow = VerticalWrapMode.Truncate;
+                if (showDividers && i < n - 1)
+                    Ui.Box(card, new Vector2(Mathf.Min(148f, rowW * 0.52f), 1.5f), new Vector2(0, y - step * 0.5f), Pal.Hex("E6E0D2"), Art.White);
+            }
+        }
 
         static string PerkIcon(PerkDef p) => Defs.Hero(p.Hero).Art;
 
@@ -1733,38 +1758,46 @@ namespace Liangshan
                 botDia.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
 
                 // 好汉清晰全身立绘 + 接地阴影（无贴纸遮挡脚部）；大招/奥义右上角挂精致技能徽记与丝带标
-                Ui.Box(card, new Vector2(154, 34), new Vector2(0, 22), new Color(0.05f, 0.1f, 0.16f, 0.14f), Art.GroundShadow);
-                Ui.Icon(card, PerkIcon(p), 184, new Vector2(0, 96));
+                Ui.Box(card, new Vector2(150, 32), new Vector2(0, 30), new Color(0.05f, 0.1f, 0.16f, 0.14f), Art.GroundShadow);
+                Ui.Icon(card, PerkIcon(p), 178, new Vector2(0, 104));
                 if (p.Ult || p.Finisher)
                 {
                     var kit = HeroKits.Of(p.Hero);
                     string skIc = p.Ult ? (hd.UltIcon ?? hd.AtkIcon) : kit.FinisherIcon;
-                    MetaFx.Hex(card, skIc, 58, new Vector2(cw * 0.5f - 52f, 162f), false, hd.Rarity);
-                    var pill = Ui.Box(card, new Vector2(82, 30), new Vector2(-cw * 0.5f + 62f, 166f), p.Ult ? Pal.Hex("D84A1E") : Pal.Hex("C48A14"), Art.Pill);
+                    MetaFx.Hex(card, skIc, 58, new Vector2(cw * 0.5f - 52f, 164f), false, hd.Rarity);
+                    var pill = Ui.Box(card, new Vector2(82, 30), new Vector2(-cw * 0.5f + 62f, 168f), p.Ult ? Pal.Hex("D84A1E") : Pal.Hex("C48A14"), Art.Pill);
                     Ui.Outlined(pill.transform, p.Ult ? "天罡大招" : "本命奥义", 18, Color.white, Vector2.zero, new Vector2(82, 30), Pal.Ink, 1.4f);
                 }
 
-                Ui.Label(card, $"{hd.Name} · {hd.Role}", 24, Pal.Hex("5E7082"), new Vector2(0, -16), new Vector2(cw - 48, 34), TextAnchor.MiddleCenter, Fonts.Heavy);
+                Ui.Label(card, $"{hd.Name} · {hd.Role}", 23, Pal.Hex("5E7082"), new Vector2(0, -6), new Vector2(cw - 48, 32), TextAnchor.MiddleCenter, Fonts.Heavy);
 
-                Ui.Box(card, new Vector2(cw - 64, 2), new Vector2(0, -44), Pal.Hex("E2DDD0"), Art.White);
+                Ui.Box(card, new Vector2(cw - 64, 2), new Vector2(0, -34), Pal.Hex("E2DDD0"), Art.White);
                 int heroLv = B.Lo.Lv[(int)p.Hero];
                 string note = PerkNote(p, heroLv);
-                var desc = Ui.Label(card, Colorize(Defs.PerkDesc(p, heroLv)), 30, Pal.Hex("243240"), new Vector2(0, -151), new Vector2(cw - 40, 186), TextAnchor.UpperCenter);
-                desc.lineSpacing = 1f;
-                desc.verticalOverflow = VerticalWrapMode.Truncate;
+                bool hasFoot = note != null || p.Max > 1;
+                float bodyCenterY = hasFoot ? -141f : -154f;
+                float bodyZoneH = hasFoot ? 182f : 206f;
+                RenderPerkRows(card, Defs.PerkDesc(p, heroLv), bodyCenterY, cw - 30f, bodyZoneH, 27, true);
 
-                float foot = -top + 40;
+                float foot = -top + 42f;
                 if (note != null)
                 {
-                    var nt = Ui.Label(card, note, 22, KindColor(p.Kind), new Vector2(0, foot), new Vector2(cw - 28, 34), TextAnchor.MiddleCenter, Fonts.Heavy);
+                    var kc = KindColor(p.Kind);
+                    Ui.Box(card, new Vector2(cw - 52f, 34f), new Vector2(0, foot), kc.A(0.11f), Art.Pill);
+                    var nt = Ui.Label(card, note, 20, kc, new Vector2(0, foot), new Vector2(cw - 64f, 34f), TextAnchor.MiddleCenter, Fonts.Heavy);
+                    nt.fontSize = 20;
                     nt.resizeTextForBestFit = true;
                     nt.resizeTextMinSize = 16;
-                    nt.resizeTextMaxSize = 22;
+                    nt.resizeTextMaxSize = 20;
                     nt.horizontalOverflow = HorizontalWrapMode.Wrap;
                     nt.verticalOverflow = VerticalWrapMode.Truncate;
                 }
                 else if (p.Max > 1)
-                    Ui.Label(card, $"等级 {B.Level(p.Id)}→{B.Level(p.Id) + 1}", 22, Pal.Hex("7A8A9A"), new Vector2(0, foot), new Vector2(cw - 44, 32), TextAnchor.MiddleCenter, Fonts.Heavy);
+                {
+                    Ui.Box(card, new Vector2(148f, 32f), new Vector2(0, foot), Pal.Hex("7A8A9A").A(0.10f), Art.Pill);
+                    var lvTag = Ui.Label(card, $"等级 {B.Level(p.Id)} → {B.Level(p.Id) + 1}", 20, Pal.Hex("687A8C"), new Vector2(0, foot), new Vector2(140f, 32f), TextAnchor.MiddleCenter, Fonts.Heavy);
+                    lvTag.fontSize = 20;
+                }
                 int idx = i;
                 Ui.Tap(face, () => PickCard(idx, cards), card);
                 Tween.Pop(card, 0.32f, 0.05f + i * 0.07f);

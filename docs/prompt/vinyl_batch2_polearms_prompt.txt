@@ -1,0 +1,17 @@
+Use the attached reference image strictly as the exact art-style master template (Option A: Cute Chubby Soft-Vinyl Toy Style, thick uniform #2B2338 dark-plum outlines, smooth flat cel-shaded color blocks, rounded corners, pill-shaped white gloss dots, ZERO tiny scratches/rivets/scales/hatching).
+
+Create a clean 3 columns x 2 rows chibi polearm & blade weapon sheet (6 items) on a uniform flat solid pale grey-blue background (#D8E0E8). Every item stands STRICTLY VERTICAL (90 degrees upright, blade tip pointing straight UP), centered in its cell with generous margin. No grid lines, no frames, no shadows.
+
+CRITICAL PROPORTION RULE FOR POLEARMS: Each polearm must clearly look like a cute chibi POLEARM (height-to-width ratio around 2.8 : 1) — big plump oversized weapon head (top 44% of height) + cute round mascot collar + round pom-pom tassel + a clearly visible thick sturdy cylindrical pole shaft (bottom 50% of height) ending in a cute rounded metal cap! Not skinny sticks, and not tiny daggers!
+
+Row 1:
+- Cell (1,1) Serpent Spear (林冲·丈八蛇矛): Cute chibi serpent spear upright. Big smooth S-wavy bright ice-silver (#F4F7FC) blade with rounded edges and white gloss, cute chubby round silver leopard-cat head collar, fluffy round tangerine-red (#FF6A4D) pom-pom tassel, sturdy thick dark-slate pole shaft with a round silver butt cap.
+- Cell (1,2) Golden Qilin Spear (卢俊义·玉麒麟枪): Cute chibi royal spear upright. Big plump leaf-shaped ice-silver spearhead with two cute rounded sunny-gold (#FFD15C) mini wing-ears at its base, cute chubby round golden Qilin head collar, round red pom-pom tassel, sturdy thick vermilion-red smooth pole shaft with a round gold butt cap.
+- Cell (1,3) Golden Hooked Spear (徐宁·钩镰枪): Cute chibi hooked spear upright. Plump sunny-gold & silver spear point with ONE prominent cute rounded crescent moon sickle hook curving out to the right side just below the tip, small round red pom-pom tassel, sturdy thick warm-chestnut pole shaft with gold ring bands and round gold butt cap.
+
+Row 2:
+- Cell (2,1) Green Dragon Crescent Halberd (关胜·青龙偃月刀): Cute chibi Guan Dao polearm upright. Wide plump curved emerald-mint (#38F0A8) and bright ice-silver crescent blade with 2 cute rounded notches on the spine, cute chubby round golden baby-dragon head collar biting the blade, round green pom-pom tassel, sturdy thick vermilion-red smooth pole shaft with round gold end cap.
+- Cell (2,2) Monk's Crescent Spade Staff (鲁智深·水磨月牙禅杖): Cute chibi monk staff upright. Wide plump upward-facing bright ice-silver crescent moon spade blade at top, chunky dark-navy iron collar hung with 4 cute chubby golden O-rings (2 on each side), sturdy thick dark-iron pole shaft with a round brass end cap.
+- Cell (2,3) Swift Disc-Guard Sabre (石秀·拼命快刀): Cute chunky single-edged martial sabre upright. Plump slightly curved wide bright ice-silver blade with rounded tip and pill white gloss, chunky round sunny-gold disc handguard, thick red grip handle with a chubby gold O-ring pommel at the bottom.
+
+NO TEXT, no labels, no captions, no Chinese characters, no letters, no numbers, no watermarks anywhere in the image.

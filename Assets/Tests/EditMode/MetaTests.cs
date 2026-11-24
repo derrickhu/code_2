@@ -372,7 +372,7 @@ namespace Liangshan.Tests
                 foreach (bool star in new[] { false, true })
                 {
                     var pool = Defs.PerksOf(d.Id, star)
-                        .Where(p => (p.Kind == PerkKind.Value || p.Kind == PerkKind.Trade) && string.IsNullOrEmpty(p.Req) && !p.Id.EndsWith("_exec"))
+                        .Where(p => (p.Kind == PerkKind.Value || p.Kind == PerkKind.Trade) && string.IsNullOrEmpty(p.Req))
                         .ToList();
                     for (int i = 0; i < pool.Count; i++)
                         for (int j = i + 1; j < pool.Count; j++)
@@ -934,6 +934,43 @@ namespace Liangshan.Tests
                 Assert.Greater(clip.length, 0.03f, $"音效时长异常过短: {name} ({clip.length:F3}s)");
                 Assert.LessOrEqual(clip.length, 1.50f, $"短音效时长超标: {name} ({clip.length:F3}s)");
             }
+        }
+
+        [Test]
+        public void AllPerkCardDescriptionsAreConciseAndNeverWrapAwkwardly()
+        {
+            string[] banned = { "寨墙危急", "近墙再", "近墙触发", "且显化", "进化亮青" };
+            var errors = new System.Collections.Generic.List<string>();
+            foreach (var p in Defs.Perks)
+            {
+                var hd = Defs.Hero(p.Hero);
+                foreach (int lv in new[] { 1, 20 })
+                {
+                    string desc = Defs.PerkDesc(p, lv);
+                    if (string.IsNullOrWhiteSpace(desc)) { errors.Add($"{hd.Name}「{p.Name}」说明为空"); continue; }
+                    foreach (var bad in banned)
+                        if (desc.Contains(bad)) errors.Add($"{hd.Name}「{p.Name}」含晦涩/冗余词「{bad}」：{desc}");
+
+                    string[] lines = desc.Split('\n');
+                    int maxLines = (p.Ult || p.Finisher) ? 3 : 2;
+                    if (lines.Length > maxLines)
+                        errors.Add($"{hd.Name}「{p.Name}」行数超标({lines.Length}>{maxLines})：{desc}");
+
+                    foreach (var line in lines)
+                    {
+                        float units = 0f;
+                        foreach (char ch in line.Trim())
+                        {
+                            if (ch == ' ') units += 0.30f;
+                            else if (ch < 128) units += 0.55f;
+                            else units += 1.0f;
+                        }
+                        if (units > 9.8f)
+                            errors.Add($"{hd.Name}「{p.Name}」(Lv.{lv}) 单行过长({units:F1}>9.8)：「{line}」");
+                    }
+                }
+            }
+            Assert.IsEmpty(errors, string.Join("\n", errors));
         }
 
         static int SkillRowLevel(Meta.TalentSkill kind)

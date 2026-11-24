@@ -1,0 +1,17 @@
+Use the attached reference image strictly for 2D art style, line weight, chibi weapon proportions, and cel-shading rendering language ONLY. Do NOT draw any characters, hands, faces, or bodies.
+
+Create a clean 2 columns x 2 rows weapon asset sheet showing 4 standalone projectile weapons for the same cute chunky 2D Chinese Water Margin (水浒) chibi mobile game.
+
+CRITICAL ART STYLE RULES (must match the weapons held by the chibi characters in the reference image):
+1. BOLD CHUNKY DARK ESPRESSO-BROWN OUTER OUTLINES (#221610): Thick, uniform, solid vector-like outer contour lines around every silhouette, so every projectile pops with 100% solid physical presence against light tan stone roads.
+2. CHUNKY Q-VERSION (CHIBI) PROPORTIONS: NO thin toothpicks, NO realistic skinny shafts! Oversized broad weapon heads (35%-42% of total length), thick sturdy cylindrical shafts (at least 3x thicker than realistic arrows), and plump oversized tail feathers/fins.
+3. SOLID OPAQUE CEL-SHADING: 100% solid opaque flat color fills with clean 2-tone cel shading and bold crisp white specular highlight shapes on metal bevels. ZERO hatching lines, ZERO vertical stripes, ZERO sketchy textures, ZERO transparency, ZERO glowing aura/smoke around the items.
+4. ORIENTATION & LAYOUT: Every projectile stands strictly VERTICAL (90 degrees upright) with its sharp tip pointing straight UP, centered in its own cell with generous margin on a uniform flat solid pale cool-grey background (#D8E0E8). No frames, no grid lines, no cast shadows.
+
+The 4 cells:
+- Top-Left (1,1) Basic / Hunter's Heavy Iron Arrow (穿林重猎箭 - Rare): Chunky chibi hunting arrow pointing straight UP. Wide, thick, gleaming bright-silver triangular broadhead tip with a crisp central ridge and bold white edge highlight; a chunky brass-gold collar ring; a thick, sturdy warm-chestnut hardwood shaft; and plump oversized cream-white tail feathers accented with vibrant vermilion-red stripes at the base. Solid, weighty, unmistakable silhouette!
+- Top-Right (1,2) Cloud-Piercing Jade-Silver Arrow (白翎穿云箭 - Epic): Chunky heroic arrow pointing straight UP. Broad winged silver-steel arrowhead with bright specular shine, ornate emerald-jade and gold collar band, thick rich emerald-green lacquered shaft, and large full snow-white eagle fletching with teal-jade tips.
+- Bottom-Left (2,1) Golden Swallow Crossbow Bolt (鎏金燕翎弩矢 - Legendary): Compact, heavy-duty chibi mechanical crossbow bolt pointing straight UP. Broad faceted golden-steel diamond warhead, thick royal-blue and polished-gold barrel flanked by chunky swept-back golden swallow-wing fins, and a solid glowing amber-orange crystal nock cap at the bottom.
+- Bottom-Right (2,2) Venomous Barbed Trident Fork (倒钩毒叉 - Rare): Chunky chibi throwing trident projectile pointing straight UP. Thick three-pronged cold-steel barbed fork head dipped in vibrant emerald-lime venom tips, purple-and-iron collar ring, and a sturdy dark-wood short shaft with an iron end ring.
+
+NO TEXT, no labels, no captions, no Chinese characters, no letters, no numbers, no watermarks anywhere in the image.
