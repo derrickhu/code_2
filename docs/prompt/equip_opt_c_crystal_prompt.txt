@@ -1,0 +1,19 @@
+Create a clean 4 columns x 2 rows equipment icon sheet (8 items) in **OPTION C: Luminous Crystal-Core Enchanted Style (晶曜流光高对比风)**, benchmarked against Forever Blue Planet's high-visibility crystal weapons. Do NOT draw any characters, hands, or faces.
+
+STRICT VISUAL RULES FOR OPTION C:
+1. THICK DARK OBSIDIAN-INDIGO OUTLINE (#1B192E) around every icon. Inside the outline, a vivid luminous crystal core: bright white inner spine, electric cyan / blazing gold / radiant ice-silver facets.
+2. The glow stays 100% INSIDE the dark outline. No blurry fog, no transparent aura bleeding into the background.
+3. HIGH SATURATION, zero muddy grey-brown. Even leather and cloth use rich royal blue, crimson, and gold.
+4. LAYOUT: each icon centered with wide margin on a flat solid pale grey-blue background (#D8E0E8). No grid lines, no frames.
+
+The 8 cells, left to right, top row then bottom row:
+- (1,1) Dragon-Spring Sword pointing up-right: crystalline ice-white blade with a glowing white core line, gold collar, a glowing blue gem, dark grip, vivid red tassel.
+- (1,2) Marshal Cloak: royal-blue cape with a luminous gold inner edge, cream fur, a glowing round gold clasp with a cyan gem.
+- (1,3) Military Manual: red crystal-bound book, bright gold corners, a glowing jade-green S clasp, red bookmark.
+- (1,4) Apricot Battle Flag: apricot-gold luminous flag face, thick red crystal border, three red ribbons, gold finial. No writing.
+- (2,1) Green-Jade Pendant: glowing celadon crystal plaque, gold rim, a simplified luminous dragon face, red tassel.
+- (2,2) Phoenix-Wing Helmet: ice-silver crystal helm, glowing gold wings, a bright blue gem, red plume.
+- (2,3) Cloud-Step Boots: royal-blue boots with glowing gold trim and one luminous silver cloud on each shin.
+- (2,4) Bright-Mirror Armor: radiant silver crystal plates, blue collar, glowing gold belt, a luminous lion-face buckle.
+
+NO TEXT, no labels, no captions, no Chinese characters, no letters, no numbers, no watermarks anywhere in the image.

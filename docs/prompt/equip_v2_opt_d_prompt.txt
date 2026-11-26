@@ -1,0 +1,17 @@
+Create a clean 3 columns x 2 rows RPG equipment icon sheet (6 items total) in **OPTION D: Polished Q-Version Heavy-Gilded 2.5D Painted Style (Q版重工鎏金轻厚涂风 — benchmarked against Supercell / Honor of Kings chibi mode & upgraded classic Chinese RPG treasure icons)**.
+
+STRICT VISUAL RULES FOR OPTION D:
+1. UPGRADED CLEAN PAINTERLY 2.5D METALLIC WEIGHT: Richly painted 3D-like metallic volume, warm golden reflections, velvety fabric depth, and carved jade thickness — BUT proportioned in compact, chunky, cute Q-version silhouettes with a clean dark-brown outer edge (#231814), completely eliminating muddy grey shadows, rusty dirt, or noisy micro-scales!
+2. WARM IMPERIAL PALETTE: Warm sunlit 24K gold, polished mirror steel, rich lapis-lazuli royal blue, warm ivory fur, and bright cinnabar red.
+3. READABLE AT SMALL ICON SIZE: Large bold armor plates and clean auspicious cloud trims instead of tiny busy textures.
+4. ISOLATED ON SOLID LIGHT BACKGROUND: Center each of the 6 items with generous empty margin on a completely flat, uniform pale grey-blue background (#E6ECF2). NO UI boxes, NO square tiles, NO grid lines, NO cast shadows.
+
+The 6 items (3 columns x 2 rows):
+- Row 1, Col 1 — Dragon-Spring Sword (龙泉宝剑): Diagonal 45° pointing up-right. Sturdy Q-proportioned polished steel broadsword with thick 3D beveled fuller, richly sculpted 24K gold cloud guard with a cabochon sapphire, dark-blue grip, lush red silk tassel.
+- Row 1, Col 2 — Marshal Fur Cloak (统帅披风): Front 3/4 view. Plush royal-blue velvet war cape with rich golden brocade trim, thick sculpted cream-white fox-fur collar, and a heavy sculpted golden clasp with a blue jewel.
+- Row 1, Col 3 — Celadon Jade Pendant (青玉瑞兽佩): Thick carved mutton-fat & celadon green jade pendant in a heavy 24K gold frame, sculpted chubby guardian Pixiu relief, thick braided red silk cord and tassel.
+- Row 2, Col 1 — Coiled Golden Dragon Totem (盘龙金角): Heavy solid-gold sculpted Q-version coiled dragon ornament with rich metallic highlights, expressive dragon head, chunky golden scales, tied with a satin red ribbon bow.
+- Row 2, Col 2 — Phoenix-Wing Helmet (凤翅兜鍪): Rounded blued-steel general helmet with heavy sculpted golden phoenix wings, cabochon sapphire brow gem, golden rim, and a lush crimson horsehair crest.
+- Row 2, Col 3 — Bright-Mirror Cuirass (明光宝铠): Sturdy Q-proportioned silver plate armor with broad polished overlapping plates (no tiny hex mesh), royal-blue silk padding, heavy golden shoulder guards, and a sculpted golden lion-head belt buckle.
+
+NO TEXT, no labels, no letters, no numbers, no Chinese characters, no frames, no watermarks anywhere in the image.

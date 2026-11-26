@@ -85,18 +85,29 @@ namespace Liangshan
             Track(_mainLevel ? "level_fail" : "mode_fail", LevelParams(string.IsNullOrEmpty(reason) ? "lose" : reason, wave, kills));
         }
 
-        public static void AdRequest(string scene) => Ad("ad_request", scene, null);
-        public static void AdShow(string scene) => Ad("ad_show", scene, null);
-        public static void AdClose(string scene, bool ended) => Ad("ad_close", scene, ended);
+        public static void AdRequest(string scene, string unitId = null, string adType = "reward")
+            => Ad("ad_request", scene, null, unitId, adType, null);
 
-        static void Ad(string name, string scene, bool? ended)
+        public static void AdShow(string scene, string unitId = null, string adType = "reward")
+            => Ad("ad_show", scene, null, unitId, adType, null);
+
+        public static void AdClose(string scene, bool ended, string unitId = null, string adType = "reward")
+            => Ad("ad_close", scene, ended, unitId, adType, null);
+
+        public static void AdError(string scene, string err, string unitId = null, string adType = "reward")
+            => Ad("ad_error", scene, null, unitId, adType, err);
+
+        static void Ad(string name, string scene, bool? ended, string unitId, string adType, string err)
         {
             if (!_sessionStarted) return;
-            Param p = Param.Of("ad_unit_id", "reward")
-                .Str("ad_type", "reward")
+            string type = string.IsNullOrEmpty(adType) ? "reward" : adType;
+            string unit = string.IsNullOrEmpty(unitId) ? type : unitId;
+            Param p = Param.Of("ad_unit_id", unit)
+                .Str("ad_type", type)
                 .Str("scene", string.IsNullOrEmpty(scene) ? "unknown" : scene);
             if (_levelOpen) p.Num("level_id", _levelId).Str("mode", _mode);
             if (ended.HasValue) p.Bool("is_ended", ended.Value);
+            if (!string.IsNullOrEmpty(err)) p.Str("err_msg", err);
             Track(name, p);
         }
 

@@ -44,9 +44,19 @@ namespace Liangshan
         bool _bgmOn;
         int _nextUi, _nextPrio, _nextCombat;
         float _density, _duck, _bgmDuck;
+        bool _adMuted;
 
         public static bool On = true;
         public static bool Music = true;
+
+        /// <summary>微信全屏广告播放期间静音游戏音源，回到前台后平滑恢复。</summary>
+        public static void SetAdMute(bool muted)
+        {
+            if (_i == null) return;
+            _i._adMuted = muted;
+            AudioListener.pause = muted;
+            if (muted && _i._bgm != null) _i._bgm.volume = 0f;
+        }
 
         public static void Init(GameObject host)
         {
@@ -327,7 +337,7 @@ namespace Liangshan
 
         public static void Play(Snd s, float vol = 1f, float pitch = 1f)
         {
-            if (_i == null || !On) return;
+            if (_i == null || !On || _i._adMuted) return;
             if (!_i._clips.TryGetValue(s, out var clip) || clip == null) return;
 
             float now = Time.unscaledTime;
@@ -381,6 +391,7 @@ namespace Liangshan
 
         void Update()
         {
+            if (_adMuted) return;
             float dt = Time.unscaledDeltaTime;
             if (_density > 0f) _density = Mathf.Max(0f, _density - dt * 22f);
             if (_duck > 0f) _duck = Mathf.Max(0f, _duck - dt);

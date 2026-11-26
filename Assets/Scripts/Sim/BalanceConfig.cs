@@ -109,6 +109,8 @@ namespace Liangshan.Sim
         public float ProjPace = 1.0f;
         /// <summary>全局刀剑枪斧特效时长倍率（1.0=标准；统一控制弧形刀光、破阵枪罡、月牙斩与旋转节奏）。</summary>
         public float VfxPace = 1.0f;
+        /// <summary>普攻最短真实出手间隔下限(秒)：防止后期极端攻速把 4 帧动作压成鬼畜闪烁，超出下限的溢出攻速 1:1 无损折算为单发伤害。</summary>
+        public float MinAtkInterval = 0.55f;
 
         /// <summary>箭矢弹道（花荣/燕青/解珍/解宝）：起手基础秒数 + 距离/飞行速度(格/秒)，4.5格约 0.55s。</summary>
         public float ArrowBase = 0.26f;
@@ -354,6 +356,7 @@ namespace Liangshan.Sim
             if (c.Combat.LordWaveSpeed <= 0.5f) c.Combat.LordWaveSpeed = cd.LordWaveSpeed;
             if (c.Combat.ProjPace <= 0.1f) c.Combat.ProjPace = cd.ProjPace;
             if (c.Combat.VfxPace <= 0.1f) c.Combat.VfxPace = cd.VfxPace;
+            if (c.Combat.MinAtkInterval <= 0.15f) c.Combat.MinAtkInterval = cd.MinAtkInterval;
             if (c.Combat.ArrowBase <= 0.02f) c.Combat.ArrowBase = cd.ArrowBase;
             if (c.Combat.ArrowSpeed <= 0.5f) c.Combat.ArrowSpeed = cd.ArrowSpeed;
             if (c.Combat.SpearBase <= 0.02f) c.Combat.SpearBase = cd.SpearBase;
@@ -642,6 +645,7 @@ namespace Liangshan.Sim
                     LordWaveSpeed = c.LordWaveSpeed,
                     ProjPace = c.ProjPace,
                     VfxPace = c.VfxPace,
+                    MinAtkInterval = c.MinAtkInterval,
                     ArrowBase = c.ArrowBase,
                     ArrowSpeed = c.ArrowSpeed,
                     SpearBase = c.SpearBase,

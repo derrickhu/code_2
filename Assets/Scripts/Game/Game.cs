@@ -185,6 +185,7 @@ namespace Liangshan
 
         void Clear()
         {
+            Ads.SyncCustomFloat(false);
             MuteForeignCameras();
             if (_battle) Destroy(_battle.gameObject);
             _battle = null;
@@ -205,6 +206,7 @@ namespace Liangshan
             _home = HomeScreen.Create(tab);
             Sfx.PlayMusic(Bgm.Menu);
             RankService.SubmitIfChanged();
+            GameClubWatcher.EnsureBackgroundHook();
             if (_pendingReveal.HasValue && _autoSkill < 0)
             {
                 var h = _pendingReveal.Value;
@@ -295,8 +297,10 @@ namespace Liangshan
         {
             var s = Profile.S;
             bool auto = _autoSkill >= 0;
-            if (st.Mode == StageMode.Daily && s.DailyTries >= Meta.DailyTriesMax && !auto) { Ui.Toast("今日挑战次数已用完", 200); return false; }
-            if (st.Mode == StageMode.Escort && s.EscortTries >= Meta.EscortTriesMax && !auto) { Ui.Toast("今日截纲次数已用完", 200); return false; }
+            int maxDaily = Meta.DailyTriesMax + s.AdDailyTries;
+            int maxEscort = Meta.EscortTriesMax + s.AdEscortTries;
+            if (st.Mode == StageMode.Daily && s.DailyTries >= maxDaily && !auto) { Ui.Toast("今日挑战次数已用完", 200); return false; }
+            if (st.Mode == StageMode.Escort && s.EscortTries >= maxEscort && !auto) { Ui.Toast("今日截纲次数已用完", 200); return false; }
             if (!auto && !Meta.Spend(s, Cur.Stamina, Meta.BattleStamina))
             {
                 if (_home) MetaUi.StaminaShop(_home.Layer);
@@ -1431,8 +1435,10 @@ namespace Liangshan
                 s.Totems.Clear();
                 var rng = new Rng(7);
                 var a = Meta.RollTotem(s, 2, rng, 0);
+                a.Beast = 0;
                 a.Kind = 0;
                 var b = Meta.RollTotem(s, 3, rng, 0);
+                b.Beast = 2;
                 b.Kind = 8;
                 Meta.ToggleInlayTotem(s, a.Id);
                 Meta.ToggleInlayTotem(s, b.Id);

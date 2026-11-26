@@ -110,6 +110,8 @@ namespace Liangshan.Sim
         public int NextTotemId = 1, TotemPity;
         /// <summary>聚义信物已消耗点数、每周半价碎片计数、跳过招募动画、整日2倍速日期、今日无损撤退与广告计数、首次出橙标记。</summary>
         public int CreditSpent, ShardWeek, SkipRecruitAnim, Speed2Day, FreeRetreats, AdStart2Star, AdTakeAll, LegendPulled;
+        /// <summary>每日广告扩展计数：兽魂免费寻宝、神兵装备箱免费开启、日常挑战加次、生辰纲加次、每日福利加赠日期、插屏展示次数。</summary>
+        public int AdTotem, AdGearBox, AdDailyTries, AdEscortTries, AdWelfareDay, AdInterstitial;
         /// <summary>最近一次主线战败的关卡号。援军开局只在这一关还没打过时出现。</summary>
         public int LostStage;
         public int[] WeeklyShardBought = new int[0];
@@ -118,6 +120,11 @@ namespace Liangshan.Sim
         public string Nick = "";
         /// <summary>敌军图鉴三大分类（小怪/精英/首领）收集宝箱已领取位。</summary>
         public int CodexBox;
+        /// <summary>微信游戏圈：是否已入圈、跨天同步日期+1、是否已浏览面板、当日与累计互动计数、一次性与日常任务领取位。</summary>
+        public int ClubJoined, ClubSyncDay, ClubSeen;
+        public int ClubDayLikes, ClubDayComments, ClubDayPosts;
+        public int ClubTotalLikes, ClubTotalComments, ClubTotalPosts;
+        public int ClubOnceGot, ClubDailyGot;
     }
 
     public enum Cur { Ingot, Copper, Iron, Token, Stamina, Shard, Page, Tome, Silk, Meteor, GearBox, AnyShard, Refine, Hammer }
@@ -190,6 +197,7 @@ namespace Liangshan.Sim
         public const int StaminaSec = 300;
         public const int BattleStamina = 5;
         public const int AdIngotsMax = 5, AdStaminaMax = 3, AdRecruitMax = 3, AdIdleMax = 3, DailyTriesMax = 2, EscortTriesMax = 2, ShopStaminaMax = 2;
+        public const int AdTotemMax = 2, AdGearBoxMax = 2, AdDailyTriesMax = 2, AdEscortTriesMax = 2, InterstitialDailyMax = 6;
         public const int TalentStep = 5;
         public const float BaseAtk = 50f, BaseCrit = 0.05f, BaseCritDmg = 1.5f;
         /// <summary>任意好汉每升一级，全军暴击伤害 +1%。</summary>
@@ -288,6 +296,8 @@ namespace Liangshan.Sim
             s.ActBox = 0;
             s.AdIngots = s.AdStamina = s.AdRecruit = s.AdIdle = s.DailyTries = s.EscortTries = s.ShopStamina = s.Meals = 0;
             s.FreeRetreats = s.AdStart2Star = s.AdTakeAll = s.RankLikes = 0;
+            s.AdTotem = s.AdGearBox = s.AdDailyTries = s.AdEscortTries = s.AdInterstitial = 0;
+            EnsureClubDay(s, day);
             Progress(s, Act.Login);
         }
 

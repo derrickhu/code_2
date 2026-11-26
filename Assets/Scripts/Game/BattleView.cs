@@ -674,10 +674,10 @@ namespace Liangshan
                         fx.ScreenFlash(Pal.Hex("FFE296").A(0.16f), 0.26f);
                         fx.Shake(0.08f, 0.2f);
                         Sfx.Play(Snd.Awaken, 0.88f);
-                        string why = e.Value == 0 ? "本命奥义觉醒！" : "三词条奥义觉醒！";
+                        string why = e.Value == 0 ? "本命奥义觉醒" : "三词条奥义觉醒";
                         string sub = hd.Buff.HasValue
-                            ? $"{why}光环与加持 +40% · 攻速 +20%"
-                            : $"{why}终伤 +45% · 攻速 +20% · 每3轮迸发弹幕";
+                            ? why + "\n光环与加持 +40% · 攻速 +20%"
+                            : why + "\n终伤 +45% · 攻速 +20% · 每3轮弹幕";
                         Hud.Banner($"{hd.Name} · {kit.FinisherName}", sub, Pal.Gold, hd.Art, true);
                         break;
                     }

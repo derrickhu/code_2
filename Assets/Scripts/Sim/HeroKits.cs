@@ -354,10 +354,10 @@ namespace Liangshan.Sim
             Put(K(HeroId.XieZhen,
                 "穿林鹰眼", "sk_trait_exec", TraitKind.FlyBonus, 0.35f, 0, "山林老猎手专射飞禽，对鹰隼与孔明灯伤害 +{tv%}",
                 "登州猎户", "sk_sig_combo", SigKind.EveryNCast, 3, 1f, 2f, "每第 {sn} 轮拉满强弓搭双矢：当轮额外多射 {sv} 支必暴追猎箭",
-                "sk_aoyi_arrow", "终伤 +{awkDmg%}，攻速 +{awkSpd%}；当场齐射穿林箭阵，之后每 3 轮普攻额外连发 3 支猎魂快箭",
+                "sk_aoyi_arrow", "终伤 +{awkDmg%}，攻速 +{awkSpd%}；当场狙射穿林破甲重矢，之后每 3 轮普攻额外追射 1 支必暴追猎重箭（优先飞禽与精英）",
                 "追风毒镝", Eff.Dmg, 0.52f, Eff.Speed, 0.28f, "猎箭伤害 +{ov%}\n攻速 +{ov2%}",
                 "每第 3 轮追猎双矢对精英与飞行敌军伤害再 +35%",
-                "「穿林猎弓」伤害 +15%，奥义「两头蛇穿林」连射伤害 +35%"));
+                "「穿林猎弓」伤害 +15%，奥义「两头蛇穿林」重箭伤害 +35%"));
 
             Put(K(HeroId.XieBao,
                 "倒钩淬毒", "sk_trait_elem", TraitKind.DotBonus, 0.25f, 0, "三股钢叉涂满蝎毒，穿透 1 人且毒伤额外 +{tv%}",

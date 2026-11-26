@@ -1,0 +1,17 @@
+Create a clean 3 columns x 2 rows RPG equipment icon sheet (6 items total) in **OPTION C: Radiant Enamel & Luminous Jade-Crystal Style (琉璃珐琅晶曜高对比风 — benchmarked against top-grossing WeChat minigame mythic gear icons designed to pop brilliantly on dark slate UI slots)**.
+
+STRICT VISUAL RULES FOR OPTION C:
+1. CLOISONNÉ GOLD ENAMEL & LUMINOUS INNER GEM GLOW: Every icon has a **thick dark midnight-indigo outer contour (#1A162B)** that locks in ultra-vibrant, jewel-like materials — gleaming gold cloisonné borders, translucent glowing ice-crystal steel, radiant emerald-jade with internal subsurface light, and rich royal-blue enamel!
+2. ZERO EXTERNAL FOG: All brilliance, specular stars, and crystal luminance are 100% CONTAINED INSIDE the crisp dark outer outline! Zero blurry outer aura bleeding onto the background.
+3. CHUNKY Q-VERSION MYTHIC PROPORTIONS: Cute, compact, high-impact 2.5-head-tall game icon proportions with large readable forms (zero tiny cluttered mesh).
+4. ISOLATED ON SOLID LIGHT BACKGROUND: Center each of the 6 items with generous empty margin on a completely flat, uniform pale grey-blue background (#E6ECF2). NO UI boxes, NO square tiles, NO grid lines, NO cast shadows.
+
+The 6 items (3 columns x 2 rows):
+- Row 1, Col 1 — Dragon-Spring Sword (龙泉宝剑): Diagonal 45° pointing up-right. Radiant frost-silver & ice-cyan crystal-edged blade with a bright white core spine, ornate cloisonné gold guard with a glowing sapphire gem, royal-blue grip, vivid ruby-red silk tassel.
+- Row 1, Col 2 — Marshal Fur Cloak (统帅披风): Front 3/4 view. Rich royal-sapphire cape with subtle luminous gold cloud hem trim, snow-white plush fur collar with cool cyan rim light, and a gleaming gold medallion set with a glowing aqua crystal.
+- Row 1, Col 3 — Celadon Jade Pendant (青玉瑞兽佩): Translucent luminous imperial-mint jade amulet glowing softly from within, framed in polished gold filigree, cute mythical beast relief, vibrant crimson cord and tassel.
+- Row 2, Col 1 — Coiled Golden Dragon Totem (盘龙金角): Radiant burnished-gold Q-version Chinese dragon figurine with warm amber-gold subsurface brilliance, bright white-gold rim highlights, expressive glowing eyes, wrapped with a vibrant crimson silk ribbon.
+- Row 2, Col 2 — Phoenix-Wing Helmet (凤翅兜鍪): Sapphire-enamel & silver helm crowned with radiant golden phoenix wings, a glowing sky-blue diamond gem on the brow, and a fiery scarlet-orange plume.
+- Row 2, Col 3 — Bright-Mirror Cuirass (明光宝铠): Gleaming mirror-silver & ice-blue breastplate with bold gold cloisonné borders, royal-blue under-armor, radiant golden lion-head waist emblem with glowing blue eyes.
+
+NO TEXT, no labels, no letters, no numbers, no Chinese characters, no frames, no watermarks anywhere in the image.

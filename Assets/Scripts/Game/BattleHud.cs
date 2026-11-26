@@ -731,25 +731,46 @@ namespace Liangshan
         void ShowBanner(string title, string sub, Color accent, string icon, bool small)
         {
             _bannerBusy = 1.5f;
+            float h = small ? 200f : 228f;
+            float w = 1040f;
             var band = Ui.Rect(_announce, "banner");
             band.anchorMin = band.anchorMax = new Vector2(0.5f, 1f);
-            band.sizeDelta = new Vector2(1080, small ? 170 : 220);
+            band.sizeDelta = new Vector2(w, h);
             band.anchoredPosition = new Vector2(0, -(_st + 640));
             var group = band.gameObject.AddComponent<CanvasGroup>();
             group.blocksRaycasts = false;
-            Ui.Box(band, new Vector2(1200, small ? 170 : 220), Vector2.zero, Pal.Hex("0F1C2A").A(0.84f), Art.White);
-            Ui.Box(band, new Vector2(1200, 6), new Vector2(0, (small ? 85 : 110) - 3), accent, Art.White);
-            Ui.Box(band, new Vector2(1200, 6), new Vector2(0, -(small ? 85 : 110) + 3), accent, Art.White);
+            Ui.Box(band, new Vector2(w, h), Vector2.zero, Pal.Hex("0F1C2A").A(0.92f), Art.White);
+            Ui.Box(band, new Vector2(w, 5), new Vector2(0, h * 0.5f - 2.5f), accent, Art.White);
+            Ui.Box(band, new Vector2(w, 5), new Vector2(0, -h * 0.5f + 2.5f), accent, Art.White);
             var content = Ui.Rect(band, "content");
             content.sizeDelta = band.sizeDelta;
-            float tx = 0;
+            float iconSize = small ? 136f : 176f;
+            float textLeft = -w * 0.5f + 28f;
             if (icon != null)
             {
-                Ui.Icon(content, icon, small ? 150 : 200, new Vector2(-330, 6));
-                tx = 70;
+                float iconX = -w * 0.5f + 20f + iconSize * 0.5f;
+                Ui.Icon(content, icon, iconSize, new Vector2(iconX, 0));
+                textLeft = iconX + iconSize * 0.5f + 16f;
             }
-            Ui.Outlined(content, title, small ? 76 : 100, accent == Pal.TealDeep ? Pal.Hex("FFE9A8") : Pal.Hex("FFE08A"), new Vector2(tx, small ? 18 : 26), new Vector2(800, 130), accent.Mul(0.5f), 4.5f);
-            Ui.Label(content, sub, small ? 32 : 36, Pal.Cream, new Vector2(tx, small ? -46 : -62), new Vector2(800, 50));
+            float textRight = w * 0.5f - 28f;
+            float textW = Mathf.Max(240f, textRight - textLeft);
+            float textCx = (textLeft + textRight) * 0.5f;
+            string[] lines = string.IsNullOrEmpty(sub) ? new string[0] : sub.Split('\n');
+            int titleSize = small ? 46 : 64;
+            int subSize = small ? 30 : 32;
+            // 框高必须盖住字体行高。竖向截断时，框比行高矮一点，Unity 会把整行丢掉，横幅就只剩空底。
+            float titleY = lines.Length > 1 ? 46f : 22f;
+            var titleTx = Ui.Outlined(content, title, titleSize, accent == Pal.TealDeep ? Pal.Hex("FFE9A8") : Pal.Hex("FFE08A"), new Vector2(textCx, titleY), new Vector2(textW, 72f), accent.Mul(0.45f), 3.2f);
+            titleTx.horizontalOverflow = HorizontalWrapMode.Overflow;
+            titleTx.verticalOverflow = VerticalWrapMode.Overflow;
+            float lineH = 40f;
+            float subY = lines.Length > 1 ? -6f : -36f;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var line = Ui.Label(content, lines[i], subSize, Pal.Cream, new Vector2(textCx, subY - i * lineH), new Vector2(textW, lineH), TextAnchor.MiddleCenter);
+                line.horizontalOverflow = HorizontalWrapMode.Overflow;
+                line.verticalOverflow = VerticalWrapMode.Overflow;
+            }
             Tween.Run(band, 1.5f, k =>
             {
                 float x = k < 0.18f ? Mathf.Lerp(1100, 0, Tween.OutCubic(k / 0.18f)) : k > 0.85f ? Mathf.Lerp(0, -1100, Tween.InCubic((k - 0.85f) / 0.15f)) : 0;
@@ -1282,11 +1303,14 @@ namespace Liangshan
             if (tab == 0)
             {
                 float s = spd * Defs.StarSpeed[u.Star - 1] * (1f + B.ChargeAura);
+                float rawCd = B.SkillCd(h) * (1f - StarTraits.Fx(d, u.Star).Cd) / Mathf.Max(0.01f, s);
+                float effCd = d.Buff.HasValue || d.Chan > 0f ? rawCd : Mathf.Max(Defs.MinAtkInterval, rawCd);
+                float overMul = !d.Buff.HasValue && d.Chan <= 0f && rawCd < Defs.MinAtkInterval ? Defs.MinAtkInterval / Mathf.Max(0.05f, rawCd) : 1f;
                 t.Name = d.AtkName;
                 t.Cd = d.Interval;
-                t.Cut = d.Interval - B.SkillCd(h) * (1f - StarTraits.Fx(d, u.Star).Cd) / s;
+                t.Cut = Mathf.Max(0f, d.Interval - effCd);
                 t.Lv = u.Star;
-                t.Desc = HeroText.Atk(d, B, panelAtk, u.Star) + "\n<color=#8E9BAC>" + HeroText.Tip(d) + "</color>";
+                t.Desc = HeroText.Atk(d, B, panelAtk * overMul, u.Star) + "\n<color=#8E9BAC>" + HeroText.Tip(d) + "</color>";
             }
             else if (tab == 1)
             {
@@ -1747,7 +1771,20 @@ namespace Liangshan
                     var orn = Ui.Box(card, new Vector2(12, 12), new Vector2(s * (cw * 0.5f - 28), headY), Color.white.A(0.32f), Art.RoundedSmall);
                     orn.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
                 }
-                Ui.Outlined(card, p.Name, 38, Color.white, new Vector2(0, headY + 1), new Vector2(cw - 48, headH), headC.Mul(0.4f), 2.3f);
+                bool fin = p.Ult || p.Finisher;
+                Ui.Outlined(card, p.Name, fin ? 34 : 38, Color.white, new Vector2(0, headY + (fin ? 16 : 1)), new Vector2(cw - 56, fin ? 40 : headH), headC.Mul(0.4f), 2.3f);
+                if (fin)
+                {
+                    // 顶栏副题，一行四字。不放立绘上的小胶囊，避免「本命奥 / 义」折行。
+                    string kind = p.Ult ? "天 罡 大 招" : "本 命 奥 义";
+                    float kindY = headY - 24f;
+                    Ui.Box(card, new Vector2(28, 2), new Vector2(-86, kindY), Color.white.A(0.55f), Art.White);
+                    Ui.Box(card, new Vector2(28, 2), new Vector2(86, kindY), Color.white.A(0.55f), Art.White);
+                    var kindTx = Ui.Label(card, kind, 24, Pal.Hex(p.Ult ? "FFE4CC" : "FFE7A8"), new Vector2(0, kindY), new Vector2(cw - 80, 32), TextAnchor.MiddleCenter, Fonts.Heavy);
+                    kindTx.fontSize = 24;
+                    kindTx.horizontalOverflow = HorizontalWrapMode.Overflow;
+                    kindTx.verticalOverflow = VerticalWrapMode.Truncate;
+                }
 
                 // 内衬细线框与底角菱纹
                 float bodyH = chh - headH - 22f;
@@ -1757,16 +1794,14 @@ namespace Liangshan
                 var botDia = Ui.Box(card, new Vector2(12, 12), new Vector2(0, -top + 13), Pal.Hex("D6CEBC"), Art.RoundedSmall);
                 botDia.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
 
-                // 好汉清晰全身立绘 + 接地阴影（无贴纸遮挡脚部）；大招/奥义右上角挂精致技能徽记与丝带标
+                // 好汉立绘居中；大招/奥义只在右上留技能徽，类别写在顶栏，不挡人和弓。
                 Ui.Box(card, new Vector2(150, 32), new Vector2(0, 30), new Color(0.05f, 0.1f, 0.16f, 0.14f), Art.GroundShadow);
-                Ui.Icon(card, PerkIcon(p), 178, new Vector2(0, 104));
-                if (p.Ult || p.Finisher)
+                Ui.Icon(card, PerkIcon(p), 178, new Vector2(0, 96));
+                if (fin)
                 {
                     var kit = HeroKits.Of(p.Hero);
                     string skIc = p.Ult ? (hd.UltIcon ?? hd.AtkIcon) : kit.FinisherIcon;
-                    MetaFx.Hex(card, skIc, 58, new Vector2(cw * 0.5f - 52f, 164f), false, hd.Rarity);
-                    var pill = Ui.Box(card, new Vector2(82, 30), new Vector2(-cw * 0.5f + 62f, 168f), p.Ult ? Pal.Hex("D84A1E") : Pal.Hex("C48A14"), Art.Pill);
-                    Ui.Outlined(pill.transform, p.Ult ? "天罡大招" : "本命奥义", 18, Color.white, Vector2.zero, new Vector2(82, 30), Pal.Ink, 1.4f);
+                    MetaFx.Hex(card, skIc, 54, new Vector2(cw * 0.5f - 48f, 148f), false, hd.Rarity);
                 }
 
                 Ui.Label(card, $"{hd.Name} · {hd.Role}", 23, Pal.Hex("5E7082"), new Vector2(0, -6), new Vector2(cw - 48, 32), TextAnchor.MiddleCenter, Fonts.Heavy);
@@ -2370,7 +2405,12 @@ namespace Liangshan
                         Sfx.Play(Snd.Jackpot, 0.6f);
                     });
                 }, 40, "ic_ad");
-                Ui.Btn(c, "返回", new Vector2(340, 124), new Vector2(190, btnY), Pal.Slate, () => { CloseModal(); Game.I.ShowHome(); }, 46);
+                Ui.Btn(c, "返回", new Vector2(340, 124), new Vector2(190, btnY), Pal.Slate, () =>
+                {
+                    CloseModal();
+                    Game.I.ShowHome();
+                    if (!doubled) Ads.TryInterstitial("win_return");
+                }, 46);
                 if (_v.Auto != null) Tween.Run(c, 3f, k => { }, () => Game.I.OnAutoDone(true));
             }
             else
@@ -2388,8 +2428,11 @@ namespace Liangshan
                     Game.I.Settle(B, false);
                     CloseModal();
                     Game.I.ShowHome(tab);
+                    Ads.TryInterstitial("lose_return");
                 }
+                bool canLoseDouble = B.RevivedOnce && pre.Items.Count > 0;
                 if (!B.RevivedOnce)
+                {
                     Ui.Btn(c, "复活再战", new Vector2(340, 124), new Vector2(-340, -640), Pal.Teal, () =>
                     {
                         FakeAd("revive", () =>
@@ -2399,8 +2442,24 @@ namespace Liangshan
                             Sfx.PlayMusic(Bgm.Battle);
                         });
                     }, 44, "ic_ad");
-                Ui.Btn(c, "去养成", new Vector2(280, 124), new Vector2(B.RevivedOnce ? -170 : 0, -640), Pal.Hex("F2B632"), () => Leave(1), 44);
-                Ui.Btn(c, "返回", new Vector2(260, 124), new Vector2(B.RevivedOnce ? 170 : 330, -640), Pal.Slate, () => Leave(2), 44);
+                }
+                else if (canLoseDouble)
+                {
+                    Ui.Btn(c, "双倍抚恤", new Vector2(340, 124), new Vector2(-340, -640), Pal.Teal, () =>
+                    {
+                        FakeAd("lose_double", () =>
+                        {
+                            var settled = Game.I.Settle(B, false);
+                            Game.I.GiveAgain(settled);
+                            CloseModal();
+                            Game.I.ShowHome(2);
+                            Ui.Toast("战败抚恤已翻倍领取", 200);
+                        });
+                    }, 40, "ic_ad");
+                }
+                bool threeBtns = !B.RevivedOnce || canLoseDouble;
+                Ui.Btn(c, "去养成", new Vector2(280, 124), new Vector2(threeBtns ? 0 : -170, -640), Pal.Hex("F2B632"), () => Leave(1), 44);
+                Ui.Btn(c, "返回", new Vector2(260, 124), new Vector2(threeBtns ? 330 : 170, -640), Pal.Slate, () => Leave(2), 44);
                 if (_v.Auto != null) Tween.Run(c, 3f, k => { }, () => { Game.I.Settle(B, false); Game.I.OnAutoDone(false); });
             }
             Tween.Pop(band, 0.3f);

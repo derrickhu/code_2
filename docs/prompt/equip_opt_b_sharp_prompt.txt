@@ -1,0 +1,19 @@
+Create a clean 4 columns x 2 rows equipment icon sheet (8 items) in **OPTION B: Crisp Sharp Cel-Shaded Heroic Style (利落硬朗国漫切面风)**, benchmarked against Forever Blue Planet's Zhao Yun and Blademaster icons. Do NOT draw any characters, hands, or faces.
+
+STRICT VISUAL RULES FOR OPTION B:
+1. RAZOR-SHARP FACETS: blades, gems, and metal edges have needle-sharp points, crisp angular geometric facets, and a hard central ridge. Cloth and fur stay bold and readable, not floppy.
+2. BOLD DARK ESPRESSO INK OUTLINE (#1E1512): thick outer ink contour with sharp corner miters.
+3. CLEAN 2-TONE ANIME CEL-SHADING: 100% solid opaque flat color zones with hard-edged specular slashes. Zero hatching, zero blur, zero outer glow.
+4. LAYOUT: each icon centered with wide margin on a flat solid pale grey-blue background (#D8E0E8). No grid lines, no frames, no shadows.
+
+The 8 cells, left to right, top row then bottom row:
+- (1,1) Dragon-Spring Sword pointing up-right: angular diamond-faceted ice-silver blade, sharp gold wing guard, one blue diamond gem, dark wrapped grip, crisp red tassel.
+- (1,2) Marshal Cloak: royal-blue cape with sharp folded planes, cream fur collar in angular clumps, gold clasp and a single gold stripe.
+- (1,3) Military Manual: closed red book with sharp gold corner plates, a crisp green jade S clasp, short red bookmark.
+- (1,4) Apricot Battle Flag: straight pole, gold spear finial, rectangular apricot-yellow flag with a sharp red border and three angular red swallow tails. No writing.
+- (2,1) Green-Jade Pendant: faceted celadon jade plaque, gold rim, a sharp stylized dragon face in relief, red cord and tassel.
+- (2,2) Phoenix-Wing Helmet: angular steel-blue helm, gold brow, blue diamond gem, sharp gold wings, a stiff red plume.
+- (2,3) Cloud-Step Boots: a pair of royal-blue boots with sharp gold edges and one angular silver cloud on each shin.
+- (2,4) Bright-Mirror Armor: faceted silver cuirass, blue collar, gold belt, an angular lion-face buckle. No tiny hex mesh.
+
+NO TEXT, no labels, no captions, no Chinese characters, no letters, no numbers, no watermarks anywhere in the image.

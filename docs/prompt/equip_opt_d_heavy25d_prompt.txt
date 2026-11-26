@@ -1,0 +1,19 @@
+Create a clean 4 columns x 2 rows equipment icon sheet (8 items) in **OPTION D: Glossy 2.5D Heavy Painted Style (厚涂重金属立体质感风)**, like a Supercell / Clash Royale premium equipment icon. Do NOT draw any characters, hands, or faces.
+
+STRICT VISUAL RULES FOR OPTION D:
+1. RICH 2.5D SCULPTED VOLUME: strong top-left key light, metallic gradients, chunky beveled edges, warm rim light, deep dark silhouette edge (#201612). Looks like a painted miniature, not a flat sticker.
+2. CHUNKY but still a single clear icon. No tiny rivet fields, no hex mesh, no unreadable engraving.
+3. 100% opaque pixels. Zero haze, zero motion blur, zero misty aura.
+4. LAYOUT: each icon centered with wide margin on a flat solid pale grey-blue background (#D8E0E8). No grid lines, no frames, no cast shadows on the background.
+
+The 8 cells, left to right, top row then bottom row:
+- (1,1) Dragon-Spring Sword pointing up-right: thick beveled polished-steel blade, sculpted gold guard, one blue cabochon, dark grip, heavy red tassel.
+- (1,2) Marshal Cloak: heavy royal-blue cloth with sculpted folds, thick cream fur, a chunky gold clasp.
+- (1,3) Military Manual: thick red leather book, heavy gold corner caps, a sculpted green jade S clasp, red bookmark.
+- (1,4) Apricot Battle Flag: heavy wooden pole, gold finial and tassel, a thick apricot-yellow cloth flag with a red border and three red ribbons. No writing.
+- (2,1) Green-Jade Pendant: sculpted celadon jade plaque with a rounded dragon relief, thick gold bezel, red cord and tassel.
+- (2,2) Phoenix-Wing Helmet: heavy steel-blue helm with gold bevels, a blue gem, small gold wings, a thick red plume.
+- (2,3) Cloud-Step Boots: a pair of heavy royal-blue boots with thick gold rims and a sculpted silver cloud on each shin.
+- (2,4) Bright-Mirror Armor: heavy silver cuirass with broad plates, blue collar, thick gold belt, a sculpted lion buckle.
+
+NO TEXT, no labels, no captions, no Chinese characters, no letters, no numbers, no watermarks anywhere in the image.

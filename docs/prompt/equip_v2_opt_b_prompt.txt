@@ -1,0 +1,19 @@
+Use the attached reference image ONLY for color harmony with our chibi Chinese hero character. Do NOT draw any human characters or UI frames.
+
+Create a clean 3 columns x 2 rows RPG equipment icon sheet (6 items total) in **OPTION B: Crisp Guochao Cel-Shaded Heroic Style (蔚蓝国潮硬朗切面风 — benchmarked against "Forever Blue Planet" 永远的蔚蓝星球 high-tier hero gear & anime weapon icons)**.
+
+STRICT VISUAL RULES FOR OPTION B:
+1. CRISP GEOMETRIC BEVELS & HEROIC SHARPNESS: Combines bold Q-version chunky silhouettes with razor-crisp metallic facets, sharp blade tips, dynamic windswept tassels, and bold anime 2-tone + specular-slash cel-shading! Metals look forged and gleaming with sharp white diagonal reflection bands.
+2. BOLD DEEP ESPRESSO-INK OUTER CONTOUR (#1E1624): Thick, crisp outer ink line with confident sharp corner miters, plus clean thinner inner linework defining armor plates and cloud motifs.
+3. HIGH-CLARITY SATURATED PALETTE: Brilliant cold-steel silver, burnished imperial gold (#FFC83D), deep royal cobalt blue, vivid vermilion red, and clear imperial jade — zero muddy grey or dusty brown.
+4. ISOLATED ON SOLID LIGHT BACKGROUND: Center each of the 6 items with generous empty margin on a completely flat, uniform pale grey-blue background (#E6ECF2). NO UI boxes, NO square tiles, NO grid lines, NO cast shadows.
+
+The 6 items (3 columns x 2 rows):
+- Row 1, Col 1 — Dragon-Spring Sword (龙泉宝剑): Diagonal 45° pointing up-right. Crisp diamond-faceted cold-silver broad-jian with razor central ridge and diagonal white gleam slash, sharp golden cloud-wing guard with faceted blue sapphire, dark-blue wrapped hilt, dynamic crimson tassel.
+- Row 1, Col 2 — Marshal Fur Cloak (统帅披风): Front 3/4 view. Heroic flared royal-blue war cloak with crisp cel-shaded fabric planes, bold gold trim, spiky-fluffy stylized white wolf-fur collar, and an angular golden star-emblem clasp with a blue gem.
+- Row 1, Col 3 — Celadon Jade Pendant (青玉瑞兽佩): Octagonal-shield translucent emerald-celadon jade talisman with crisp faceted bevels in a sharp gold bezel, stylized fierce chibi dragon-beast relief, braided red knot and crisp red tassel.
+- Row 2, Col 1 — Coiled Golden Dragon Totem (盘龙金角): Fierce-cute stylized Q-version golden Chinese dragon coiled in an S-curve, crisp horned silhouette, gleaming gold cel-shaded armor scales (large clean geometric plates), and a dynamic flowing crimson silk ribbon.
+- Row 2, Col 2 — Phoenix-Wing Helmet (凤翅兜鍪): Crisp steel-blue general helmet with sharp swept-back golden phoenix-feather wings on both sides, faceted forehead sapphire gem, golden cloud cheek guards, and a bold flame-like red plume.
+- Row 2, Col 3 — Bright-Mirror Cuirass (明光宝铠): Heroic Q-proportioned silver-steel cuirass with clean layered geometric plates and crisp specular slashes, royal-blue trim, angular golden pauldrons, and a bold stylized golden lion-head belt clasp.
+
+NO TEXT, no labels, no letters, no numbers, no Chinese characters, no frames, no watermarks anywhere in the image.

@@ -105,6 +105,7 @@ namespace Liangshan
                 case TabFort: BuildFort(anim); break;
                 default: BuildBattle(anim); break;
             }
+            Ads.SyncCustomFloat(_tab == TabBattle);
             // 页面内容收进 body，切页时只让 body 淡入滑入，顶栏和页签不闪
             var body = Ui.Rect(_page, "body");
             Stretch(body);
@@ -353,13 +354,15 @@ namespace Liangshan
             int stars = Meta.ChapterStars(S, st.Chapter);
             int chap = st.Chapter;
             bool chapDot = ChestBadge(chap);
-            float colY = 258 + sp * 0.04f;
+            float colY = 252 + sp * 0.04f;
             float colStep = 132 + sp * 0.025f;
-            SideDock(-468, colY, colStep, 4);
+            float colStepL = 120 + sp * 0.022f;
+            SideDock(-468, colY, colStepL, 5);
             SideBtn(-468, colY, "tab_welfare", "福利", Meta.CanWelfare(S, day), () => MetaUi.Welfare(Layer));
-            SideBtn(-468, colY + colStep, "tab_gift", "签到", Meta.CanSign(S, day), () => MetaUi.SignIn(Layer));
-            SideBtn(-468, colY + colStep * 2, "ic_feast", "聚义宴", MealBadge(), () => MetaUi.Meals(Layer));
-            var starBtn = SideBtn(-468, colY + colStep * 3, "ic_chest_gold", $"★{stars}/30", chapDot, () => MetaUi.ChapterChests(Layer, chap));
+            SideBtn(-468, colY + colStepL, "tab_club", "游戏圈", Meta.ClubBadge(S, day), () => MetaUi.GameClub(Layer));
+            SideBtn(-468, colY + colStepL * 2, "tab_gift", "签到", Meta.CanSign(S, day), () => MetaUi.SignIn(Layer));
+            SideBtn(-468, colY + colStepL * 3, "ic_feast", "聚义宴", MealBadge(), () => MetaUi.Meals(Layer));
+            var starBtn = SideBtn(-468, colY + colStepL * 4, "ic_chest_gold", $"★{stars}/30", chapDot, () => MetaUi.ChapterChests(Layer, chap));
             if (chapDot)
             {
                 var chestIc = starBtn.GetChild(2);
@@ -1963,11 +1966,31 @@ namespace Liangshan
             boxRow.sizeDelta = new Vector2(960, 118);
             Ui.Skin(boxRow, "row", new Vector2(960, 118), Vector2.zero, 1f, Pal.Hex("F6F2E8"));
             Ui.Icon(boxRow, "ic_gearbox", 86, new Vector2(-412, 1));
-            var gbTitle = Ui.Label(boxRow, $"神兵装备箱 ×{S.GearBoxes}", 30, Pal.Ink, new Vector2(-48, 22), new Vector2(600, 38), TextAnchor.MiddleLeft, Fonts.Heavy);
+            int adBoxLeft = Meta.AdGearBoxMax - S.AdGearBox;
+            bool canAdBox = S.GearBoxes <= 0 && adBoxLeft > 0;
+            string gbTitleTxt = canAdBox
+                ? $"神兵装备箱 ×0  <color=#1E8A48>免费 {adBoxLeft}/{Meta.AdGearBoxMax}</color>"
+                : $"神兵装备箱 ×{S.GearBoxes}";
+            var gbTitle = Ui.Label(boxRow, gbTitleTxt, 30, Pal.Ink, new Vector2(-48, 22), new Vector2(600, 38), TextAnchor.MiddleLeft, Fonts.Heavy);
             gbTitle.horizontalOverflow = HorizontalWrapMode.Overflow;
             var gbDesc = Ui.Label(boxRow, "开启必得精良~传说装备，低阶自动熔炼精铁", 20, Pal.SubInk, new Vector2(-48, -21), new Vector2(600, 32), TextAnchor.MiddleLeft);
             gbDesc.horizontalOverflow = HorizontalWrapMode.Overflow;
-            var openBtn = Ui.Btn(boxRow, "开启", new Vector2(188, 76), new Vector2(360, 0), S.GearBoxes > 0 ? Pal.Gold : Pal.Slate, () => MetaUi.GearBox(Layer, re), 34);
+            var openBtn = Ui.Btn(boxRow, canAdBox ? "免费开箱" : "开启", new Vector2(canAdBox ? 204 : 188, 76), new Vector2(canAdBox ? 352 : 360, 0),
+                S.GearBoxes > 0 ? Pal.Gold : canAdBox ? Pal.Green : Pal.Slate, () =>
+                {
+                    if (canAdBox)
+                    {
+                        Ads.Show("gear_box", () =>
+                        {
+                            S.AdGearBox++;
+                            S.GearBoxes++;
+                            Profile.Save();
+                            MetaUi.GearBox(Layer, re);
+                        });
+                        return;
+                    }
+                    MetaUi.GearBox(Layer, re);
+                }, canAdBox ? 30 : 34, canAdBox ? "ic_ad" : null);
             if (S.GearBoxes > 0) MetaUi.Dot(openBtn, new Vector2(80, 31));
 
             // 六部位属性与突破一览双列卡（紧凑排版留出底部安全边距，避免压到页签盾徽）
@@ -2077,9 +2100,9 @@ namespace Liangshan
                     Ui.Outlined(c, b.Name, 31, Paper, new Vector2(20f, 1f), new Vector2(146, 48), Ink, 2.0f);
 
                 bool dot = i == 0 ? Meta.CodexBadge(S) > 0
-                    : i == 1 ? (dOpen && S.DailyTries < Meta.DailyTriesMax)
+                    : i == 1 ? (dOpen && S.DailyTries < Meta.DailyTriesMax + S.AdDailyTries)
                     : i == 2 ? RankBadge()
-                    : i == 3 ? (eOpen && S.EscortTries < Meta.EscortTriesMax)
+                    : i == 3 ? (eOpen && S.EscortTries < Meta.EscortTriesMax + S.AdEscortTries)
                     : IdleBadge();
                 if (dot) MetaUi.Dot(c, new Vector2(pw * 0.5f - 8f, ph * 0.5f - 2f));
 
@@ -2357,15 +2380,19 @@ namespace Liangshan
                 new Vector2(22f, tCtrlY + 1f), new Vector2(760, 38), Pal.Hex("160B2C"), 1.5f);
 
             const float tBtnY = -278f;
+            int adTotLeft = Meta.AdTotemMax - S.AdTotem;
+            Ui.SubBtn(totDock, adTotLeft > 0 ? "免费寻宝" : "明日再来", "ic_ad", $"剩余 {adTotLeft}/{Meta.AdTotemMax}",
+                new Vector2(308, 122), new Vector2(-332f, tBtnY), adTotLeft > 0 ? Pal.Green : Pal.Slate, () => DoTotemPull(1, true), 36, 23);
+
             var t1 = Ui.SubBtn(totDock, "寻宝 1 次", S.Hammers >= 1 ? "ic_hammer" : "ic_ingot",
                 S.Hammers >= 1 ? $"{S.Hammers}/1" : Meta.TotemPullIngot1.ToString(),
-                new Vector2(452, 122), new Vector2(-244f, tBtnY), Pal.Azure, () => DoTotemPull(1), 37, 24);
+                new Vector2(308, 122), new Vector2(0f, tBtnY), Pal.Azure, () => DoTotemPull(1, false), 36, 24);
 
             var t10 = Ui.SubBtn(totDock, "寻宝 10 次", S.Hammers >= 10 ? "ic_hammer" : "ic_ingot",
                 S.Hammers >= 10 ? $"{S.Hammers}/10" : $"{Meta.TotemPullIngot10}（九折）",
-                new Vector2(452, 122), new Vector2(244f, tBtnY), Pal.Gold, () => DoTotemPull(10), 37, 24);
-            MetaUi.Badge(t10, "赠洗炼石", Pal.Purple, new Vector2(118, 34), new Vector2(-156, 56), 19);
-            if (S.Hammers >= 1) MetaUi.Dot(S.Hammers >= 10 ? t10 : t1, new Vector2(208, 48));
+                new Vector2(308, 122), new Vector2(332f, tBtnY), Pal.Gold, () => DoTotemPull(10, false), 36, 24);
+            MetaUi.Badge(t10, "赠洗炼石", Pal.Purple, new Vector2(114, 34), new Vector2(-92, 56), 19);
+            if (S.Hammers >= 1) MetaUi.Dot(S.Hammers >= 10 ? t10 : t1, new Vector2(138, 48));
 
             if (anim) Tween.Pop(totDock, 0.28f, 0.06f);
             cursorY += totH + 34f;
@@ -2412,8 +2439,22 @@ namespace Liangshan
             sr.onValueChanged.AddListener(_ => _shopScroll = content.anchoredPosition.y);
         }
 
-        public void DoTotemPull(int n)
+        public void DoTotemPull(int n, bool ad = false)
         {
+            if (ad)
+            {
+                if (S.AdTotem >= Meta.AdTotemMax) { Ui.Toast("今日免费寻宝次数已用完", 200); return; }
+                Ads.Show("totem_pull", () =>
+                {
+                    S.AdTotem++;
+                    int aSeed = Environment.TickCount ^ (S.NextTotemId * 73856093) ^ (int)(DateTime.UtcNow.Ticks & 0x7FFFFFFF);
+                    var aPulls = Meta.PullTotems(S, 1, new Rng(aSeed));
+                    Profile.Save();
+                    Rebuild(false);
+                    MetaUi.TotemPullResult(Layer, aPulls, () => DoTotemPull(1, false));
+                });
+                return;
+            }
             if (S.Hammers >= n) S.Hammers -= n;
             else
             {
@@ -2429,7 +2470,7 @@ namespace Liangshan
             var pulls = Meta.PullTotems(S, n, new Rng(Environment.TickCount));
             Profile.Save();
             Rebuild(false);
-            MetaUi.TotemPullResult(Layer, pulls, () => DoTotemPull(n));
+            MetaUi.TotemPullResult(Layer, pulls, () => DoTotemPull(n, false));
         }
 
         void Place(RectTransform rt, float x, float y)

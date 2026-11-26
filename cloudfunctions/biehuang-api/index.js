@@ -15,6 +15,7 @@
 const { handleLogin } = require('./lib/auth');
 const { handlePull, handlePush } = require('./lib/save');
 const { handleRankSubmit, handleRankList, handleRankLike } = require('./lib/rank');
+const { handleGameClubSync } = require('./lib/game-club');
 const { respond, parseEvent, preflight } = require('./lib/http');
 
 const ROUTES = {
@@ -26,6 +27,7 @@ const ROUTES = {
   'POST /rank/submit': handleRankSubmit,
   'POST /rank/list': handleRankList,
   'POST /rank/like': handleRankLike,
+  'POST /gameclub/sync': handleGameClubSync,
 };
 
 exports.main = async (event, context) => {

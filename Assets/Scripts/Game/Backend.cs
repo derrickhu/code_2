@@ -32,6 +32,11 @@ namespace Liangshan
         public long updatedAt;
         public CloudPayload payload;
         public CloudRemote remote;
+        public bool joined;
+        public int joinTime;
+        public int dayLikes;
+        public int dayComments;
+        public int dayPosts;
     }
 
     [Serializable]

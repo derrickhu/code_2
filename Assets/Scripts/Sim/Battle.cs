@@ -1764,6 +1764,26 @@ namespace Liangshan.Sim
             return c;
         }
 
+        Enemy PickSnipeTarget(Enemy fallback)
+        {
+            if (FocusEnemyId > 0)
+            {
+                var fe = Find(FocusEnemyId);
+                if (fe != null && !fe.Dead && !fe.Diving && fe.Pos.Y <= Layout.EngageY) return fe;
+            }
+            Enemy best = null;
+            float bestScore = float.MaxValue;
+            foreach (var e in Enemies)
+            {
+                if (e.Dead || e.Diving || e.Pos.Y > Layout.EngageY) continue;
+                float score = e.Pos.Y;
+                if (e.Def.Flying) score -= 12f;
+                else if (e.Big || e.Def.Kind == EnemyKind.Porter) score -= 9f;
+                if (score < bestScore) { bestScore = score; best = e; }
+            }
+            return best ?? fallback;
+        }
+
         Enemy PickTarget(HeroDef def, V2 from, int skip = -1, int star = 1)
         {
             if (FocusEnemyId > 0)
@@ -1819,14 +1839,25 @@ namespace Liangshan.Sim
                 if (Channeling(u)) { u.Cd = 0.1f; continue; }
                 var target = PickTarget(def, s.Pos, -1, u.Star);
                 if (target == null) { u.Cd = 0.1f; continue; }
-                u.Cd = SkillCd(u.Hero) * (1f - StarTraits.Fx(def, u.Star).Cd);
+                float baseCd = SkillCd(u.Hero) * (1f - StarTraits.Fx(def, u.Star).Cd);
                 float dmg = SlotHeroAtk(s) * def.Coef;
                 if (u.Burst) { dmg *= 2.2f; u.Burst = false; }
                 if (u.BlessN > 0 && u.BlessWait <= 0)
                 {
-                    u.Cd /= u.BlessMul;
+                    baseCd /= u.BlessMul;
                     if (--u.BlessN == 0) u.BlessMul = 1f;
                 }
+                // 最短真实出手间隔护栏（0.55s）：防止极端叠攻速把普攻动画压成鬼畜抽搐，超出保底的溢出攻速 1:1 无损折算进单发伤害！
+                if (def.Chan <= 0f && spd > 0.01f)
+                {
+                    float realInterval = baseCd / spd;
+                    if (realInterval < Defs.MinAtkInterval)
+                    {
+                        dmg *= Defs.MinAtkInterval / Math.Max(0.05f, realInterval);
+                        baseCd = Defs.MinAtkInterval * spd;
+                    }
+                }
+                u.Cd = baseCd;
                 float scale = u.Star >= 4 ? 1.32f : u.Star == 3 ? 1.18f : u.Star == 2 ? 1.08f : 1f;
                 if (SlotOf(u.Hero) == s)
                 {
@@ -2321,6 +2352,22 @@ namespace Liangshan.Sim
                     }
                     break;
                 case ShotKind.Arrow:
+                    if (h == HeroId.XieZhen)
+                    {
+                        // 解珍「两头蛇穿林」恪守精准单箭狙杀定位：不乱洒散箭干扰箭数，优先锁定飞禽/精英追射 1 支必暴穿林破甲重矢（总伤等同 3×65% = 195%）！
+                        var snipe = PickSnipeTarget(target);
+                        float v = each * 1.95f * mul;
+                        bool prevSure = _sureCrit;
+                        _sureCrit = true;
+                        bool crit = RollCrit(h, ref v);
+                        _sureCrit = prevSure;
+                        var sh = AddShot(ShotKind.Arrow, h, s.Pos, snipe, v, 0.42f, ShotDur(ShotKind.Arrow, V2.Dist(s.Pos, snipe.Pos)) * 0.88f, crit);
+                        sh.Pierce = chain;
+                        sh.Scale = 1.45f;
+                        sh.T = -0.14f;
+                        AimPierce(sh, s.Pos, snipe, sh.Pierce);
+                        break;
+                    }
                     for (int k = 0; k < 3; k++)
                     {
                         var t = front.Count > 0 ? front[_rng.Int(Math.Min(front.Count, 10))] : target;

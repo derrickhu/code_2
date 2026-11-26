@@ -234,29 +234,29 @@ namespace Liangshan.Sim
         {
             // ---------- 初始四人与早期入伙 ----------
             new HeroDef { Id = HeroId.HuaRong, Name = "花荣", Nick = "小李广", Kind = Sim.Role.Archer, Rarity = 3, Art = "hero_huarong",
-                Shot = ShotKind.Arrow, Coef = 1.84f, Interval = 1.46f, Chain = 1, PierceGrow = 0.22f, AtkName = "穿云箭", AtkIcon = "wp_arrow_cloud", Proj = "wp_arrow_cloud", ProjSize = 1.12f, Tint = "58F2C8", Noun = "箭",
+                Shot = ShotKind.Arrow, Coef = 2.96f, Interval = 2.35f, Chain = 1, PierceGrow = 0.22f, AtkName = "穿云箭", AtkIcon = "wp_arrow_cloud", Proj = "wp_arrow_cloud", ProjSize = 1.12f, Tint = "58F2C8", Noun = "箭",
                 PassiveName = "百步穿杨", PassiveEff = Eff.Crit, PassiveV = 0.18f, Desc = "一箭穿云，每穿透一敌伤害递增" },
             new HeroDef { Id = HeroId.LingZhen, Name = "凌振", Nick = "轰天雷", Kind = Sim.Role.Bomber, Rarity = 3, Art = "hero_lingzhen", Element = "火系",
                 Shot = ShotKind.Bomb, Coef = 2.85f, Interval = 4.10f, Radius = 1.25f, Knock = 0.32f, AtkName = "霹雳重炮", AtkIcon = "wp_cannon_shell", Proj = "wp_cannon_shell", ProjSize = 1.08f, Tint = "FF7828", Noun = "重炮",
                 PassiveName = "火药精通", PassiveEff = Eff.Area, PassiveV = 0.25f, Desc = "重型轰天巨炮，大口径震退敌潮" },
             new HeroDef { Id = HeroId.GongSun, Name = "公孙胜", Nick = "入云龙", Kind = Sim.Role.Mage, Rarity = 4, Art = "hero_gongsun", Element = "雷系",
-                Shot = ShotKind.Lightning, Coef = 2.55f, Interval = 3.30f, Radius = 0.88f, Chain = 1, AtkName = "天罡雷链", AtkIcon = "fx_zap", Tint = "9AB8FF", Noun = "落雷",
+                Shot = ShotKind.Lightning, Coef = 2.78f, Interval = 3.60f, Radius = 0.88f, Chain = 1, AtkName = "天罡雷链", AtkIcon = "fx_zap", Tint = "9AB8FF", Noun = "落雷",
                 Ult = UltKind.Thunder, UltName = "五雷天罡", UltIcon = "fx_lightning", UltCoef = 2.8f, UltCd = 30, UltN = 8, UltStun = 1f, UltRadius = 1.15f,
                 UltTip = "8道天雷劈向敌群\n每道麻痹1秒",
                 PassiveName = "入云龙", PassiveEff = Eff.Chain, PassiveV = 2, Desc = "引一道天雷劈敌并跃迁传导，随强化进化连环雷网" },
             new HeroDef { Id = HeroId.WuSong, Name = "武松", Nick = "行者", Kind = Sim.Role.Fighter, Rarity = 3, Art = "hero_wusong",
-                Shot = ShotKind.Punch, Coef = 2.95f, Interval = 2.95f, Range = 4.8f, Radius = 0.92f, Knock = 0.65f, AtkName = "打虎铁拳", AtkIcon = "wp_ironfist", Proj = "wp_ironfist", Tint = "FFB438", Noun = "铁拳",
+                Shot = ShotKind.Punch, Coef = 3.15f, Interval = 3.15f, Range = 4.8f, Radius = 0.92f, Knock = 0.65f, AtkName = "打虎铁拳", AtkIcon = "wp_ironfist", Proj = "wp_ironfist", Tint = "FFB438", Noun = "铁拳",
                 PassiveName = "景阳冈打虎", PassiveEff = Eff.Elite, PassiveV = 0.6f, Desc = "势大力沉一记重拳，震退贴墙敌军" },
             new HeroDef { Id = HeroId.ZhangQing, Name = "张清", Nick = "没羽箭", Kind = Sim.Role.Archer, Rarity = 3, Art = "hero_zhangqing",
-                Shot = ShotKind.Stone, Coef = 1.46f, Interval = 1.16f, Radius = 0.32f, Chain = 2, AtkName = "飞石", AtkIcon = "wp_jade_stone", Proj = "wp_jade_stone", ProjSize = 1.04f, Tint = "5CE8FF", Noun = "飞石",
+                Shot = ShotKind.Stone, Coef = 2.71f, Interval = 2.15f, Radius = 0.32f, Chain = 2, AtkName = "飞石", AtkIcon = "wp_jade_stone", Proj = "wp_jade_stone", ProjSize = 1.04f, Tint = "5CE8FF", Noun = "飞石",
                 PassiveName = "百发百中", PassiveEff = Eff.Chain, PassiveV = 2, Desc = "飞石在敌人之间弹射" },
             new HeroDef { Id = HeroId.LinChong, Name = "林冲", Nick = "豹子头", Kind = Sim.Role.Fighter, Rarity = 4, Art = "hero_linchong",
-                Shot = ShotKind.Spear, Coef = 3.45f, Interval = 2.88f, Range = 6.2f, Radius = 0.76f, Knock = 0.30f, AtkName = "丈八蛇矛", AtkIcon = "wp_snakespear", Proj = "wp_snakespear", ProjSize = 1.32f, Tint = "54E2FF", Noun = "长枪",
+                Shot = ShotKind.Spear, Coef = 3.65f, Interval = 3.05f, Range = 6.2f, Radius = 0.76f, Knock = 0.30f, AtkName = "丈八蛇矛", AtkIcon = "wp_snakespear", Proj = "wp_snakespear", ProjSize = 1.32f, Tint = "54E2FF", Noun = "长枪",
                 Ult = UltKind.Frost, UltName = "风雪山神庙", UltIcon = "fx_ice", UltCoef = 13.5f, UltCd = 30, UltRadius = 1.9f, UltStun = 2.5f,
                 UltTip = "风雪冰封一片敌人\n冻住2.5秒",
                 PassiveName = "禁军教头", PassiveEff = Eff.Crit, PassiveV = 0.2f, Desc = "长枪贯穿一列，攻击距离远" },
             new HeroDef { Id = HeroId.LuZhiShen, Name = "鲁智深", Nick = "花和尚", Kind = Sim.Role.Fighter, Rarity = 3, Art = "hero_luzhishen",
-                Shot = ShotKind.Slam, Coef = 3.80f, Interval = 3.85f, Range = 5.2f, Radius = 1.2f, Knock = 0.55f, AtkName = "水磨禅杖", AtkIcon = "wp_staff", Proj = "wp_staff", ProjSize = 1.18f, Tint = "FFB038", Noun = "禅杖",
+                Shot = ShotKind.Slam, Coef = 3.90f, Interval = 3.95f, Range = 5.2f, Radius = 1.2f, Knock = 0.55f, AtkName = "水磨禅杖", AtkIcon = "wp_staff", Proj = "wp_staff", ProjSize = 1.18f, Tint = "FFB038", Noun = "禅杖",
                 PassiveName = "大闹五台山", PassiveEff = Eff.Speed, PassiveV = 0.2f, Desc = "浑铁禅杖腾空砸地，大范围震退" },
             new HeroDef { Id = HeroId.WuYong, Name = "吴用", Nick = "智多星", Kind = Sim.Role.Support, Rarity = 3, Art = "hero_wuyong", Element = "风系",
                 Shot = ShotKind.Wind, Interval = 28f, Buff = UltKind.Bless, BuffV = 1f, AtkName = "运筹帷幄", AtkIcon = "prop_drum", Noun = "锦囊",
@@ -265,17 +265,17 @@ namespace Liangshan.Sim
 
             // ---------- 传说 ----------
             new HeroDef { Id = HeroId.LuJunyi, Name = "卢俊义", Nick = "玉麒麟", Kind = Sim.Role.Fighter, Rarity = 4, Art = "hero_lujunyi",
-                Shot = ShotKind.Spear, Coef = 3.70f, Interval = 3.05f, Range = 6.0f, Radius = 0.8f, Knock = 0.32f, AtkName = "麒麟枪", AtkIcon = "wp_spear", Proj = "wp_spear", ProjSize = 1.34f, Tint = "FFC83A", Noun = "长枪",
+                Shot = ShotKind.Spear, Coef = 3.88f, Interval = 3.20f, Range = 6.0f, Radius = 0.8f, Knock = 0.32f, AtkName = "麒麟枪", AtkIcon = "wp_spear", Proj = "wp_spear", ProjSize = 1.34f, Tint = "FFC83A", Noun = "长枪",
                 Ult = UltKind.Sweep, UltName = "麒麟踏阵", UltIcon = "fx_wave", UltCoef = 10.0f, UltCd = 30, UltN = 5,
                 UltTip = "枪扫墙前一整排\n五段击飞",
                 PassiveName = "麒麟镇岳", PassiveEff = Eff.Crit, PassiveV = 0.15f, Desc = "宽幅枪扫，一次挑翻一列" },
             new HeroDef { Id = HeroId.GuanSheng, Name = "关胜", Nick = "大刀", Kind = Sim.Role.Fighter, Rarity = 4, Art = "hero_guansheng",
-                Shot = ShotKind.Slam, Coef = 4.35f, Interval = 3.7f, Range = 5.4f, Radius = 1.3f, Knock = 0.55f, AtkName = "青龙偃月刀", AtkIcon = "wp_broadsword", Proj = "wp_broadsword", ProjSize = 1.28f, Tint = "38F0A8", Noun = "大刀",
+                Shot = ShotKind.Slam, Coef = 4.53f, Interval = 3.85f, Range = 5.4f, Radius = 1.3f, Knock = 0.55f, AtkName = "青龙偃月刀", AtkIcon = "wp_broadsword", Proj = "wp_broadsword", ProjSize = 1.28f, Tint = "38F0A8", Noun = "大刀",
                 Ult = UltKind.Sweep, UltName = "拖刀计", UltIcon = "fx_shock", UltCoef = 11.5f, UltCd = 30, UltN = 5,
                 UltTip = "大刀横扫墙前\n五段重劈",
                 PassiveName = "武圣遗风", PassiveEff = Eff.Elite, PassiveV = 0.5f, Desc = "偃月重刀腾空劈斩，范围大伤害高" },
             new HeroDef { Id = HeroId.YanQing, Name = "燕青", Nick = "浪子", Kind = Sim.Role.Archer, Rarity = 4, Art = "hero_yanqing",
-                Shot = ShotKind.Arrow, Coef = 0.66f, Interval = 0.98f, Count = 3, AtkName = "连弩", AtkIcon = "wp_bolt_yanqing", Proj = "wp_bolt_yanqing", ProjSize = 1.04f, Tint = "FFD448", Noun = "弩箭",
+                Shot = ShotKind.Arrow, Coef = 1.38f, Interval = 2.05f, Count = 3, AtkName = "连弩", AtkIcon = "wp_bolt_yanqing", Proj = "wp_bolt_yanqing", ProjSize = 1.04f, Tint = "FFD448", Noun = "弩箭",
                 Ult = UltKind.Snipe, UltName = "一箭封喉", UltIcon = "fx_goldarrow", UltCoef = 11f, UltCd = 30,
                 UltTip = "瞄准场上最强敌人\n一箭重创",
                 PassiveName = "浪子连弩", PassiveEff = Eff.Speed, PassiveV = 0.2f, Desc = "唯一三连轻弩射手，场上满四位再添一矢" },
@@ -285,7 +285,7 @@ namespace Liangshan.Sim
                 UltTip = "龙卷风卷起敌群\n眩晕1秒",
                 PassiveName = "混世魔王", PassiveEff = Eff.Dmg, PassiveV = 0.2f, Desc = "旋风缠住目标持续绞杀，范围减速" },
             new HeroDef { Id = HeroId.HuSanniang, Name = "扈三娘", Nick = "一丈青", Kind = Sim.Role.Control, Rarity = 4, Art = "hero_husanniang",
-                Shot = ShotKind.Lasso, Coef = 2.75f, Interval = 3.15f, Radius = 1.05f, Stun = 1.6f, AtkName = "红锦缚龙索", AtkIcon = "wp_lasso", Proj = "wp_lasso", ProjSpin = true, Noun = "套索", Tint = "F03C38",
+                Shot = ShotKind.Lasso, Coef = 3.01f, Interval = 3.45f, Radius = 1.05f, Stun = 1.6f, AtkName = "红锦缚龙索", AtkIcon = "wp_lasso", Proj = "wp_lasso", ProjSpin = true, Noun = "套索", Tint = "F03C38",
                 Ult = UltKind.Bind, UltName = "阵前擒将", UltIcon = "ic_hand", UltCoef = 6.6f, UltCd = 30, UltN = 5, UltStun = 2.5f,
                 UltTip = "同时套住5个敌人\n优先精英首领",
                 PassiveName = "日月双刀", PassiveEff = Eff.Stun, PassiveV = 0.4f, Desc = "红锦长索锁敌并挥出双刀余劲，连精英首领也能缚住" },
@@ -309,7 +309,7 @@ namespace Liangshan.Sim
 
             // ---------- 史诗 ----------
             new HeroDef { Id = HeroId.LiKui, Name = "李逵", Nick = "黑旋风", Kind = Sim.Role.Fighter, Rarity = 3, Art = "hero_likui",
-                Shot = ShotKind.Punch, Coef = 2.95f, Interval = 3.05f, Range = 4.8f, Radius = 1.05f, Knock = 0.52f, AtkName = "旋风飞斧", AtkIcon = "wp_axe_spin", Proj = "wp_axe", ProjSpin = true, Tint = "38C8F0", Noun = "板斧",
+                Shot = ShotKind.Punch, Coef = 3.10f, Interval = 3.20f, Range = 4.8f, Radius = 1.05f, Knock = 0.52f, AtkName = "旋风飞斧", AtkIcon = "wp_axe_spin", Proj = "wp_axe", ProjSpin = true, Tint = "38C8F0", Noun = "板斧",
                 PassiveName = "黑旋风", PassiveEff = Eff.Area, PassiveV = 0.3f, Desc = "甩出沉重回旋板斧，击退近墙官军" },
             new HeroDef { Id = HeroId.QiaoDaoqing, Name = "乔道清", Nick = "幻魔君", Kind = Sim.Role.Mage, Rarity = 3, Art = "hero_qiaodaoqing", Element = "火系",
                 Shot = ShotKind.Beam, Coef = 0.62f, Interval = 10.4f, Chan = 3.6f, Tick = 0.2f, Radius = 0.66f, AtkName = "火焰射线", AtkIcon = "fx_fireball", Noun = "射线", Tint = "FF8A2A",
@@ -329,19 +329,19 @@ namespace Liangshan.Sim
 
             // ---------- 稀有 ----------
             new HeroDef { Id = HeroId.ShiXiu, Name = "石秀", Nick = "拼命三郎", Kind = Sim.Role.Fighter, Rarity = 2, Art = "hero_shixiu",
-                Shot = ShotKind.Punch, Coef = 1.85f, Interval = 2.35f, Range = 4.8f, Radius = 0.72f, Knock = 0.34f, AtkName = "拼命快刀", AtkIcon = "wp_fast_sabre", Proj = "wp_fast_sabre", ProjSize = 1.08f, Tint = "D8EEFF", Noun = "利刃",
+                Shot = ShotKind.Punch, Coef = 2.09f, Interval = 2.65f, Range = 4.8f, Radius = 0.72f, Knock = 0.34f, AtkName = "拼命快刀", AtkIcon = "wp_fast_sabre", Proj = "wp_fast_sabre", ProjSize = 1.08f, Tint = "D8EEFF", Noun = "利刃",
                 PassiveName = "拼命三郎", PassiveEff = Eff.Crit, PassiveV = 0.2f, Desc = "寒钢快刀凌厉一斩，暴击极高" },
             new HeroDef { Id = HeroId.XieZhen, Name = "解珍", Nick = "两头蛇", Kind = Sim.Role.Archer, Rarity = 2, Art = "hero_xiezhen",
-                Shot = ShotKind.Arrow, Coef = 1.18f, Interval = 1.08f, AtkName = "穿林猎弓", AtkIcon = "wp_arrow_hunt", Proj = "wp_arrow_hunt", ProjSize = 0.96f, Tint = "DCE8F2", Noun = "箭",
+                Shot = ShotKind.Arrow, Coef = 2.40f, Interval = 2.20f, AtkName = "穿林猎弓", AtkIcon = "wp_arrow_hunt", Proj = "wp_arrow_hunt", ProjSize = 0.96f, Tint = "DCE8F2", Noun = "箭",
                 PassiveName = "登州猎户", PassiveEff = Eff.Fly, PassiveV = 0.5f, Desc = "精准穿林单箭点杀，专克飞禽" },
             new HeroDef { Id = HeroId.XieBao, Name = "解宝", Nick = "双尾蝎", Kind = Sim.Role.Archer, Rarity = 2, Art = "hero_xiebao",
-                Shot = ShotKind.Arrow, Coef = 1.18f, Interval = 1.52f, Chain = 1, Dot = 0.35f, AtkName = "倒钩毒叉", AtkIcon = "wp_fork", Proj = "wp_fork", ProjSize = 1.00f, Tint = "5AE868", Noun = "钢叉",
+                Shot = ShotKind.Arrow, Coef = 1.76f, Interval = 2.45f, Chain = 1, Dot = 0.35f, AtkName = "倒钩毒叉", AtkIcon = "wp_fork", Proj = "wp_fork", ProjSize = 1.00f, Tint = "5AE868", Noun = "钢叉",
                 PassiveName = "双尾剧毒", PassiveEff = Eff.Chain, PassiveV = 1, Desc = "毒叉穿透敌军并附带持续毒伤" },
             new HeroDef { Id = HeroId.MaLing, Name = "马灵", Nick = "神驹子", Kind = Sim.Role.Mage, Rarity = 2, Art = "hero_maling", Element = "金系",
-                Shot = ShotKind.Stone, Coef = 1.96f, Interval = 2.85f, Radius = 0.98f, Stun = 0.8f, StunChance = 0.35f, AtkName = "金砖镇魔", AtkIcon = "wp_goldbrick", Proj = "wp_goldbrick", ProjSpin = true, Noun = "金砖", Tint = "FFD24A",
+                Shot = ShotKind.Stone, Coef = 2.27f, Interval = 3.30f, Radius = 0.98f, Stun = 0.8f, StunChance = 0.35f, AtkName = "金砖镇魔", AtkIcon = "wp_goldbrick", Proj = "wp_goldbrick", ProjSpin = true, Noun = "金砖", Tint = "FFD24A",
                 PassiveName = "风火金印", PassiveEff = Eff.Area, PassiveV = 0.25f, Desc = "祭出镇魔金砖从天砸落，激起金光震波轰击一片并高几率击晕" },
             new HeroDef { Id = HeroId.KongLiang, Name = "孔亮", Nick = "独火星", Kind = Sim.Role.Bomber, Rarity = 2, Art = "hero_kongliang", Element = "火系",
-                Shot = ShotKind.Bomb, Coef = 1.92f, Interval = 3.5f, Radius = 1.00f, AtkName = "独火雷", AtkIcon = "ic_bomb", Noun = "火雷",
+                Shot = ShotKind.Bomb, Coef = 2.05f, Interval = 3.75f, Radius = 1.00f, AtkName = "独火雷", AtkIcon = "ic_bomb", Noun = "火雷",
                 PassiveName = "星火燎原", PassiveEff = Eff.Area, PassiveV = 0.22f, Desc = "掷出一枚高爆独火雷，炸翻扎堆步卒" },
             new HeroDef { Id = HeroId.TangLong, Name = "汤隆", Nick = "金钱豹子", Kind = Sim.Role.Support, Rarity = 2, Art = "hero_tanglong",
                 Shot = ShotKind.Stone, Interval = 24f, Buff = UltKind.Forge, BuffV = 0.4f, AtkName = "打造神兵", AtkIcon = "ic_gear", Noun = "神兵", Tint = "A8AEB8",
@@ -1120,6 +1120,7 @@ namespace Liangshan.Sim
         /// <summary>全局武器弹道与刀剑枪斧特效节奏倍率（由数值管理中心统一调控）。</summary>
         public static float ProjPace => Balance.Current.Combat.ProjPace;
         public static float VfxPace => Balance.Current.Combat.VfxPace;
+        public static float MinAtkInterval => Balance.Current.Combat.MinAtkInterval;
         public static float BeamFlowSpeed => Balance.Current.Combat.BeamFlowSpeed;
         /// <summary>冷却转满时剑气够不着人，最多再等这么久；再没人就空过这一轮，圈重新转，不能停在满圈上。</summary>
         public const float LordHold = 2.5f;

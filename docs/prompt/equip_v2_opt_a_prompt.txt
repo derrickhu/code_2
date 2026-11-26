@@ -1,0 +1,19 @@
+Use the attached reference image strictly to match the EXACT same 2D world art style as the cute 2-head-tall chibi character on the left and the plump soft-vinyl weapons on the right (inspired by "Forever Blue Planet" 永远的蔚蓝星球 and premium Pop-Mart Designer Vinyl Figures). Do NOT draw any human characters, bodies, or UI frames.
+
+Create a clean 3 columns x 2 rows RPG equipment icon sheet (6 items total) in **OPTION A: Premium Plump Soft-Vinyl Toy Style (精致呆萌软胶潮玩风)**.
+
+CRITICAL QUALITY & STYLE RULES (MUST NOT LOOK CHEAP OR FLAT!):
+1. LUSH TACTILE SOFT-VINYL VOLUME: Every item must have rich, creamy, smooth 3D toy volume with warm directional top-left lighting, soft airbrushed form gradients, crisp cel-shaded rim bounce light, and juicy pill-shaped white specular gloss dots — like a $30 Pop-Mart collectible vinyl prop, NEVER flat 2D vector clip-art!
+2. HEROIC CHIBI PROPORTIONS (CUTE YET ICONIC): Chunky, plump, rounded 2-head-tall chibi proportions, while keeping every iconic Chinese heroic silhouette instantly recognizable (auspicious cloud sword guard, cute chubby golden dragon with big expressive eyes, adorable round lion belt buckle, fluffy chunky fur collar). Remove noisy micro-scales and dirty scratches.
+3. UNIFORM THICK WARM DARK-PLUM OUTLINE (#2B2338): Smooth, confident, continuous #2B2338 outer contour locking every silhouette cleanly. 100% solid opaque fill.
+4. ISOLATED ON SOLID LIGHT BACKGROUND: Center each of the 6 items with generous empty margin on a completely flat, uniform pale grey-blue background (#E6ECF2). NO UI boxes, NO square tiles, NO grid lines, NO cast ground shadows.
+
+The 6 items (3 columns x 2 rows):
+- Row 1, Col 1 — Dragon-Spring Sword (龙泉宝剑): Diagonal 45° pointing up-right. Plump wide ice-silver blade with smooth center fuller and pill gloss, chunky warm-gold ruyi-cloud crossguard set with a glossy round sapphire gem, royal-blue chunky grip, and a plump silky crimson tassel.
+- Row 1, Col 2 — Marshal Fur Cloak (统帅披风): Front 3/4 view. Plump bell-shaped vibrant royal-blue cape with soft chunky folds, thick warm-gold border trim, super fluffy rounded cream-white winter fur collar, fastened at the chest by a chunky gold cloud medallion with a blue gem.
+- Row 1, Col 3 — Celadon Jade Pendant (青玉瑞兽佩): Plump thick rounded-shield mint-emerald jade plaque framed in warm gold, carved in smooth cute chubby relief with an adorable round baby Qilin/Pixiu beast, hanging from a thick braided vermilion silk cord and plump red tassel.
+- Row 2, Col 1 — Coiled Golden Dragon Totem (盘龙金角): An adorable yet majestic S-coiled chubby golden Chinese dragon figurine (big expressive eyes, rounded golden horns, smooth chunky belly segments instead of tiny scales) with a vibrant glossy red silk ribbon tied in a bow around its neck.
+- Row 2, Col 2 — Phoenix-Wing Helmet (凤翅兜鍪): Chubby rounded cobalt-steel general helmet with thick warm-gold brow trim, a glossy teardrop sapphire gem on the forehead, two cute upturned chunky golden phoenix wings on the sides, and a full bouncy crimson horsehair plume on top.
+- Row 2, Col 3 — Bright-Mirror Cuirass (明光宝铠): Chubby heroic breastplate with smooth polished silver-white chest plates (large clean scalloped plates, NO tiny honeycomb mesh), royal-blue under-tunic trim, chunky golden shoulder pauldrons, and a cute round golden lion-head waist buckle.
+
+NO TEXT, no labels, no letters, no numbers, no Chinese characters, no frames, no watermarks anywhere in the image.

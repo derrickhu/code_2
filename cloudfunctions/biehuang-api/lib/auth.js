@@ -26,8 +26,11 @@ async function handleLogin(req) {
   }
 
   let platformUid = '';
+  let sessionKey = '';
   if (platform === 'wx') {
-    platformUid = (await wxCode2Openid(body.code)).openid;
+    const wx = await wxCode2Openid(body.code);
+    platformUid = wx.openid;
+    sessionKey = wx.sessionKey;
   } else if (platform === 'dy') {
     platformUid = await ttCode2Openid(body.code);
   } else if (platform === 'anon') {
@@ -40,6 +43,13 @@ async function handleLogin(req) {
   }
 
   const userId = `${platform}:${platformUid}`;
+  if (sessionKey) {
+    try {
+      await require('./game-club').upsertWxSession(userId, sessionKey);
+    } catch (error) {
+      console.warn('[auth] save wx session failed', error && error.message);
+    }
+  }
   const ttlSec = getTtlSec();
   const gameKey = getGameKey();
   const now = Math.floor(Date.now() / 1000);

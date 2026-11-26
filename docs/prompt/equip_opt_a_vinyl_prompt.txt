@@ -1,0 +1,21 @@
+Use the attached reference image ONLY for the cute chubby soft-vinyl toy rendering style (thick warm dark-plum outline, plump rounded shapes, pill-shaped white gloss). Do NOT copy the weapons in the reference. Do NOT draw any characters, hands, or faces.
+
+Create a clean 4 columns x 2 rows equipment icon sheet (8 items) in **OPTION A: Cute Chubby Soft-Vinyl Toy Style (呆萌圆润软胶潮玩风)**, matching a 2-head-tall chibi mobile strategy game like Forever Blue Planet.
+
+STRICT VISUAL RULES FOR OPTION A:
+1. ROUNDED, PLUMP, STUBBY TOY PROPORTIONS. Every object looks like a Pop-Mart / soft-vinyl figure: oversized rounded corners, thick stubby parts, no needle-sharp points.
+2. ZERO TINY DETAILS: NO scratches, NO rivets, NO wood grain, NO rope strands, NO hexagon scale mesh, NO engraved filigree. Pure large smooth color blocks.
+3. UNIFORM THICK WARM DARK-PLUM OUTLINE (#2B2338) on every icon, plus one or two bright pill-shaped white gloss highlights. 100% solid opaque fill. Zero aura, zero transparency, zero outer glow.
+4. LAYOUT: each icon centered in its cell with wide margin on a flat solid pale grey-blue background (#D8E0E8). No grid lines, no frames, no drop shadows, no ground shadows.
+
+The 8 cells, left to right, top row then bottom row:
+- (1,1) Dragon-Spring Sword: a short chubby jian pointing up-right. Oversized rounded ice-silver blade, one simple warm-gold collar, a round blue gem, a stubby dark-blue grip, and one plump red tassel. No flame-shaped guard filigree.
+- (1,2) Marshal Cloak: a plump bell-shaped royal-blue cape, cream-white rounded fur collar and hem, one thick gold vertical stripe, and a single round gold clasp with a tiny blue gem.
+- (1,3) Military Manual: a chubby closed book, warm red cover, thick gold rounded corners, a simple green jade S-shaped clasp (two smooth loops, not a detailed snake), and a short red ribbon bookmark.
+- (1,4) Apricot Battle Flag: a short thick wooden pole with a round gold finial and one plump gold tassel, holding a rectangular apricot-yellow flag with a thick red border and three simple rounded red swallow-tail ribbons. No writing on the flag.
+- (2,1) Green-Jade Pendant: a plump rounded jade plaque in mint celadon, thick gold rim, a simplified cute round dragon-cub face (big eyes, no scales), and one thick red cord with a chubby tassel.
+- (2,2) Phoenix-Wing Helmet: a round chubby steel-blue helmet, thick gold brow band, one blue teardrop gem, two small rounded gold wings, and one plump red plume.
+- (2,3) Cloud-Step Boots: a pair of stubby royal-blue boots side by side, thick gold trim, and one simple silver cloud shape on each shin. No laces.
+- (2,4) Bright-Mirror Armor: a short chubby breastplate, smooth silver plates (no hex mesh), a blue collar, a thick gold belt, and one cute round lion-face buckle.
+
+NO TEXT, no labels, no captions, no Chinese characters, no letters, no numbers, no watermarks anywhere in the image.

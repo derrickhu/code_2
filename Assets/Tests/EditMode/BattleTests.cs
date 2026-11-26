@@ -1779,5 +1779,55 @@ namespace Liangshan.Tests
             Assert.Greater(farEnemy.SlowT, 2.5f, "前场远处照常获得完整减速延长，无需怪贴墙");
             Assert.GreaterOrEqual(farEnemy.Vuln, 0.18f, "命中同时挂上 +18% 破阵易伤");
         }
+
+        [Test]
+        public void InitialCooldownFloorOverflowSpeedAndXieZhenSnipeHold()
+        {
+            // 1. 情绪价值与攻速成长空间护栏：全部 32 位好汉 1 级初始冷却严禁低于 2.05s，杜绝开局“1 秒机关枪”透支后期爽感
+            foreach (var d in Defs.Heroes)
+                Assert.GreaterOrEqual(d.Interval, 2.05f - 1e-4f, $"{d.Name} 1级初始冷却({d.Interval:F2}s)过短，缺乏后期攻速提升空间");
+
+            // 2. 解珍选「双弦猎箭(箭+1)」稳定射 2 箭；三合一奥义觉醒后第 3 轮不再乱洒 3 支散箭，而是精准锁定飞禽/精英追射 1 支放大重箭
+            var lu = new[] { HeroId.XieZhen, HeroId.KongLiang, HeroId.MaLing, HeroId.ShiXiu };
+            var b = new Battle(11, lu);
+            b.Slots[0].Unit = new Unit { Hero = HeroId.XieZhen, Star = 1, Cd = 0f };
+            b.Enemies.Add(new Enemy { Id = 901, Def = Defs.Enemy(EnemyKind.Soldier), Hp = 9999f, MaxHp = 9999f, Pos = new V2(0, 1.5f) });
+            b.Enemies.Add(new Enemy { Id = 902, Def = Defs.Enemy(EnemyKind.Hawk), Hp = 9999f, MaxHp = 9999f, Pos = new V2(1.2f, 2.8f) });
+            b.Choices = new[] { Defs.Perk("xiezhen_0") }; b.Phase = Phase.Choosing; b.Pick(0);
+            b.Choices = new[] { Defs.Perk("xiezhen_morph") }; b.Phase = Phase.Choosing; b.Pick(0);
+            b.Choices = new[] { Defs.Perk("xiezhen_adv") }; b.Phase = Phase.Choosing; b.Pick(0);
+            Assert.IsTrue(b.IsAwakened(HeroId.XieZhen));
+
+            b.Shots.Clear();
+            b.Slots[0].Unit.Casts = 0;
+            b.Slots[0].Unit.Cd = 0f;
+            b.Update(0.02f);
+            Assert.AreEqual(2, b.Shots.Count, "选箭+1后普通轮次严格射出2支箭");
+
+            b.Shots.Clear();
+            b.Slots[0].Unit.Casts = 2;
+            b.Slots[0].Unit.Cd = 0f;
+            b.Update(0.02f);
+            Assert.AreEqual(3, b.Shots.Count, "觉醒第3轮为2支普箭+1支穿林破甲重矢，不冒出4~5支散箭");
+            var heavy = b.Shots.OrderByDescending(s => s.Scale).First();
+            Assert.Greater(heavy.Scale, 1.35f);
+            Assert.AreEqual(902, heavy.TargetId, "穿林重矢优先狙杀飞禽鹰隼");
+
+            // 3. 极端叠攻速保底护栏（0.55s）与 1:1 无损转伤害：8 倍攻速不鬼畜抽搐，溢出攻速全额化为重箭伤害
+            var speedLu = new[] { HeroId.XieZhen, HeroId.XieZhen, HeroId.XieZhen, HeroId.XieZhen };
+            var lo1 = Loadout.Plain(speedLu); lo1.Crit = 0f; lo1.AllSpeed = 2.0f; // 2.20 / 2.0 = 1.10s
+            var lo2 = Loadout.Plain(speedLu); lo2.Crit = 0f; lo2.AllSpeed = 8.0f; // 2.20 / 8.0 = 0.275s -> 锁在 0.55s，单发伤害×2
+            var b1 = new Battle(1, speedLu, Defs.Level(1), lo1);
+            var b2 = new Battle(1, speedLu, Defs.Level(1), lo2);
+            b1.Enemies.Clear(); b2.Enemies.Clear();
+            b1.Enemies.Add(new Enemy { Id = 1, Def = Defs.Enemy(EnemyKind.Boss), Hp = 1e8f, MaxHp = 1e8f, Pos = new V2(0, 1f) });
+            b2.Enemies.Add(new Enemy { Id = 1, Def = Defs.Enemy(EnemyKind.Boss), Hp = 1e8f, MaxHp = 1e8f, Pos = new V2(0, 1f) });
+            b1.Slots[0].Unit = new Unit { Hero = HeroId.XieZhen, Star = 1, Cd = 0f };
+            b2.Slots[0].Unit = new Unit { Hero = HeroId.XieZhen, Star = 1, Cd = 0f };
+            b1.Update(0.01f); b2.Update(0.01f);
+            float realCd2 = b2.Slots[0].Unit.Cd / b2.HeroSpeedMul(HeroId.XieZhen);
+            Assert.AreEqual(Defs.MinAtkInterval, realCd2, 0.02f, "超高攻速真实间隔锁定在保底 0.55s");
+            Assert.AreEqual(2.0f, b2.Shots[0].Damage / b1.Shots[0].Damage, 0.02f, "超出保底的2倍溢出攻速1:1无损折算为2倍单发伤害");
+        }
     }
 }

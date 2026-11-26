@@ -1084,12 +1084,24 @@ namespace Liangshan
             var r = Meta.BattleRewards(S, st, true, st.Waves, 1, 0, new Rng(1));
             ItemRow(p, r.Items, new Vector2(0, -160), 130);
             Ui.Label(p, "失败也按坚持的波数给部分奖励", 24, Pal.Muted, new Vector2(0, -300), new Vector2(700, 40));
-            int left = Meta.DailyTriesMax - S.DailyTries;
-            Ui.Btn(p, left > 0 ? $"挑战（剩 {left} 次）" : "今日已用完", new Vector2(460, 120), new Vector2(0, -420), left > 0 ? Pal.Gold : Pal.Slate, () =>
+            int maxDaily = Meta.DailyTriesMax + S.AdDailyTries;
+            int left = maxDaily - S.DailyTries;
+            int adLeft = Meta.AdDailyTriesMax - S.AdDailyTries;
+            bool canAd = left <= 0 && adLeft > 0;
+            string btnTxt = left > 0 ? $"挑战（剩 {left} 次）" : canAd ? $"免费加次 ({adLeft}/{Meta.AdDailyTriesMax})" : "今日已用完";
+            Color btnCol = left > 0 ? Pal.Gold : canAd ? Pal.Green : Pal.Slate;
+            Ui.Btn(p, btnTxt, new Vector2(480, 120), new Vector2(0, -420), btnCol, () =>
             {
-                if (left <= 0) return;
-                Game.I.StartDaily();
-            }, 42);
+                if (left > 0) { Game.I.StartDaily(); return; }
+                if (!canAd) return;
+                if (S.Stamina < Meta.BattleStamina) { Sfx.Play(Snd.Deny); StaminaShop(layer); return; }
+                Ads.Show("daily_extra", () =>
+                {
+                    S.AdDailyTries++;
+                    Save();
+                    Game.I.StartDaily();
+                });
+            }, canAd ? 36 : 42, canAd ? "ic_ad" : null);
             Ui.Label(p, $"消耗体力 {Meta.BattleStamina}", 24, Pal.SubInk, new Vector2(0, -500), new Vector2(400, 36));
         }
 
@@ -1106,12 +1118,24 @@ namespace Liangshan
             r.Items.RemoveAll(x => x.N <= 0);
             ItemRow(p, r.Items, new Vector2(0, -140), 120);
             Ui.Label(p, "每 3 担额外得精铁 1", 24, Pal.Muted, new Vector2(0, -240), new Vector2(600, 40));
-            int left = Meta.EscortTriesMax - S.EscortTries;
-            Ui.Btn(p, left > 0 ? $"出发（剩 {left} 次）" : "今日已用完", new Vector2(460, 120), new Vector2(0, -390), left > 0 ? Pal.Gold : Pal.Slate, () =>
+            int maxEscort = Meta.EscortTriesMax + S.AdEscortTries;
+            int left = maxEscort - S.EscortTries;
+            int adLeft = Meta.AdEscortTriesMax - S.AdEscortTries;
+            bool canAd = left <= 0 && adLeft > 0;
+            string btnTxt = left > 0 ? $"出发（剩 {left} 次）" : canAd ? $"免费加次 ({adLeft}/{Meta.AdEscortTriesMax})" : "今日已用完";
+            Color btnCol = left > 0 ? Pal.Gold : canAd ? Pal.Green : Pal.Slate;
+            Ui.Btn(p, btnTxt, new Vector2(480, 120), new Vector2(0, -390), btnCol, () =>
             {
-                if (left <= 0) return;
-                Game.I.StartEscort();
-            }, 42);
+                if (left > 0) { Game.I.StartEscort(); return; }
+                if (!canAd) return;
+                if (S.Stamina < Meta.BattleStamina) { Sfx.Play(Snd.Deny); StaminaShop(layer); return; }
+                Ads.Show("escort_extra", () =>
+                {
+                    S.AdEscortTries++;
+                    Save();
+                    Game.I.StartEscort();
+                });
+            }, canAd ? 36 : 42, canAd ? "ic_ad" : null);
             Ui.Label(p, $"消耗体力 {Meta.BattleStamina}", 24, Pal.SubInk, new Vector2(0, -470), new Vector2(400, 36));
         }
 

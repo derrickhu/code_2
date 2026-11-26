@@ -527,22 +527,39 @@ namespace Liangshan
         public static void Welfare(Transform layer)
         {
             int today = Profile.Today;
-            Modal(layer, "welfare", "每日福利", new Vector2(880, 880), out var p, Pal.Gold);
+            Modal(layer, "welfare", "每日福利", new Vector2(880, 880), out var p, Pal.Gold, 24f);
+            WelfareBottomTabs(p, layer, 440f, 0);
             Ui.Skin(p, "quest_tray", new Vector2(796, 260), new Vector2(0, 210), 1f);
             Ui.Box(p, new Vector2(260, 220), new Vector2(0, 218), Pal.Gold.A(0.32f), Art.SoftDot);
             Ui.Icon(p, "tab_welfare", 206, new Vector2(0, 222));
-            Ui.Label(p, "梁山军需每日犒赏 · 零点准时刷新", 26, WarmTitle, new Vector2(0, 108), new Vector2(740, 38), TextAnchor.MiddleCenter, Fonts.Heavy);
+            bool can = Meta.CanWelfare(S, today);
+            bool canAd = Meta.CanAdWelfare(S, today);
+            Ui.Label(p, canAd ? "今日免费份已领 · 看视频可额外再领一份军需" : "梁山军需每日犒赏 · 零点准时刷新", 26, WarmTitle, new Vector2(0, 108), new Vector2(740, 38), TextAnchor.MiddleCenter, Fonts.Heavy);
 
             ItemRow(p, new List<Item>(Meta.WelfareReward(S)), new Vector2(0, -48), 136);
-            bool can = Meta.CanWelfare(S, today);
-            var btn = Ui.Btn(p, can ? "免费领取" : "明日再来", new Vector2(340, 108), new Vector2(0, -286), can ? Claim : Pal.Slate, () =>
+            string btnTxt = can ? "免费领取" : canAd ? "再领一份" : "明日再来";
+            Color btnCol = can ? Claim : canAd ? Pal.Green : Pal.Slate;
+            var btn = Ui.Btn(p, btnTxt, new Vector2(340, 108), new Vector2(0, -286), btnCol, () =>
             {
-                var got = Meta.ClaimWelfare(S, today);
-                if (got == null) { Ui.Toast("今天已经领过了", 200); return; }
-                Save();
-                Welfare(layer);
-                ShowRewards(layer, "每日福利", new List<Item>(got));
-            }, 40);
+                if (can)
+                {
+                    var got = Meta.ClaimWelfare(S, today);
+                    if (got == null) return;
+                    Save();
+                    Welfare(layer);
+                    ShowRewards(layer, "每日福利", new List<Item>(got));
+                    return;
+                }
+                if (!canAd) { Ui.Toast("今天已经领过了", 200); return; }
+                Ads.Show("welfare_double", () =>
+                {
+                    var got = Meta.ClaimAdWelfare(S, today);
+                    if (got == null) return;
+                    Save();
+                    Welfare(layer);
+                    ShowRewards(layer, "福利加赠", new List<Item>(got));
+                });
+            }, canAd ? 36 : 40, canAd ? "ic_ad" : null);
             if (can) Dot(btn, new Vector2(154, 42));
         }
     }

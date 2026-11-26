@@ -973,6 +973,108 @@ namespace Liangshan.Tests
             Assert.IsEmpty(errors, string.Join("\n", errors));
         }
 
+        [Test]
+        public void AdPlacementsDailyLimitsAndWelfareBonusResetCleanly()
+        {
+            var s = Meta.NewSave(0);
+            Meta.RollDay(s, 10);
+
+            // 每日福利：未领免费份时不可先领广告加赠；领完免费份后可领 1 次广告加赠，次日自动恢复
+            Assert.IsTrue(Meta.CanWelfare(s, 10));
+            Assert.IsFalse(Meta.CanAdWelfare(s, 10));
+            Assert.IsNull(Meta.ClaimAdWelfare(s, 10));
+
+            int tok0 = s.Tokens, sta0 = s.Stamina, cop0 = s.Copper;
+            var w1 = Meta.ClaimWelfare(s, 10);
+            Assert.IsNotNull(w1);
+            Assert.IsFalse(Meta.CanWelfare(s, 10));
+            Assert.IsTrue(Meta.CanAdWelfare(s, 10));
+
+            var w2 = Meta.ClaimAdWelfare(s, 10);
+            Assert.IsNotNull(w2);
+            Assert.IsFalse(Meta.CanAdWelfare(s, 10));
+            Assert.IsNull(Meta.ClaimAdWelfare(s, 10));
+            Assert.AreEqual(tok0 + 2, s.Tokens);
+            Assert.AreEqual(sta0 + 40, s.Stamina);
+            Assert.Greater(s.Copper, cop0 + 1900);
+
+            // 各项新增每日广告计数在跨天时完整清零
+            s.AdTotem = Meta.AdTotemMax;
+            s.AdGearBox = Meta.AdGearBoxMax;
+            s.AdDailyTries = Meta.AdDailyTriesMax;
+            s.AdEscortTries = Meta.AdEscortTriesMax;
+            s.AdInterstitial = Meta.InterstitialDailyMax;
+
+            Meta.RollDay(s, 11);
+            Assert.AreEqual(0, s.AdTotem);
+            Assert.AreEqual(0, s.AdGearBox);
+            Assert.AreEqual(0, s.AdDailyTries);
+            Assert.AreEqual(0, s.AdEscortTries);
+            Assert.AreEqual(0, s.AdInterstitial);
+            Assert.IsTrue(Meta.CanWelfare(s, 11));
+            Assert.IsFalse(Meta.CanAdWelfare(s, 11));
+        }
+
+        [Test]
+        public void GameClubCumulativeAndDailyOfficialTasksHold()
+        {
+            var s = Meta.NewSave(0);
+            Meta.RollDay(s, 20);
+
+            // 初始仅开放：加入游戏圈(0)、累计点赞1次(1)、累计评论1次(2)；后续档位与今日日常均需前置解锁
+            Assert.IsTrue(Meta.ClubTaskUnlocked(s, 0));
+            Assert.IsTrue(Meta.ClubTaskUnlocked(s, 1));
+            Assert.IsTrue(Meta.ClubTaskUnlocked(s, 2));
+            Assert.IsFalse(Meta.ClubTaskUnlocked(s, 3));
+            Assert.IsFalse(Meta.ClubTaskUnlocked(s, 7));
+
+            // 第 20 天：入圈 + 点赞 2 次 + 评论 3 次；重复同步相同今日计数绝不双倍累加
+            Assert.IsTrue(Meta.SyncClubData(s, 20, true, 2, 3, 0));
+            Assert.IsFalse(Meta.SyncClubData(s, 20, true, 2, 3, 0));
+            Assert.AreEqual(2, s.ClubTotalLikes);
+            Assert.AreEqual(3, s.ClubTotalComments);
+
+            // 领取【加入游戏圈】发放 200 元宝 + 3 招募令 + 1 装备箱，并解锁每日日常任务
+            int ing0 = s.Ingots, tok0 = s.Tokens, box0 = s.GearBoxes;
+            Assert.IsFalse(Meta.CanClaimClubTask(s, 20, 7));
+            Assert.IsNotNull(Meta.ClaimClubTask(s, 20, 0));
+            Assert.AreEqual(ing0 + 200, s.Ingots);
+            Assert.AreEqual(tok0 + 3, s.Tokens);
+            Assert.AreEqual(box0 + 1, s.GearBoxes);
+
+            Assert.IsTrue(Meta.ClubTaskUnlocked(s, 7));
+            Assert.IsTrue(Meta.CanClaimClubTask(s, 20, 7));
+            Assert.IsNotNull(Meta.ClaimClubTask(s, 20, 7));
+            Assert.IsFalse(Meta.CanClaimClubTask(s, 20, 7));
+
+            // 点赞链：未领 1 次前不能跳领 3 次；领完 1 次后解锁 3 次并保留 2/3 进度
+            Assert.IsFalse(Meta.CanClaimClubTask(s, 20, 3));
+            Assert.IsNotNull(Meta.ClaimClubTask(s, 20, 1));
+            Assert.IsTrue(Meta.ClubTaskUnlocked(s, 3));
+            Assert.AreEqual(2, Meta.ClubTaskValue(s, 20, 3));
+
+            // 跨到第 21 天：今日计数与日常领取位重置，历史累计完整保留；再赞 3 次 + 评 2 次达成双 5 终极档
+            Meta.RollDay(s, 21);
+            Assert.AreEqual(0, s.ClubDayLikes);
+            Assert.AreEqual(2, s.ClubTotalLikes);
+
+            int tomes0 = s.Tomes, meteor0 = s.Meteor;
+            Assert.IsTrue(Meta.SyncClubData(s, 21, true, 3, 2, 1));
+            Assert.AreEqual(5, s.ClubTotalLikes);
+            Assert.AreEqual(5, s.ClubTotalComments);
+            Assert.IsTrue(Meta.CanClaimClubTask(s, 21, 7));
+            Assert.IsTrue(Meta.CanClaimClubTask(s, 21, 9));
+
+            Assert.IsNotNull(Meta.ClaimClubTask(s, 21, 3));
+            Assert.IsNotNull(Meta.ClaimClubTask(s, 21, 4));
+            Assert.IsNotNull(Meta.ClaimClubTask(s, 21, 2));
+            Assert.IsNotNull(Meta.ClaimClubTask(s, 21, 5));
+            Assert.IsNotNull(Meta.ClaimClubTask(s, 21, 6));
+
+            Assert.AreEqual(meteor0 + 3, s.Meteor);
+            Assert.AreEqual(tomes0 + 2, s.Tomes);
+        }
+
         static int SkillRowLevel(Meta.TalentSkill kind)
         {
             switch (kind)

@@ -9,7 +9,7 @@ namespace Liangshan
         public const string GameKey = "biehuang";
         public const string GameName = "宋江别慌张";
         public const string AppId = "wxde332003e4d0ef23";
-        /// <summary>微信流量主激励视频广告位 ID（开通流量主后填入 adunit-xxx 即可自动切换真机激励视频；留空时走演示回退）。</summary>
+        /// <summary>兜底通用激励视频广告位 ID；分模块精细广告位请填写在 Ads.cs 的 AdUnits 中。</summary>
         public const string RewardedAdUnitId = "";
         /// <summary>云存储上的按需资源，和别的游戏同一个桶。曲子在 biehuang/StreamingAssets/Music，用到哪首下哪首。</summary>
         public const string AssetCdn = "https://726f-rosa-env-d7grf78r5dbd37323-1414200063.tcb.qcloud.la/" + GameKey;
@@ -23,6 +23,7 @@ namespace Liangshan
         public const string RankSubmitPath = Prefix + "/rank/submit";
         public const string RankListPath = Prefix + "/rank/list";
         public const string RankLikePath = Prefix + "/rank/like";
+        public const string GameClubSyncPath = Prefix + "/gameclub/sync";
 
         public const int RequestTimeoutSec = 10;
         public const int SchemaVersion = 1;
