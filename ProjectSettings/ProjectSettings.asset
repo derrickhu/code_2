@@ -13,8 +13,8 @@ PlayerSettings:
   targetDevice: 2
   useOnDemandResources: 0
   accelerometerFrequency: 60
-  companyName: RosaGames
-  productName: "\u5B8B\u6C5F\u522B\u614C\u5F20"
+  companyName: Luckygua
+  productName: Songjiang2
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -42,7 +42,7 @@ PlayerSettings:
     height: 1
   m_SplashScreenLogos: []
   m_VirtualRealitySplashScreen: {fileID: 0}
-  expectedBundleIdentifier: com.RosaGames.---------------
+  expectedBundleIdentifier: com.Luckygua.Songjiang2
   integrityHash: 
   m_HolographicTrackingLossScreen: {fileID: 0}
   defaultScreenWidth: 540
@@ -210,11 +210,11 @@ PlayerSettings:
   androidSupportedAspectRatio: 2
   androidMaxAspectRatio: 2.1
   applicationIdentifier:
-    Android: com.rosagames.liangshan
-    Lumin: com.rosagames.liangshan
-    Standalone: com.rosagames.liangshan
-    iPhone: com.rosagames.liangshan
-    tvOS: com.DefaultCompany.com.unity.template.mobile2D
+    Android: com.Luckygua.Songjiang2
+    Lumin: com.Luckygua.Songjiang2
+    Standalone: com.Luckygua.Songjiang2
+    iPhone: com.Luckygua.Songjiang2
+    tvOS: com.Luckygua.Songjiang2
   buildNumber:
     Standalone: 0
     VisionOS: 0
@@ -981,7 +981,7 @@ PlayerSettings:
   weixinMiniGameEmscriptenArgs: ' -s EXPORTED_FUNCTIONS=_main,_sbrk,_emscripten_stack_get_base,_emscripten_stack_get_end
     -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s TOTAL_MEMORY=256MB -s EXPORTED_RUNTIME_METHODS=''["ccall","cwrap","stackTrace","addRunDependency","removeRunDependency","FS_createPath","FS_createDataFile","stackTrace","writeStackCookie","checkStackCookie","lengthBytesUTF8","stringToUTF8"]'''
   weixinMiniGameModulesDirectory: 
-  weixinMiniGameTemplate: PATH:/Users/huyi/dk_proj/code_2/Packages/com.qq.weixin.minigame/WebGLTemplates/WXTemplate2022TJ
+  weixinMiniGameTemplate: PATH:/Users/rosa/rosa_games/code_2/Packages/com.qq.weixin.minigame/WebGLTemplates/WXTemplate2022TJ
   weixinMiniGameAnalyzeBuildSize: 0
   weixinMiniGameUseEmbeddedResources: 0
   weixinMiniGameCompressionFormat: 2

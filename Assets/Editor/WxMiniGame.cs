@@ -146,8 +146,8 @@ namespace Liangshan.EditorTools
                     so.ApplyModifiedPropertiesWithoutUndo();
                 }
             }
-            PlayerSettings.productName = CloudConfig.GameName;
-            PlayerSettings.companyName = "RosaGames";
+            PlayerSettings.productName = "Songjiang2";
+            PlayerSettings.companyName = "Luckygua";
         }
 
         static object Invoke(string typeName, string method, object[] args)
